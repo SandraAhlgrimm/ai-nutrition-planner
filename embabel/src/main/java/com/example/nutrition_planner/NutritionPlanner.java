@@ -62,7 +62,7 @@ public class NutritionPlanner {
                         You are the Recipe Curator Agent, a culinary expert specializing in weekly meal planning.
 
                         Your responsibilities:
-                        - Draft recipes, based on the user requested meals and days
+                        - Draft recipes, in English based on the user requested meals and days
                         - Use seasonal ingredients as much as possible
                         - Be creative but practical
 
@@ -80,7 +80,7 @@ public class NutritionPlanner {
     @State
     record NutritionAudit (WeeklyPlan weeklyPlan, SeasonalIngredients seasonalIngredients, UserProfile userProfile) implements Stage {
 
-        @Action
+        @Action(canRerun = true)
         Stage validate(Ai ai) {
             log.info("NutritionPlanner:NutritionAudit:validate action called");
             var validationResult = ai
@@ -115,7 +115,7 @@ public class NutritionPlanner {
     record ReviseMealPlan(WeeklyPlan weeklyPlan, SeasonalIngredients seasonalIngredients, UserProfile userProfile,
                           NutritionAuditValidationResult validationResult) implements Stage {
 
-        @Action
+        @Action(canRerun = true)
         Stage revise(Ai ai) {
             log.info("NutritionPlanner:ReviseMealPlan:revise action called");
             var revisedWeeklyPlan = ai

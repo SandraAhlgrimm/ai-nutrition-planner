@@ -12,8 +12,6 @@ import org.slf4j.LoggerFactory;
 import java.time.LocalDate;
 import java.util.Locale;
 
-
-
 /**
  * Agent flow:
  *
@@ -29,13 +27,13 @@ import java.util.Locale;
  *   Done:createMealPlan
  */
 @Agent(description = "Supports conscious meal planning and sustainable eating habits.")
-public class NutritionPlanner {
+class NutritionPlanner {
 
     private static final Logger log = LoggerFactory.getLogger(NutritionPlanner.class);
 
     private final UserProfileProperties userProfileProperties;
 
-    public NutritionPlanner(UserProfileProperties userProfileProperties) {
+    NutritionPlanner(UserProfileProperties userProfileProperties) {
         this.userProfileProperties = userProfileProperties;
     }
 
@@ -101,13 +99,14 @@ public class NutritionPlanner {
             log.info("NutritionPlanner:NutritionAudit:validate action called");
             var validationResult = ai
                     .withLlm(LlmOptions.withAutoLlm())
+                    .withToolObject(weeklyPlan)
                     .createObject("""
                         You are the Nutrition Guard Agent, a strict dietary compliance validator.
         
                         Your job is to validate a list of recipes against a user profile and flag any violations.
 
                         Check each recipe for:
-                        1. CALORIE_OVERFLOW: calories exceed daily calorie target or 700 per dinner
+                        1. CALORIE_OVERFLOW: calories exceed daily calorie target. Use available tools to calculate it.
                         2. ALLERGEN_PRESENT: recipe contains an ingredient matching user's allergies
                         3. RESTRICTION_VIOLATION: recipe violates dietary restrictions (e.g., meat for vegetarian)
                         5. DISLIKED_INGREDIENTS_PRESENT: recipe contains disliked ingredients
@@ -135,7 +134,7 @@ public class NutritionPlanner {
         Stage revise(Ai ai) {
             log.info("NutritionPlanner:ReviseMealPlan:revise action called");
             var revisedWeeklyPlan = ai
-                    .withLlm(LlmOptions.withAutoLlm().withTemperature(.7))
+                    .withLlm(LlmOptions.withAutoLlm())
                     .createObject("""
                         You are the Recipe Curator Agent, a culinary expert specializing in weekly meal planning.
 

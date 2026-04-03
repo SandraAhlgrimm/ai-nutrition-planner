@@ -7,11 +7,7 @@ spring:
       log-completion: true
 embabel:
   models.default-llm: gpt-5-nano
-  llm-operations.prompts.default-timeout: 120s
-
-logging.level:
-    com.embabel.agent: DEBUG
-
+  agent.platform.llm-operations.prompts.default-timeout: 120s
 nutrition-planner:
   user-profiles:
     - name: alice
@@ -26,3 +22,10 @@ nutrition-planner:
       disliked-ingredients:
         - cilantro
         - olives
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: beans

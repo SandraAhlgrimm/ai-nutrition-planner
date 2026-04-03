@@ -25,7 +25,12 @@
 			<groupId>com.embabel.agent</groupId>
 			<artifactId>embabel-agent-starter</artifactId>
 			<version>${embabel-agent.version}</version>
-		</dependency>
+		</dependency><!--
+		<dependency>
+			<groupId>com.embabel.agent</groupId>
+			<artifactId>embabel-agent-starter-mcpserver</artifactId>
+			<version>${embabel-agent.version}</version>
+		</dependency>-->
 		<dependency>
 			<groupId>com.embabel.agent</groupId>
 			<artifactId>embabel-agent-starter-openai</artifactId>
@@ -58,6 +63,12 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.embabel.agent</groupId>
+			<artifactId>embabel-agent-test</artifactId>
+			<version>${embabel-agent.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

@@ -5,7 +5,12 @@ spring:
       name: alice
   ai.chat.client.observations:
       log-completion: true
-embabel.models.default-llm: gpt-5-nano
+embabel:
+  models.default-llm: gpt-5-nano
+  llm-operations.prompts.default-timeout: 120s
+
+logging.level:
+    com.embabel.agent: DEBUG
 
 nutrition-planner:
   user-profiles:

@@ -37,7 +37,7 @@ Change into the implementation directory you want to run (e.g. `cd embabel`) and
 ./mvnw spring-boot:run
 ```
 
-The application starts on port `8080`. Basic auth is pre-configured with user `alice` / password `123456` (see `application.yaml`).
+The application starts on port `8080`. Basic auth is pre-configured with user `alice` / password `123456` (see `application.yaml`). A browser UI is available at `http://localhost:8080` and a REST API at `http://localhost:8080/api/nutrition-plan`.
 
 ## Example Request
 

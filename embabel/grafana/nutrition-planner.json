@@ -1,0 +1,182 @@
+{
+  "uid": "nutrition-planner-agent",
+  "title": "AI Nutrition Planner — Agent Observability",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "5s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+
+    { "type": "row", "id": 1, "title": "Agent Overview", "gridPos": { "x": 0, "y": 0, "w": 24, "h": 1 } },
+
+    {
+      "type": "stat", "id": 2, "title": "Active Agent Processes",
+      "gridPos": { "x": 0, "y": 1, "w": 4, "h": 4 },
+      "datasource": { "uid": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green", "value": 0 }, { "color": "yellow", "value": 1 }, { "color": "red", "value": 3 }] } } },
+      "targets": [{ "expr": "embabel_agent_active", "legendFormat": "Active" }]
+    },
+
+    {
+      "type": "stat", "id": 3, "title": "Plans Generated (total)",
+      "gridPos": { "x": 4, "y": 1, "w": 4, "h": 4 },
+      "datasource": { "uid": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "color": { "fixedColor": "blue", "mode": "fixed" } } },
+      "targets": [{ "expr": "NutritionPlanner_milliseconds_count", "legendFormat": "Total" }]
+    },
+
+    {
+      "type": "stat", "id": 4, "title": "p95 Plan Duration",
+      "gridPos": { "x": 8, "y": 1, "w": 4, "h": 4 },
+      "datasource": { "uid": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "s", "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green", "value": 0 }, { "color": "yellow", "value": 30 }, { "color": "red", "value": 90 }] } } },
+      "targets": [{ "expr": "histogram_quantile(0.95, rate(NutritionPlanner_milliseconds_bucket[5m]))", "legendFormat": "p95" }]
+    },
+
+    {
+      "type": "stat", "id": 5, "title": "Total LLM Cost (USD)",
+      "gridPos": { "x": 12, "y": 1, "w": 4, "h": 4 },
+      "datasource": { "uid": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 4, "color": { "fixedColor": "orange", "mode": "fixed" } } },
+      "targets": [{ "expr": "embabel_llm_cost_total", "legendFormat": "Cost" }]
+    },
+
+    {
+      "type": "stat", "id": 6, "title": "Total LLM Tokens",
+      "gridPos": { "x": 16, "y": 1, "w": 4, "h": 4 },
+      "datasource": { "uid": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "fixedColor": "purple", "mode": "fixed" } } },
+      "targets": [{ "expr": "embabel_llm_tokens_total", "legendFormat": "Tokens" }]
+    },
+
+    {
+      "type": "stat", "id": 7, "title": "Replanning Events",
+      "gridPos": { "x": 20, "y": 1, "w": 4, "h": 4 },
+      "datasource": { "uid": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green", "value": 0 }, { "color": "orange", "value": 1 }] } } },
+      "targets": [{ "expr": "\"planning:replanning_milliseconds_count\"", "legendFormat": "Replans" }]
+    },
+
+    { "type": "row", "id": 10, "title": "End-to-End Execution", "gridPos": { "x": 0, "y": 5, "w": 24, "h": 1 } },
+
+    {
+      "type": "timeseries", "id": 11, "title": "NutritionPlanner — Execution Duration",
+      "gridPos": { "x": 0, "y": 6, "w": 16, "h": 8 },
+      "datasource": { "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "lineWidth": 2 } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, rate(NutritionPlanner_milliseconds_bucket[5m]))", "legendFormat": "p50" },
+        { "expr": "histogram_quantile(0.95, rate(NutritionPlanner_milliseconds_bucket[5m]))", "legendFormat": "p95" },
+        { "expr": "histogram_quantile(0.99, rate(NutritionPlanner_milliseconds_bucket[5m]))", "legendFormat": "p99" }
+      ]
+    },
+
+    {
+      "type": "timeseries", "id": 12, "title": "Concurrent Active Runs",
+      "gridPos": { "x": 16, "y": 6, "w": 8, "h": 8 },
+      "datasource": { "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 20 } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        { "expr": "embabel_agent_active", "legendFormat": "Active Agents" },
+        { "expr": "NutritionPlanner_active", "legendFormat": "NutritionPlanner Active" }
+      ]
+    },
+
+    { "type": "row", "id": 20, "title": "Action Timers", "gridPos": { "x": 0, "y": 14, "w": 24, "h": 1 } },
+
+    {
+      "type": "timeseries", "id": 21, "title": "Action Execution — p95 Duration",
+      "gridPos": { "x": 0, "y": 15, "w": 24, "h": 8 },
+      "datasource": { "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "lineWidth": 2 } } },
+      "options": { "legend": { "displayMode": "table", "placement": "right", "calcs": ["mean", "max"] } },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, rate(fetchUserProfile_milliseconds_bucket[5m]))", "legendFormat": "fetchUserProfile" },
+        { "expr": "histogram_quantile(0.95, rate(fetchSeasonalIngredients_milliseconds_bucket[5m]))", "legendFormat": "fetchSeasonalIngredients" },
+        { "expr": "histogram_quantile(0.95, rate(createMealPlan_milliseconds_bucket[5m]))", "legendFormat": "createMealPlan" },
+        { "expr": "histogram_quantile(0.95, rate(validate_milliseconds_bucket[5m]))", "legendFormat": "validate" },
+        { "expr": "histogram_quantile(0.95, rate(revise_milliseconds_bucket[5m]))", "legendFormat": "revise" }
+      ]
+    },
+
+    { "type": "row", "id": 30, "title": "Planning & State Machine", "gridPos": { "x": 0, "y": 23, "w": 24, "h": 1 } },
+
+    {
+      "type": "timeseries", "id": 31, "title": "Planning Phase Durations",
+      "gridPos": { "x": 0, "y": 24, "w": 12, "h": 8 },
+      "datasource": { "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "lineWidth": 2 } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, rate(\"planning:ready_milliseconds_bucket\"[5m]))", "legendFormat": "Ready to Plan" },
+        { "expr": "histogram_quantile(0.95, rate(\"planning:formulated_milliseconds_bucket\"[5m]))", "legendFormat": "Plan Formulated" },
+        { "expr": "histogram_quantile(0.95, rate(\"planning:replanning_milliseconds_bucket\"[5m]))", "legendFormat": "Replanning" }
+      ]
+    },
+
+    {
+      "type": "timeseries", "id": 32, "title": "State Transitions — p95 Duration",
+      "gridPos": { "x": 12, "y": 24, "w": 12, "h": 8 },
+      "datasource": { "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "lineWidth": 2 } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, rate(\"state:NutritionAudit_milliseconds_bucket\"[5m]))", "legendFormat": "NutritionAudit" },
+        { "expr": "histogram_quantile(0.95, rate(\"state:ReviseMealPlan_milliseconds_bucket\"[5m]))", "legendFormat": "ReviseMealPlan" },
+        { "expr": "histogram_quantile(0.95, rate(\"state:Done_milliseconds_bucket\"[5m]))", "legendFormat": "Done" },
+        { "expr": "histogram_quantile(0.95, rate(\"goal:createMealPlan_milliseconds_bucket\"[5m]))", "legendFormat": "Goal Achieved" }
+      ]
+    },
+
+    { "type": "row", "id": 40, "title": "LLM Usage", "gridPos": { "x": 0, "y": 32, "w": 24, "h": 1 } },
+
+    {
+      "type": "timeseries", "id": 41, "title": "Token Usage",
+      "gridPos": { "x": 0, "y": 33, "w": 12, "h": 8 },
+      "datasource": { "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 10 } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        { "expr": "rate(gen_ai_client_token_usage_total[5m])", "legendFormat": "{{gen_ai_token_type}}" },
+        { "expr": "rate(embabel_llm_tokens_total[5m])", "legendFormat": "Total (rate)" }
+      ]
+    },
+
+    {
+      "type": "timeseries", "id": 42, "title": "LLM Operation Duration & Cost",
+      "gridPos": { "x": 12, "y": 33, "w": 12, "h": 8 },
+      "datasource": { "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "lineWidth": 2 } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, rate(gen_ai_client_operation_milliseconds_bucket[5m]))", "legendFormat": "LLM p95" },
+        { "expr": "histogram_quantile(0.95, rate(\"llm:gpt-5-nano_milliseconds_bucket\"[5m]))", "legendFormat": "gpt-5-nano p95" },
+        { "expr": "rate(embabel_llm_cost_total[5m])", "legendFormat": "Cost rate (USD/s)", "yAxis": 2 }
+      ]
+    },
+
+    { "type": "row", "id": 50, "title": "Traces — NutritionPlanner", "gridPos": { "x": 0, "y": 41, "w": 24, "h": 1 } },
+
+    {
+      "type": "traces", "id": 51, "title": "NutritionPlanner Traces",
+      "gridPos": { "x": 0, "y": 42, "w": 24, "h": 15 },
+      "datasource": { "uid": "tempo" },
+      "options": {},
+      "targets": [
+        {
+          "queryType": "traceql",
+          "query": "{span.embabel.agent.name=\"NutritionPlanner\"}",
+          "limit": 20
+        }
+      ]
+    }
+  ]
+}

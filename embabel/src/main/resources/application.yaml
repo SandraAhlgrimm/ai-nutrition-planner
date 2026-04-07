@@ -8,6 +8,16 @@ spring:
 embabel:
   models.default-llm: gpt-5-nano
   agent.platform.llm-operations.prompts.default-timeout: 120s
+  observability.service-name: ${spring.application.name}
+
+management:
+  endpoints.web.exposure.include: "*"
+  endpoint.env.show-values: ALWAYS
+  tracing:
+    sampling.probability: 1.0
+    enabled: true
+  otlp.metrics.export.step: 5s
+
 nutrition-planner:
   user-profiles:
     - name: alice
@@ -22,10 +32,3 @@ nutrition-planner:
       disliked-ingredients:
         - cilantro
         - olives
-
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: beans

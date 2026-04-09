@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>AI Nutrition Planner – Sign in</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans">
+
+<nav class="bg-slate-800 px-6 py-4">
+    <span class="text-xl font-bold text-white">AI Nutrition Planner</span>
+    <span class="ml-3 text-xs text-slate-400 italic">powered by Spring AI</span>
+</nav>
+
+<main class="flex items-center justify-center min-h-[calc(100vh-56px)]">
+    <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-8 w-full max-w-sm">
+
+        <h1 class="text-lg font-semibold text-gray-800 mb-6">Sign in</h1>
+
+        <div th:if="${param.error}" class="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
+            Invalid username or password.
+        </div>
+
+        <form th:action="@{/login}" method="post" class="space-y-4">
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1" for="username">Username</label>
+                <input id="username" name="username" type="text" autofocus
+                       class="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-slate-500"
+                       placeholder="Username"/>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1" for="password">Password</label>
+                <input id="password" name="password" type="password"
+                       class="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-slate-500"
+                       placeholder="Password"/>
+            </div>
+            <button type="submit"
+                    class="w-full border border-gray-400 bg-white hover:bg-gray-50 text-gray-800 font-medium px-5 py-1.5 rounded text-sm transition-colors">
+                Sign in
+            </button>
+        </form>
+
+    </div>
+</main>
+
+</body>
+</html>

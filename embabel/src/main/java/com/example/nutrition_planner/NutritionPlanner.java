@@ -1,10 +1,9 @@
 package com.example.nutrition_planner;
 
-import com.embabel.agent.api.annotation.AchievesGoal;
-import com.embabel.agent.api.annotation.Action;
-import com.embabel.agent.api.annotation.Agent;
-import com.embabel.agent.api.annotation.State;
+import com.embabel.agent.api.annotation.*;
 import com.embabel.agent.api.common.Ai;
+import com.embabel.agent.prompt.persona.Persona;
+import com.embabel.agent.prompt.persona.PersonaSpec;
 import com.embabel.common.ai.model.LlmOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +53,7 @@ class NutritionPlanner {
         var currentMonth = LocalDate.now().getMonth();
         var country = Locale.of("", weeklyPlanRequest.countryCode()).getDisplayCountry(Locale.ENGLISH);
         var seasonalIngredients = ai
-                .withLlm(LlmOptions.withAutoLlm())
+                .withLlm(LlmOptions.withAutoLlm()) // PromptRunner
                 .createObject("""
                         You are a nutrition expert with deep knowledge of seasonal produce.
 
@@ -72,15 +71,8 @@ class NutritionPlanner {
         log.info("NutritionPlanner:createMealPlan action called");
         var weeklyPlan = ai
                 .withLlm(LlmOptions.withAutoLlm())
+                .withPromptElements(Personas.RECIPE_CURATOR)
                 .createObject("""
-                        You are the Recipe Curator Agent, a culinary expert specializing in weekly meal planning.
-
-                        Your responsibilities:
-                        - Draft recipes, in English based on the user requested meals and days
-                        - Use seasonal ingredients as much as possible
-                        - Provide nutrition information for each recipe
-                        - Be creative but practical
-
                         # User requested meals and days
                         %s
 
@@ -105,21 +97,13 @@ class NutritionPlanner {
             var validationResult = ai
                     .withLlm(LlmOptions.withAutoLlm())
                     .withToolObject(weeklyPlan)
+                    .withPromptElements(Personas.NUTRITION_GUARD)
                     .createObject("""
-                        You are the Nutrition Guard Agent, a strict dietary compliance validator.
-        
-                        Your job is to validate a list of recipes against a user profile and flag any violations.
-
-                        Check each recipe for:
-                        1. NUTRITION_INFO: Nutrition information is available for each recipe
-                        2. CALORIE_OVERFLOW: calories exceed daily calorie target. Use available tools to calculate it.
-                        3. ALLERGEN_PRESENT: recipe contains an ingredient matching user's allergies
-                        4. RESTRICTION_VIOLATION: recipe violates dietary restrictions (e.g., meat for vegetarian)
-                        5. DISLIKED_INGREDIENTS_PRESENT: recipe contains disliked ingredients
+                        Use available tools to calculate total calories, protein, carbs, fat, and sodium etc.
                         
                         # Validate these recipes:
                         %s
-                        
+
                         # Against this user profile:
                         %s
                         """.formatted(weeklyPlan, userProfile), NutritionAuditValidationResult.class);
@@ -141,9 +125,8 @@ class NutritionPlanner {
             log.info("NutritionPlanner:ReviseMealPlan:revise action called");
             var revisedWeeklyPlan = ai
                     .withLlm(LlmOptions.withAutoLlm())
+                    .withPromptElements(Personas.RECIPE_CURATOR)
                     .createObject("""
-                        You are the Recipe Curator Agent, a culinary expert specializing in weekly meal planning.
-
                         Revise the recipes based on the following feedback from a nutrition expert.
 
                         # Recipes
@@ -163,12 +146,47 @@ class NutritionPlanner {
     @State
     record Done(WeeklyPlan weeklyPlan) implements Stage {
 
-        @AchievesGoal(description = "Provides a meal plan for the week")
+        @Export(remote = true)
+        @AchievesGoal(description = "Provides a meal plan for the week", export = @Export(remote = true))
         @Action
         WeeklyPlan createMealPlan() {
             log.info("NutritionPlanner:Done:createMealPlan action called with result: {}", weeklyPlan);
             return weeklyPlan;
         }
+    }
+
+    static class Personas {
+        static Persona RECIPE_CURATOR = new Persona("Recipe Curator",
+            """
+            A culinary expert specializing in weekly meal planning.
+            """,
+            """
+            Creative yet practical. You craft balanced, appealing recipes using seasonal ingredients
+            and always provide accurate nutrition information for each dish.
+            """,
+            """
+            Draft recipes in English based on the user requested meals and days.
+            Use seasonal ingredients as much as possible and provide nutrition information for each recipe.
+            """);
+
+        static Persona NUTRITION_GUARD = new Persona("Nutrition Guard",
+            """
+            A strict dietary compliance validator
+            specialized in ensuring meal plans meet user health requirements and dietary restrictions.
+            """,
+            """
+            Thorough, precise, and uncompromising. You apply dietary rules consistently and
+            flag every violation without exception. Be concise and factual in your assessments.
+            """,
+            """
+            Validate a list of recipes against a user profile and flag any violations.
+            Check each recipe for:
+            1. NUTRITION_INFO: Nutrition information is available for each recipe
+            2. CALORIE_OVERFLOW: calories exceed daily calorie target
+            3. ALLERGEN_PRESENT: recipe contains an ingredient matching user's allergies
+            4. RESTRICTION_VIOLATION: recipe violates dietary restrictions (e.g., meat for vegetarian)
+            5. DISLIKED_INGREDIENTS_PRESENT: recipe contains disliked ingredients
+            """);
     }
 
 }

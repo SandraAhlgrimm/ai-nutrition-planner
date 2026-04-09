@@ -3,12 +3,20 @@ spring:
   security.user:
       password: 123456
       name: alice
-  ai.chat.client.observations:
-      log-completion: true
+  ai:
+    chat.client.observations.log-completion: true
+    tools.observations.include-content: true
+
 embabel:
   models.default-llm: gpt-5-nano
   agent.platform.llm-operations.prompts.default-timeout: 120s
-  observability.service-name: ${spring.application.name}
+  observability:
+    service-name: ${spring.application.name}
+    trace-http-details: true
+
+logging:
+  level:
+    com.embabel.agent: DEBUG
 
 management:
   endpoints.web.exposure.include: "*"
@@ -17,6 +25,8 @@ management:
     sampling.probability: 1.0
     enabled: true
   otlp.metrics.export.step: 5s
+  opentelemetry:
+    tracing.export.otlp.endpoint: http://localhost:4318/v1/traces
 
 nutrition-planner:
   user-profiles:

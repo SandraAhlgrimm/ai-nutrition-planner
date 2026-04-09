@@ -9,7 +9,7 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.example</groupId>
-	<artifactId>nutrition-planner</artifactId>
+	<artifactId>nutrition-planner-embabel</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<properties>
 		<java.version>25</java.version>
@@ -18,14 +18,9 @@
 	<dependencies>
 		<dependency>
 			<groupId>com.embabel.agent</groupId>
-			<artifactId>embabel-agent-starter</artifactId>
-			<version>${embabel-agent.version}</version>
-		</dependency><!--
-		<dependency>
-			<groupId>com.embabel.agent</groupId>
 			<artifactId>embabel-agent-starter-mcpserver</artifactId>
 			<version>${embabel-agent.version}</version>
-		</dependency>-->
+		</dependency>
 		<dependency>
 			<groupId>com.embabel.agent</groupId>
 			<artifactId>embabel-agent-starter-openai</artifactId>
@@ -36,6 +31,7 @@
 			<artifactId>embabel-agent-starter-observability</artifactId>
 			<version>${embabel-agent.version}</version>
 		</dependency>
+
 		<dependency>
 			<groupId>io.micrometer</groupId>
 			<artifactId>micrometer-tracing-bridge-otel</artifactId>

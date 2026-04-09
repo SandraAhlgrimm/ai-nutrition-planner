@@ -1,0 +1,33 @@
+spring:
+  application.name: langchain4j-nutrition-planner
+  security.user:
+    password: 123456
+    name: alice
+
+langchain4j:
+  azure-open-ai:
+    chat-model:
+      endpoint: https://test.openai.azure.com/
+      api-key: test-key
+      deployment-name: gpt-4o
+      temperature: 0.3
+
+logging:
+  level:
+    com.nutritionplanner: DEBUG
+
+nutrition-planner:
+  max-validation-iterations: 3
+  user-profiles:
+    - name: alice
+      dietary-restrictions:
+        - vegetarian
+      health-goals:
+        - weight-loss
+        - improve-energy
+      daily-calorie-target: 1800
+      allergies:
+        - nuts
+      disliked-ingredients:
+        - cilantro
+        - olives

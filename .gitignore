@@ -33,3 +33,20 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Package Files #
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# virtual machine crash logs
+hs_err_pid*
+replay_pid*
+
+# Environment secrets
+.env.local
+.env.*.local

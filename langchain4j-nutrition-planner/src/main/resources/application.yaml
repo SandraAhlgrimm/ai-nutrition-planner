@@ -1,0 +1,52 @@
+spring:
+  application.name: langchain4j-nutrition-planner
+  security.user:
+    password: 123456
+    name: alice
+  ai:
+    chat.client.observations.log-completion: true
+
+server:
+  error:
+    include-stacktrace: always
+    include-message: always
+
+langchain4j:
+  azure-open-ai:
+    chat-model:
+      endpoint: ${AZURE_OPENAI_ENDPOINT}
+      api-key: ${AZURE_OPENAI_API_KEY}
+      deployment-name: ${AZURE_OPENAI_DEPLOYMENT_NAME:gpt-4o}
+      temperature: 0.3
+      log-requests: true
+      log-responses: true
+
+logging:
+  level:
+    com.nutritionplanner: DEBUG
+
+management:
+  endpoints.web.exposure.include: "*"
+  endpoint.env.show-values: ALWAYS
+  tracing:
+    sampling.probability: 1.0
+    enabled: true
+  otlp:
+    metrics.export.step: 5s
+    tracing.endpoint: http://localhost:4318/v1/traces
+
+nutrition-planner:
+  max-validation-iterations: 3
+  user-profiles:
+    - name: alice
+      dietary-restrictions:
+        - vegetarian
+      health-goals:
+        - weight-loss
+        - improve-energy
+      daily-calorie-target: 1800
+      allergies:
+        - nuts
+      disliked-ingredients:
+        - cilantro
+        - olives

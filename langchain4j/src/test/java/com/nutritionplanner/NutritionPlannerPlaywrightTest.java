@@ -1,9 +1,7 @@
 package com.nutritionplanner;
 
 import com.microsoft.playwright.*;
-import com.nutritionplanner.agent.NutritionGuardService;
-import com.nutritionplanner.agent.RecipeCuratorService;
-import com.nutritionplanner.agent.SeasonalIngredientService;
+import com.nutritionplanner.agent.NutritionPlannerWorkflow;
 import com.nutritionplanner.model.*;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -15,7 +13,7 @@ import java.time.DayOfWeek;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -33,23 +31,11 @@ class NutritionPlannerPlaywrightTest {
             new WeeklyPlan.DailyPlan(DayOfWeek.MONDAY, SAMPLE_RECIPE, SAMPLE_RECIPE, SAMPLE_RECIPE)
     ));
 
-    private static final SeasonalIngredients SEASONAL = new SeasonalIngredients(
-            List.of(new Recipe.Ingredient("asparagus", "1", "bunch")));
-
-    private static final NutritionAuditValidationResult PASS_RESULT = new NutritionAuditValidationResult(
-            true, List.of(), "All checks passed.");
-
     @LocalServerPort
     private int port;
 
     @MockitoBean
-    private SeasonalIngredientService seasonalIngredientService;
-
-    @MockitoBean
-    private RecipeCuratorService recipeCuratorService;
-
-    @MockitoBean
-    private NutritionGuardService nutritionGuardService;
+    private NutritionPlannerWorkflow workflow;
 
     private static Playwright playwright;
     private static Browser browser;
@@ -110,9 +96,8 @@ class NutritionPlannerPlaywrightTest {
 
     @Test
     void generatePlanFlow() {
-        when(seasonalIngredientService.fetchSeasonalIngredients(anyString())).thenReturn(SEASONAL);
-        when(recipeCuratorService.createMealPlan(anyString())).thenReturn(MOCK_PLAN);
-        when(nutritionGuardService.validate(anyString())).thenReturn(PASS_RESULT);
+        when(workflow.createNutritionPlan(any(), any(), anyString(), anyString(), anyString()))
+                .thenReturn(MOCK_PLAN);
 
         login();
 
@@ -150,9 +135,8 @@ class NutritionPlannerPlaywrightTest {
 
     @Test
     void emptySelectionHandledGracefully() {
-        when(seasonalIngredientService.fetchSeasonalIngredients(anyString())).thenReturn(SEASONAL);
-        when(recipeCuratorService.createMealPlan(anyString())).thenReturn(new WeeklyPlan(List.of()));
-        when(nutritionGuardService.validate(anyString())).thenReturn(PASS_RESULT);
+        when(workflow.createNutritionPlan(any(), any(), anyString(), anyString(), anyString()))
+                .thenReturn(new WeeklyPlan(List.of()));
 
         login();
 

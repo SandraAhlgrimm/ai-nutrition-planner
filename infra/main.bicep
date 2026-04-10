@@ -1,8 +1,12 @@
-@description('Base name for all resources')
-param baseName string = 'nutrition-planner'
+targetScope = 'subscription'
+
+@minLength(1)
+@maxLength(64)
+@description('Name of the azd environment')
+param environmentName string
 
 @description('Azure region for resources')
-param location string = resourceGroup().location
+param location string
 
 @description('GPT-4o model version')
 param modelVersion string = '2024-11-20'
@@ -10,37 +14,91 @@ param modelVersion string = '2024-11-20'
 @description('Tokens-per-minute capacity (in thousands)')
 param tpmCapacity int = 10
 
-var openAiName = 'aoai-${baseName}-${uniqueString(resourceGroup().id)}'
+var abbrs = {
+  containerAppsEnvironment: 'cae-'
+  containerApp: 'ca-'
+  containerRegistry: 'cr'
+  logAnalyticsWorkspace: 'log-'
+  openAi: 'aoai-'
+}
 
-resource openAi 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
-  name: openAiName
+var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
+var tags = { 'azd-env-name': environmentName }
+
+// ── Resource Group ──────────────────────────────────────────
+resource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {
+  name: 'rg-${environmentName}'
   location: location
-  kind: 'OpenAI'
-  sku: {
-    name: 'S0'
-  }
-  properties: {
-    customSubDomainName: openAiName
-    publicNetworkAccess: 'Enabled'
+  tags: tags
+}
+
+// ── Log Analytics ───────────────────────────────────────────
+module logAnalytics 'modules/log-analytics.bicep' = {
+  name: 'log-analytics'
+  scope: rg
+  params: {
+    name: '${abbrs.logAnalyticsWorkspace}${resourceToken}'
+    location: location
+    tags: tags
   }
 }
 
-resource gpt4oDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
-  parent: openAi
-  name: 'gpt-4o'
-  sku: {
-    name: 'Standard'
-    capacity: tpmCapacity
-  }
-  properties: {
-    model: {
-      format: 'OpenAI'
-      name: 'gpt-4o'
-      version: modelVersion
-    }
+// ── Container Registry ──────────────────────────────────────
+module containerRegistry 'modules/container-registry.bicep' = {
+  name: 'container-registry'
+  scope: rg
+  params: {
+    name: '${abbrs.containerRegistry}${resourceToken}'
+    location: location
+    tags: tags
   }
 }
 
-output endpoint string = openAi.properties.endpoint
-output openAiName string = openAi.name
-output deploymentName string = gpt4oDeployment.name
+// ── Container Apps Environment ──────────────────────────────
+module containerAppsEnvironment 'modules/container-apps-environment.bicep' = {
+  name: 'container-apps-environment'
+  scope: rg
+  params: {
+    name: '${abbrs.containerAppsEnvironment}${resourceToken}'
+    location: location
+    tags: tags
+    logAnalyticsWorkspaceId: logAnalytics.outputs.id
+  }
+}
+
+// ── Azure OpenAI ────────────────────────────────────────────
+module openAi 'modules/openai.bicep' = {
+  name: 'openai'
+  scope: rg
+  params: {
+    name: '${abbrs.openAi}${resourceToken}'
+    location: location
+    tags: tags
+    modelVersion: modelVersion
+    tpmCapacity: tpmCapacity
+  }
+}
+
+// ── LangChain4j Container App ───────────────────────────────
+module langchain4jApp 'modules/container-app.bicep' = {
+  name: 'langchain4j-app'
+  scope: rg
+  params: {
+    name: '${abbrs.containerApp}langchain4j-${resourceToken}'
+    location: location
+    tags: union(tags, { 'azd-service-name': 'langchain4j' })
+    containerAppsEnvironmentId: containerAppsEnvironment.outputs.id
+    containerRegistryName: containerRegistry.outputs.name
+    openAiEndpoint: openAi.outputs.endpoint
+    openAiApiKey: openAi.outputs.apiKey
+    openAiDeploymentName: openAi.outputs.deploymentName
+  }
+}
+
+// ── Outputs for azd ─────────────────────────────────────────
+output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
+output AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = containerAppsEnvironment.outputs.id
+output AZURE_RESOURCE_GROUP string = rg.name
+output AZURE_OPENAI_ENDPOINT string = openAi.outputs.endpoint
+output AZURE_OPENAI_DEPLOYMENT_NAME string = openAi.outputs.deploymentName
+output SERVICE_LANGCHAIN4J_ENDPOINT string = langchain4jApp.outputs.fqdn

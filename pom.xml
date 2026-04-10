@@ -9,5 +9,7 @@
 
     <modules>
         <module>embabel</module>
+        <module>langchain4j</module>
+        <module>spring-ai</module>
     </modules>
 </project>

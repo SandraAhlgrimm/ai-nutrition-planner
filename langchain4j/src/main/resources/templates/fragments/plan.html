@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<body>
+
+<div th:fragment="plan" class="space-y-0">
+
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">Your Weekly Plan</h2>
+
+    <div th:each="day : ${plan.days()}" class="mb-6">
+
+        <!-- Day header -->
+        <div class="bg-slate-800 px-5 py-2 rounded-t">
+            <h3 class="text-white font-semibold text-sm tracking-wide" th:text="${day.day()}">Monday</h3>
+        </div>
+
+        <div class="border border-gray-200 rounded-b divide-y divide-gray-100">
+
+            <div th:if="${day.breakfast() != null}" class="p-6">
+                <p class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Breakfast</p>
+                <div th:replace="~{fragments/plan :: recipe(${day.breakfast()})}"></div>
+            </div>
+
+            <div th:if="${day.lunch() != null}" class="p-6">
+                <p class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Lunch</p>
+                <div th:replace="~{fragments/plan :: recipe(${day.lunch()})}"></div>
+            </div>
+
+            <div th:if="${day.dinner() != null}" class="p-6">
+                <p class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Dinner</p>
+                <div th:replace="~{fragments/plan :: recipe(${day.dinner()})}"></div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<!-- Recipe card fragment -->
+<div th:fragment="recipe(recipe)">
+
+    <div class="flex gap-8">
+
+        <!-- Left: recipe text -->
+        <div class="flex-1 min-w-0">
+
+            <div class="flex items-baseline gap-3 mb-4">
+                <h4 class="text-2xl font-bold text-gray-900" th:text="${recipe.name()}">Recipe name</h4>
+                <span class="text-sm text-gray-400" th:text="${recipe.prepTimeMinutes()} + ' min'">20 min</span>
+            </div>
+
+            <h5 class="font-semibold text-gray-800 mt-4 mb-2">Ingredients</h5>
+            <ul class="mb-4 space-y-1">
+                <li th:each="ingredient : ${recipe.ingredients()}" class="flex items-start gap-2 text-sm text-gray-700">
+                    <span class="mt-1.5 w-1.5 h-1.5 rounded-full bg-gray-400 shrink-0"></span>
+                    <span th:text="${ingredient.quantity()} + ' ' + ${ingredient.unit()} + ' ' + ${ingredient.name()}">200 g asparagus</span>
+                </li>
+            </ul>
+
+            <h5 class="font-semibold text-gray-800 mb-2">Instructions</h5>
+            <p class="text-sm text-gray-700 leading-relaxed" th:text="${recipe.instructions()}">Instructions go here.</p>
+
+        </div>
+
+        <!-- Right: nutrition panel -->
+        <div th:if="${recipe.nutrition() != null}" class="shrink-0 w-56">
+            <div class="border border-gray-200 rounded-lg overflow-hidden">
+                <div class="bg-slate-700 px-4 py-2">
+                    <p class="text-xs font-semibold text-white uppercase tracking-wider">Nutrition</p>
+                </div>
+                <div class="divide-y divide-gray-100">
+                    <div class="flex justify-between px-4 py-2 text-sm">
+                        <span class="text-gray-500">Calories</span>
+                        <span class="font-semibold text-gray-900" th:text="${recipe.nutrition().calories()} + ' kcal'">0 kcal</span>
+                    </div>
+                    <div class="flex justify-between px-4 py-2 text-sm">
+                        <span class="text-gray-500">Protein</span>
+                        <span class="font-semibold text-gray-900" th:text="${#numbers.formatDecimal(recipe.nutrition().proteinGrams(), 1, 1)} + ' g'">0 g</span>
+                    </div>
+                    <div class="flex justify-between px-4 py-2 text-sm">
+                        <span class="text-gray-500">Carbs</span>
+                        <span class="font-semibold text-gray-900" th:text="${#numbers.formatDecimal(recipe.nutrition().carbGrams(), 1, 1)} + ' g'">0 g</span>
+                    </div>
+                    <div class="flex justify-between px-4 py-2 text-sm">
+                        <span class="text-gray-500">Fat</span>
+                        <span class="font-semibold text-gray-900" th:text="${#numbers.formatDecimal(recipe.nutrition().fatGrams(), 1, 1)} + ' g'">0 g</span>
+                    </div>
+                    <div class="flex justify-between px-4 py-2 text-sm">
+                        <span class="text-gray-500">Sodium</span>
+                        <span class="font-semibold text-gray-900" th:text="${recipe.nutrition().sodiumMg()} + ' mg'">0 mg</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>

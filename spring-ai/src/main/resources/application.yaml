@@ -1,0 +1,49 @@
+spring:
+  application.name: spring-ai-nutrition-planner
+  security.user:
+    password: 123456
+    name: alice
+  ai:
+    azure:
+      openai:
+        endpoint: ${AZURE_OPENAI_ENDPOINT}
+        api-key: ${AZURE_OPENAI_API_KEY}
+        chat:
+          options:
+            deployment-name: ${AZURE_OPENAI_DEPLOYMENT_NAME}
+            temperature: 0.7
+
+server:
+  error:
+    include-stacktrace: always
+    include-message: always
+
+logging:
+  level:
+    com.nutritionplanner: DEBUG
+
+management:
+  endpoints.web.exposure.include: "*"
+  endpoint.env.show-values: ALWAYS
+  tracing:
+    sampling.probability: 1.0
+    enabled: true
+  otlp:
+    metrics.export.step: 5s
+    tracing.endpoint: http://localhost:4318/v1/traces
+
+nutrition-planner:
+  max-validation-iterations: 3
+  user-profiles:
+    - name: alice
+      dietary-restrictions:
+        - vegetarian
+      health-goals:
+        - weight-loss
+        - improve-energy
+      daily-calorie-target: 1800
+      allergies:
+        - nuts
+      disliked-ingredients:
+        - cilantro
+        - olives

@@ -2,7 +2,7 @@ package com.nutritionplanner.controller;
 
 import com.nutritionplanner.model.WeeklyPlan;
 import com.nutritionplanner.model.WeeklyPlanRequest;
-import com.nutritionplanner.orchestration.NutritionPlannerOrchestrator;
+import com.nutritionplanner.orchestration.NutritionPlannerService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,16 +15,16 @@ import java.security.Principal;
 @RequestMapping("/api")
 public class NutritionPlannerController {
 
-    private final NutritionPlannerOrchestrator orchestrator;
+    private final NutritionPlannerService plannerService;
 
-    public NutritionPlannerController(NutritionPlannerOrchestrator orchestrator) {
-        this.orchestrator = orchestrator;
+    public NutritionPlannerController(NutritionPlannerService plannerService) {
+        this.plannerService = plannerService;
     }
 
     @PostMapping("/nutrition-plan")
     public ResponseEntity<WeeklyPlan> createNutritionPlan(@RequestBody WeeklyPlanRequest request,
                                                            Principal principal) {
-        var weeklyPlan = orchestrator.createPlan(request, principal.getName());
+        var weeklyPlan = plannerService.createPlan(request, principal.getName());
         return ResponseEntity.ok(weeklyPlan);
     }
 }

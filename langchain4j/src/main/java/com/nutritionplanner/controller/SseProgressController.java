@@ -1,7 +1,7 @@
 package com.nutritionplanner.controller;
 
 import com.nutritionplanner.model.WeeklyPlanRequest;
-import com.nutritionplanner.orchestration.StreamingPlannerService;
+import com.nutritionplanner.orchestration.NutritionPlannerService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -15,10 +15,10 @@ import java.util.List;
 @RestController
 public class SseProgressController {
 
-    private final StreamingPlannerService streamingPlannerService;
+    private final NutritionPlannerService plannerService;
 
-    public SseProgressController(StreamingPlannerService streamingPlannerService) {
-        this.streamingPlannerService = streamingPlannerService;
+    public SseProgressController(NutritionPlannerService plannerService) {
+        this.plannerService = plannerService;
     }
 
     @GetMapping("/plan/stream")
@@ -44,7 +44,7 @@ public class SseProgressController {
         addDay(days, DayOfWeek.SUNDAY, sunday);
 
         var request = new WeeklyPlanRequest(days, countryCode, additionalInstructions);
-        return streamingPlannerService.streamPlan(request, principal.getName());
+        return plannerService.streamPlan(request, principal.getName());
     }
 
     private void addDay(List<WeeklyPlanRequest.DayPlanRequest> days, DayOfWeek day, List<String> meals) {

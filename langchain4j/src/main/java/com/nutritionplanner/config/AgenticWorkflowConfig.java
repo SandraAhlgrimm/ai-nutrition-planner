@@ -7,7 +7,7 @@ import com.nutritionplanner.observability.MicrometerAgentListener;
 import dev.langchain4j.agentic.AgenticServices;
 import dev.langchain4j.agentic.observability.AgentListener;
 import dev.langchain4j.agentic.observability.AgentRequest;
-import com.nutritionplanner.orchestration.StreamingPlannerService;
+import com.nutritionplanner.orchestration.NutritionPlannerService;
 import dev.langchain4j.model.chat.ChatModel;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
@@ -74,7 +74,7 @@ public class AgenticWorkflowConfig {
                 .subAgents(seasonalAgent, creatorAgent, validationLoop)
                 .outputKey("weeklyPlan")
                 .listener(new MicrometerAgentListener(meterRegistry))
-                .listener(StreamingPlannerService.sseProgressListener())
+                .listener(NutritionPlannerService.sseProgressListener())
                 .listener(new AgentListener() {
                     @Override
                     public boolean inheritedBySubagents() {

@@ -79,7 +79,7 @@ return AgenticServices.sequenceBuilder(NutritionPlannerWorkflow.class)
     .subAgents(seasonalAgent, creatorAgent, validationLoop)
     .outputKey("weeklyPlan")
     .listener(new MicrometerAgentListener(meterRegistry))
-    .listener(StreamingPlannerService.sseProgressListener())
+    .listener(NutritionPlannerService.sseProgressListener())
     .build();
 ```
 
@@ -97,7 +97,7 @@ The `NutritionGuardAgent` uses `NutritionTools` — a stateful `@Tool` class tha
 
 The UI shows real-time agent progress via Server-Sent Events instead of a blank spinner:
 
-- **`StreamingPlannerService`** — runs the workflow async on a virtual thread, using a `ThreadLocal<SseEmitter>` to bridge per-request state into the singleton workflow's `AgentListener`
+- **`NutritionPlannerService`** — single service owning both sync (REST API) and SSE-streaming (browser UI) plan creation. Uses a `ThreadLocal<SseEmitter>` to bridge per-request state into the singleton workflow's `AgentListener`. Caches results via `ConcurrentHashMap<String, WeeklyPlan>` with UUID keys.
 - **`SseProgressController`** — `GET /plan/stream` endpoint returning `SseEmitter`
 - **Result caching** — on completion, the plan is cached server-side with a UUID key. The `complete` SSE event sends only the ID; the JS fetches `/plan/result?id={uuid}` for the Thymeleaf-rendered HTML (avoids running the workflow twice)
 
@@ -177,8 +177,7 @@ com.nutritionplanner/
 ├── observability/
 │   └── MicrometerAgentListener.java        # Agent → Micrometer metrics bridge
 └── orchestration/
-    ├── NutritionPlannerOrchestrator.java    # Thin wrapper delegating to workflow
-    └── StreamingPlannerService.java         # SSE + ThreadLocal emitter bridge
+    └── NutritionPlannerService.java         # Sync + SSE workflow runner
 ```
 
 ---

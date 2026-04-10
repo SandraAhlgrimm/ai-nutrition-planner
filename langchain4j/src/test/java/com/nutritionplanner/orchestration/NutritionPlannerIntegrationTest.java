@@ -35,7 +35,7 @@ class NutritionPlannerIntegrationTest {
     private NutritionPlannerWorkflow workflow;
 
     @Autowired
-    private NutritionPlannerOrchestrator orchestrator;
+    private NutritionPlannerService plannerService;
 
     @Test
     void shouldDelegateToWorkflowWithCorrectArguments() {
@@ -49,7 +49,7 @@ class NutritionPlannerIntegrationTest {
                                 WeeklyPlanRequest.MealType.DINNER))),
                 "DE", "Low-carb meals preferred");
 
-        var result = orchestrator.createPlan(request, "alice");
+        var result = plannerService.createPlan(request, "alice");
 
         assertThat(result).isNotNull();
         assertThat(result.days()).hasSize(1);
@@ -78,7 +78,7 @@ class NutritionPlannerIntegrationTest {
                         List.of(WeeklyPlanRequest.MealType.BREAKFAST))),
                 "US", null);
 
-        orchestrator.createPlan(request, "alice");
+        plannerService.createPlan(request, "alice");
 
         verify(workflow).createNutritionPlan(any(), eq(request), anyString(), anyString(), eq(""));
     }

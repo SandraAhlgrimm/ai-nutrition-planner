@@ -38,7 +38,7 @@ public interface MealPlanCreatorAgent {
            outputKey = "weeklyPlan")
     WeeklyPlan createMealPlan(
             @V("request") WeeklyPlanRequest request,
-            @V("seasonalIngredients") SeasonalIngredients ingredients,
-            @V("userProfile") UserProfile profile,
-            @V("additionalInstructions") String instructions);
+            @V("seasonalIngredients") SeasonalIngredients seasonalIngredients,
+            @V("userProfile") UserProfile userProfile,
+            @V("additionalInstructions") String additionalInstructions);
 }

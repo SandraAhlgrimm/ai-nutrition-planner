@@ -7,6 +7,7 @@ import dev.langchain4j.agentic.AgenticServices;
 import dev.langchain4j.agentic.observability.AgentListener;
 import dev.langchain4j.agentic.observability.AgentMonitor;
 import dev.langchain4j.agentic.observability.AgentRequest;
+import com.nutritionplanner.orchestration.StreamingPlannerService;
 import dev.langchain4j.model.chat.ChatModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +72,7 @@ public class AgenticWorkflowConfig {
                 .subAgents(seasonalAgent, creatorAgent, validationLoop)
                 .outputKey("weeklyPlan")
                 .listener(new AgentMonitor())
+                .listener(StreamingPlannerService.sseProgressListener())
                 .listener(new AgentListener() {
                     @Override
                     public boolean inheritedBySubagents() {

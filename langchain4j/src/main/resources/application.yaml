@@ -20,6 +20,11 @@ langchain4j:
       temperature: 0.3
       log-requests: true
       log-responses: true
+    streaming-chat-model:
+      endpoint: ${AZURE_OPENAI_ENDPOINT}
+      api-key: ${AZURE_OPENAI_API_KEY}
+      deployment-name: ${AZURE_OPENAI_DEPLOYMENT_NAME:gpt-4o}
+      temperature: 0.3
 
 logging:
   level:

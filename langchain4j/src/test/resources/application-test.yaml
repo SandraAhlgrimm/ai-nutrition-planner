@@ -11,6 +11,11 @@ langchain4j:
       api-key: test-key
       deployment-name: gpt-4o
       temperature: 0.3
+    streaming-chat-model:
+      endpoint: https://test.openai.azure.com/
+      api-key: test-key
+      deployment-name: gpt-4o
+      temperature: 0.3
 
 logging:
   level:

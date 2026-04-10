@@ -2,6 +2,7 @@ package com.nutritionplanner.controller;
 
 import com.nutritionplanner.model.WeeklyPlanRequest;
 import com.nutritionplanner.orchestration.NutritionPlannerOrchestrator;
+import com.nutritionplanner.orchestration.StreamingPlannerService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,11 +19,14 @@ import java.util.List;
 public class NutritionPlannerUiController {
 
     private final NutritionPlannerOrchestrator orchestrator;
+    private final StreamingPlannerService streamingPlannerService;
     private final String aiModel;
 
     public NutritionPlannerUiController(NutritionPlannerOrchestrator orchestrator,
+                                         StreamingPlannerService streamingPlannerService,
                                          @Value("${langchain4j.azure-open-ai.chat-model.deployment-name:unknown}") String aiModel) {
         this.orchestrator = orchestrator;
+        this.streamingPlannerService = streamingPlannerService;
         this.aiModel = aiModel;
     }
 
@@ -65,6 +69,18 @@ public class NutritionPlannerUiController {
         var weeklyPlan = orchestrator.createPlan(request, principal.getName());
 
         model.addAttribute("plan", weeklyPlan);
+        model.addAttribute("aiModel", "Azure OpenAI (" + aiModel + ")");
+        return "fragments/plan :: plan";
+    }
+
+    @GetMapping("/plan/result")
+    public String getCachedResult(@RequestParam String id, Model model) {
+        var plan = streamingPlannerService.consumeResult(id);
+        if (plan == null) {
+            model.addAttribute("error", "Result expired or not found. Please generate a new plan.");
+            return "fragments/plan :: error";
+        }
+        model.addAttribute("plan", plan);
         model.addAttribute("aiModel", "Azure OpenAI (" + aiModel + ")");
         return "fragments/plan :: plan";
     }

@@ -16,6 +16,8 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -44,6 +46,7 @@ public class StreamingPlannerService {
     private final NutritionPlannerWorkflow workflow;
     private final UserProfileProperties userProfileProperties;
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+    private final ConcurrentHashMap<String, WeeklyPlan> resultCache = new ConcurrentHashMap<>();
 
     public StreamingPlannerService(NutritionPlannerWorkflow workflow,
                                    UserProfileProperties userProfileProperties) {
@@ -68,9 +71,12 @@ public class StreamingPlannerService {
                 WeeklyPlan plan = workflow.createNutritionPlan(
                         userProfile, request, month, country, additionalInstructions);
 
+                var resultId = UUID.randomUUID().toString();
+                resultCache.put(resultId, plan);
+
                 emitter.send(SseEmitter.event()
                         .name("complete")
-                        .data(plan));
+                        .data(resultId));
                 emitter.complete();
             } catch (Exception e) {
                 log.error("Streaming workflow failed", e);
@@ -94,6 +100,13 @@ public class StreamingPlannerService {
         } catch (IOException e) {
             log.warn("Failed to send SSE progress event", e);
         }
+    }
+
+    /**
+     * Retrieves and removes a cached plan result. Returns null if the ID is unknown.
+     */
+    public WeeklyPlan consumeResult(String resultId) {
+        return resultCache.remove(resultId);
     }
 
     /**

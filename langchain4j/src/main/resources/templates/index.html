@@ -69,22 +69,37 @@
 
             source.addEventListener('complete', function(e) {
                 source.close();
-                progress.classList.add('hidden');
-                submitBtn.disabled = false;
-                submitBtn.classList.remove('opacity-50');
 
-                // The complete event contains the WeeklyPlan JSON — render via POST fallback
-                // Resubmit as POST to get the Thymeleaf-rendered HTML
-                fetch('/plan', {
-                    method: 'POST',
-                    body: formData
-                }).then(r => r.text()).then(html => {
-                    result.innerHTML = html;
-                });
+                // Stop the spinner, show success
+                var spinner = progress.querySelector('.spinner');
+                if (spinner) spinner.style.display = 'none';
+                var header = progress.querySelector('span');
+                if (header) header.textContent = '✅ Plan generated! Loading results…';
+
+                // Fetch pre-rendered HTML from cache (no double workflow run)
+                var resultId = e.data;
+                fetch('/plan/result?id=' + encodeURIComponent(resultId))
+                    .then(function(r) { return r.text(); })
+                    .then(function(html) {
+                        progress.classList.add('hidden');
+                        result.innerHTML = html;
+                    })
+                    .catch(function() {
+                        progress.classList.add('hidden');
+                        result.innerHTML = '<p class="text-red-600">Failed to load results.</p>';
+                    })
+                    .finally(function() {
+                        submitBtn.disabled = false;
+                        submitBtn.classList.remove('opacity-50');
+                    });
             });
 
             source.addEventListener('error', function(e) {
                 source.close();
+                var spinner = progress.querySelector('.spinner');
+                if (spinner) spinner.style.display = 'none';
+                var header = progress.querySelector('span');
+                if (header) header.textContent = '❌ Error';
                 const step = document.createElement('div');
                 step.className = 'progress-step text-sm text-red-600 py-1';
                 step.textContent = '❌ ' + (e.data || 'An error occurred. Please try again.');
@@ -95,6 +110,12 @@
 
             source.onerror = function() {
                 source.close();
+                var spinner = progress.querySelector('.spinner');
+                if (spinner) spinner.style.display = 'none';
+                var header = progress.querySelector('span');
+                if (header && !header.textContent.startsWith('✅') && !header.textContent.startsWith('❌')) {
+                    header.textContent = '❌ Connection lost. Please try again.';
+                }
                 submitBtn.disabled = false;
                 submitBtn.classList.remove('opacity-50');
             };
@@ -215,7 +236,7 @@
                            placeholder="e.g. Prefer quick recipes under 30 minutes."/>
                 </div>
                 <div class="flex items-center gap-3">
-                    <button type="submit"
+                    <button id="submitBtn" type="submit"
                             class="border border-gray-400 bg-white hover:bg-gray-50 text-gray-800 font-medium px-5 py-1.5 rounded text-sm transition-colors">
                         Generate Plan
                     </button>

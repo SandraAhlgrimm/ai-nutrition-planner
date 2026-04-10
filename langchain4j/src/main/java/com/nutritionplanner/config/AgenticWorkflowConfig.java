@@ -3,12 +3,13 @@ package com.nutritionplanner.config;
 import com.nutritionplanner.agent.*;
 import com.nutritionplanner.model.NutritionAuditValidationResult;
 import com.nutritionplanner.model.WeeklyPlan;
+import com.nutritionplanner.observability.MicrometerAgentListener;
 import dev.langchain4j.agentic.AgenticServices;
 import dev.langchain4j.agentic.observability.AgentListener;
-import dev.langchain4j.agentic.observability.AgentMonitor;
 import dev.langchain4j.agentic.observability.AgentRequest;
 import com.nutritionplanner.orchestration.StreamingPlannerService;
 import dev.langchain4j.model.chat.ChatModel;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,6 +24,7 @@ public class AgenticWorkflowConfig {
     @Bean
     NutritionPlannerWorkflow nutritionPlannerWorkflow(
             ChatModel chatModel,
+            MeterRegistry meterRegistry,
             @Value("${nutrition-planner.max-validation-iterations:3}") int maxIterations) {
 
         // Agent 1: Fetch seasonal ingredients
@@ -71,7 +73,7 @@ public class AgenticWorkflowConfig {
         return AgenticServices.sequenceBuilder(NutritionPlannerWorkflow.class)
                 .subAgents(seasonalAgent, creatorAgent, validationLoop)
                 .outputKey("weeklyPlan")
-                .listener(new AgentMonitor())
+                .listener(new MicrometerAgentListener(meterRegistry))
                 .listener(StreamingPlannerService.sseProgressListener())
                 .listener(new AgentListener() {
                     @Override

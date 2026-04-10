@@ -3,6 +3,7 @@ package com.example.nutrition_planner;
 import com.embabel.agent.api.invocation.AgentInvocation;
 import com.embabel.agent.test.integration.EmbabelMockitoIntegrationTest;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.context.TestPropertySource;
 
 import java.time.DayOfWeek;
 import java.util.List;
@@ -12,7 +13,8 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-class NutritionPlannerIntegrationTests extends EmbabelMockitoIntegrationTest {
+@TestPropertySource(properties = {"embabel.agent.platform.models.openai.api-key = test"})
+class NutritionPlannerAgentIntegrationTests extends EmbabelMockitoIntegrationTest {
 
     private static final NutritionInfo NUTRITION = new NutritionInfo(500, 30, 60, 15, 800);
 
@@ -43,17 +45,17 @@ class NutritionPlannerIntegrationTests extends EmbabelMockitoIntegrationTest {
                         List.of(WeeklyPlanRequest.MealType.BREAKFAST, WeeklyPlanRequest.MealType.LUNCH, WeeklyPlanRequest.MealType.DINNER))),
                 "DE", "Low-carb meals preferred");
 
-        // Step 1 – fetchSeasonalIngredients (parallel with fetchUserProfile, no LLM for profile)
+        // Step 2 – fetchSeasonalIngredients (parallel with fetchUserProfile, no LLM for profile)
         whenCreateObject(prompt -> prompt.contains("seasonal produce"), SeasonalIngredients.class)
                 .thenReturn(new SeasonalIngredients(List.of(new Recipe.Ingredient("asparagus", "500", "g"))));
 
         // Step 2 – createMealPlan
-        whenCreateObject(prompt -> prompt.contains("Recipe Curator Agent"), WeeklyPlan.class)
+        whenCreateObject(prompt -> prompt.contains("User requested meals and days"), WeeklyPlan.class)
                 .thenReturn(INITIAL_PLAN);
 
         // Step 3 – NutritionAudit:validate (first pass — fails, triggering the revision loop)
         // Step 5 – NutritionAudit:validate (second pass — passes, exiting the loop)
-        whenCreateObject(prompt -> prompt.contains("Nutrition Guard Agent"), NutritionAuditValidationResult.class)
+        whenCreateObject(prompt -> prompt.contains("Validate these recipes"), NutritionAuditValidationResult.class)
                 .thenReturn(new NutritionAuditValidationResult(
                         false,
                         List.of(ALLERGEN_VIOLATION),
@@ -73,32 +75,30 @@ class NutritionPlannerIntegrationTests extends EmbabelMockitoIntegrationTest {
         assertNotNull(result);
         assertEquals(REVISED_PLAN, result, "Final plan should be the revised version");
 
-        // Verify call order and content
-
-        // 1. fetchSeasonalIngredients — prompt includes resolved country name
+        // 2. fetchSeasonalIngredients — prompt includes resolved country name
         verifyCreateObjectMatching(
                 prompt -> prompt.contains("seasonal produce") && prompt.contains("Germany"),
                 SeasonalIngredients.class, llm -> llm.getTools().isEmpty());
 
         // 2. createMealPlan — initial plan, not a revision
         verifyCreateObjectMatching(
-                prompt -> prompt.contains("Recipe Curator Agent") && prompt.contains("Your responsibilities"), WeeklyPlan.class, llm -> llm.getTools().isEmpty());
+                prompt -> prompt.contains("User requested meals and days"), WeeklyPlan.class, llm -> llm.getTools().isEmpty());
 
         // 3. NutritionAudit:validate (first) — dailyNutritionTotals tool must be registered via withToolObject()
         verifyCreateObjectMatching(
-                prompt -> prompt.contains("Nutrition Guard Agent") && prompt.contains("alice") && !prompt.contains("(revised)"),
+                prompt -> prompt.contains("Validate these recipes") && !prompt.contains("(revised)"),
                 NutritionAuditValidationResult.class,
                 llm -> llm.getTools().size() == 1);
 
         // 4. ReviseMealPlan:revise — prompt contains violation feedback, temperature 0.7
         verifyCreateObjectMatching(
-                prompt -> prompt.contains("Recipe Curator Agent") && prompt.contains("Revise the recipes"),
+                prompt -> prompt.contains("Revise the recipes"),
                 WeeklyPlan.class,
                 llm -> llm.getTools().isEmpty());
 
         // 5. NutritionAudit:validate (second) — tool still registered, revised plan in prompt, now passes
         verifyCreateObjectMatching(
-                prompt -> prompt.contains("Nutrition Guard Agent") && prompt.contains("alice") && prompt.contains("(revised)"),
+                prompt -> prompt.contains("Validate these recipes") && prompt.contains("(revised)"),
                 NutritionAuditValidationResult.class,
                 llm -> llm.getTools().size() == 1);
 

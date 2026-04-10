@@ -3,10 +3,10 @@ package com.example.nutrition_planner;
 import com.embabel.agent.api.annotation.*;
 import com.embabel.agent.api.common.Ai;
 import com.embabel.agent.prompt.persona.Persona;
-import com.embabel.agent.prompt.persona.PersonaSpec;
 import com.embabel.common.ai.model.LlmOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDate;
 import java.util.Locale;
@@ -18,21 +18,21 @@ import java.util.Locale;
  *   parallel:
  *     fetchUserProfile
  *     fetchSeasonalIngredients
- *   createMealPlan
+ *   createWeeklyPlan
  *   NutritionAudit:validate
  *   optional loop:
- *     ReviseMealPlan:revise
+ *     ReviseWeeklyPlan:revise
  *     NutritionAudit:validate
- *   Done:createMealPlan
+ *   Done:createWeeklyPlan
  */
 @Agent(description = "Supports conscious meal planning and sustainable eating habits.")
-class NutritionPlanner {
+class NutritionPlannerAgent {
 
-    private static final Logger log = LoggerFactory.getLogger(NutritionPlanner.class);
+    private static final Logger log = LoggerFactory.getLogger(NutritionPlannerAgent.class);
 
     private final UserProfileProperties userProfileProperties;
 
-    NutritionPlanner(UserProfileProperties userProfileProperties) {
+    NutritionPlannerAgent(UserProfileProperties userProfileProperties) {
         this.userProfileProperties = userProfileProperties;
     }
 
@@ -40,11 +40,18 @@ class NutritionPlanner {
     interface Stage {}
 
     @Action
-    UserProfile fetchUserProfile(String user) {
+    UserProfile fetchUserProfileForUser(String user) {
         log.info("NutritionPlanner:fetchUserProfile action called");
         var userProfile = userProfileProperties.getUserProfile(user);
         log.info("NutritionPlanner:fetchUserProfile action ended with {}", userProfile);
         return userProfile;
+    }
+
+    // Required for MCP Server support
+    @Action
+    UserProfile fetchUserProfile() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        return fetchUserProfileForUser(auth.getName());
     }
 
     @Action
@@ -66,9 +73,9 @@ class NutritionPlanner {
     }
 
     @Action
-    NutritionAudit createMealPlan(WeeklyPlanRequest weeklyPlanRequest, SeasonalIngredients seasonalIngredients,
-                              UserProfile userProfile, Ai ai) {
-        log.info("NutritionPlanner:createMealPlan action called");
+    NutritionAudit createWeeklyPlan(WeeklyPlanRequest weeklyPlanRequest, SeasonalIngredients seasonalIngredients,
+                                    UserProfile userProfile, Ai ai) {
+        log.info("NutritionPlanner:createWeeklyPlan action called");
         var weeklyPlan = ai
                 .withLlm(LlmOptions.withAutoLlm())
                 .withPromptElements(Personas.RECIPE_CURATOR)
@@ -83,7 +90,7 @@ class NutritionPlanner {
                         %s
                         """.formatted(weeklyPlanRequest, seasonalIngredients, weeklyPlanRequest.additionalInstructions()),
                         WeeklyPlan.class);
-        log.info("NutritionPlanner:createMealPlan action ended with {}", weeklyPlan);
+        log.info("NutritionPlanner:createWeeklyPlan action ended with {}", weeklyPlan);
         return new NutritionAudit(weeklyPlan, seasonalIngredients, userProfile, weeklyPlanRequest.additionalInstructions());
     }
 
@@ -111,18 +118,18 @@ class NutritionPlanner {
             if (validationResult.allPassed()) {
                 return new Done(weeklyPlan);
             }
-            return new ReviseMealPlan(weeklyPlan, seasonalIngredients, userProfile, validationResult, additionalInstructions);
+            return new ReviseWeeklyPlan(weeklyPlan, seasonalIngredients, userProfile, validationResult, additionalInstructions);
         }
 
     }
 
     @State
-    record ReviseMealPlan(WeeklyPlan weeklyPlan, SeasonalIngredients seasonalIngredients, UserProfile userProfile,
-                          NutritionAuditValidationResult validationResult, String additionalInstructions) implements Stage {
+    record ReviseWeeklyPlan(WeeklyPlan weeklyPlan, SeasonalIngredients seasonalIngredients, UserProfile userProfile,
+                            NutritionAuditValidationResult validationResult, String additionalInstructions) implements Stage {
 
         @Action(canRerun = true)
         Stage revise(Ai ai) {
-            log.info("NutritionPlanner:ReviseMealPlan:revise action called");
+            log.info("NutritionPlanner:WeeklyPlan:revise action called");
             var revisedWeeklyPlan = ai
                     .withLlm(LlmOptions.withAutoLlm())
                     .withPromptElements(Personas.RECIPE_CURATOR)
@@ -138,7 +145,7 @@ class NutritionPlanner {
                         # Additional instructions
                         %s
                         """.formatted(weeklyPlan, validationResult, additionalInstructions), WeeklyPlan.class);
-            log.info("NutritionPlanner:ReviseMealPlan:revise action ended with {}", revisedWeeklyPlan);
+            log.info("NutritionPlanner:WeeklyPlan:revise action ended with {}", revisedWeeklyPlan);
             return new NutritionAudit(revisedWeeklyPlan, seasonalIngredients, userProfile, additionalInstructions);
         }
     }
@@ -146,11 +153,11 @@ class NutritionPlanner {
     @State
     record Done(WeeklyPlan weeklyPlan) implements Stage {
 
-        @Export(remote = true)
-        @AchievesGoal(description = "Provides a meal plan for the week", export = @Export(remote = true))
+        @AchievesGoal(description = "Provides a meal plan for the week",
+                export = @Export(remote = true, name = "createWeeklyPlan", startingInputTypes = WeeklyPlanRequest.class))
         @Action
-        WeeklyPlan createMealPlan() {
-            log.info("NutritionPlanner:Done:createMealPlan action called with result: {}", weeklyPlan);
+        WeeklyPlan createWeeklyPlan() {
+            log.info("NutritionPlanner:Done:createWeeklyPlan action called with result: {}", weeklyPlan);
             return weeklyPlan;
         }
     }

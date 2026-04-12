@@ -26,12 +26,12 @@ public class NutritionPlannerTools {
         this.userProfileProperties = userProfileProperties;
     }
 
-    @Tool("Fetch the user profile by username. Returns dietary restrictions, allergies, health goals, and daily calorie target.")
+    @Tool(description = "Fetch the user profile by username. Returns dietary restrictions, allergies, health goals, and daily calorie target.")
     public UserProfile fetchUserProfile(String username) {
         return userProfileProperties.getUserProfile(username);
     }
 
-    @Tool("Fetch seasonal ingredients for a given month and country. Returns a list of ingredients in season at that time.")
+    @Tool(description = "Fetch seasonal ingredients for a given month and country. Returns a list of ingredients in season at that time.")
     public SeasonalIngredients fetchSeasonalIngredients(String month, String country) {
         var prompt = """
                 Return a list of ingredients in English that are currently in season for the month of %s in %s.
@@ -46,7 +46,7 @@ public class NutritionPlannerTools {
                 .entity(SeasonalIngredients.class);
     }
 
-    @Tool("Generate a weekly meal plan (WeeklyPlan) based on user requirements and seasonal ingredients. Returns recipes with nutrition information.")
+    @Tool(description = "Generate a weekly meal plan (WeeklyPlan) based on user requirements and seasonal ingredients. Returns recipes with nutrition information.")
     public WeeklyPlan generateMealPlan(String prompt) {
         return chatClient.prompt()
                 .system("""
@@ -61,7 +61,7 @@ public class NutritionPlannerTools {
                 .entity(WeeklyPlan.class);
     }
 
-    @Tool("Validate a weekly meal plan against a user profile for nutritional compliance. Checks calories, allergens, dietary restrictions, and disliked ingredients. Returns validation result with violations if any.")
+    @Tool(description = "Validate a weekly meal plan against a user profile for nutritional compliance. Checks calories, allergens, dietary restrictions, and disliked ingredients. Returns validation result with violations if any.")
     public NutritionAuditValidationResult validateMealPlan(String weeklyPlanJson, String userProfileJson) {
         var validatePrompt = """
                 # Validate these recipes:
@@ -91,7 +91,7 @@ public class NutritionPlannerTools {
                 .entity(NutritionAuditValidationResult.class);
     }
 
-    @Tool("Revise a meal plan based on validation feedback. Returns an improved WeeklyPlan that addresses the violations.")
+    @Tool(description = "Revise a meal plan based on validation feedback. Returns an improved WeeklyPlan that addresses the violations.")
     public WeeklyPlan reviseMealPlan(String prompt) {
         return chatClient.prompt()
                 .system("""

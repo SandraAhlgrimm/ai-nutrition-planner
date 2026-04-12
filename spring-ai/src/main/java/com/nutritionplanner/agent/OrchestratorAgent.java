@@ -71,7 +71,7 @@ public class OrchestratorAgent {
                         autonomously execute tasks rather than waiting for user input.
                         """)
                 .defaultTools(orchestratorTools)
-                .defaultAdvisors(new PromptChatMemoryAdvisor(chatMemory))
+                .defaultAdvisors(PromptChatMemoryAdvisor.builder(chatMemory).build())
                 .build();
     }
 

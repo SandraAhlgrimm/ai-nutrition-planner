@@ -36,7 +36,7 @@ public class SeasonalIngredientAgent {
                         - Suggest diverse ingredients suitable for different dishes and cuisines
                         """)
                 .defaultTools(tools)
-                .defaultAdvisors(new PromptChatMemoryAdvisor(chatMemory))
+                .defaultAdvisors(PromptChatMemoryAdvisor.builder(chatMemory).build())
                 .build();
     }
 

@@ -39,6 +39,20 @@
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-starter-model-azure-openai</artifactId>
+            <exclusions>
+                <!-- Netty HTTP client is incompatible with virtual threads -->
+                <exclusion>
+                    <groupId>com.azure</groupId>
+                    <artifactId>azure-core-http-netty</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- Use JDK HTTP client instead of Netty (virtual-thread compatible) -->
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-core-http-jdk-httpclient</artifactId>
+            <version>1.0.4</version>
         </dependency>
 
         <!-- Spring Boot Web -->

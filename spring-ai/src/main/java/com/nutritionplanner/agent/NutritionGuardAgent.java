@@ -43,7 +43,7 @@ public class NutritionGuardAgent {
                         Provide a structured validation result with specific violations and improvement suggestions.
                         """)
                 .defaultTools(tools)
-                .defaultAdvisors(new PromptChatMemoryAdvisor(chatMemory))
+                .defaultAdvisors(PromptChatMemoryAdvisor.builder(chatMemory).build())
                 .build();
     }
 

@@ -1,7 +1,7 @@
 package com.nutritionplanner.config;
 
 import org.springframework.ai.chat.memory.ChatMemory;
-import org.springframework.ai.chat.memory.InMemoryChatMemory;
+import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -24,6 +24,6 @@ public class AgentConfiguration {
      */
     @Bean
     public ChatMemory chatMemory() {
-        return new InMemoryChatMemory();
+        return MessageWindowChatMemory.builder().build();
     }
 }

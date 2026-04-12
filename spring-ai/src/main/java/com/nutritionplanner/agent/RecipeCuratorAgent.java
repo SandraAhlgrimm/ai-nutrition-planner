@@ -41,7 +41,7 @@ public class RecipeCuratorAgent {
                         3. Provide accurate nutrition information for all recipes
                         """)
                 .defaultTools(tools)
-                .defaultAdvisors(new PromptChatMemoryAdvisor(chatMemory))
+                .defaultAdvisors(PromptChatMemoryAdvisor.builder(chatMemory).build())
                 .build();
     }
 

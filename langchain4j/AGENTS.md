@@ -7,24 +7,38 @@
 
 ## Framework & Dependencies
 
-- **LangChain4j 1.12.2-beta22** with `langchain4j-spring-boot-starter` + `langchain4j-azure-open-ai-spring-boot-starter` + `langchain4j-agentic`
+- **LangChain4j 1.12.2-beta22** with `langchain4j-spring-boot-starter` + `langchain4j-open-ai-official` + `langchain4j-azure-open-ai-spring-boot-starter` + `langchain4j-agentic`
 - **Spring Boot 3.5.13** / **Java 25**
-- **Azure OpenAI** as the LLM provider
+- **OpenAI** (default, via official `com.openai:openai-java` SDK) or **Azure OpenAI** as the LLM provider — switchable via Spring profiles
 - **Thymeleaf** + **HTMX 2.0.3** (via `htmx-spring-boot-thymeleaf` 4.0.3) + **Tailwind CSS** (CDN) for UI
 - **Spring Security** with form login + HTTP Basic
 - **Jackson** with `jackson-datatype-jdk8` for `Optional` serialization
 - **Actuator** + **OpenTelemetry** (micrometer-tracing-bridge-otel, opentelemetry-exporter-otlp, micrometer-registry-otlp)
 - **Playwright** (Java) for end-to-end UI tests
 
-## Azure OpenAI Configuration
+## LLM Provider Configuration
 
-All three environment variables are **required** at runtime. Never hardcode them.
+Switch between providers using `SPRING_PROFILES_ACTIVE`. The default profile is `openai`.
+
+### OpenAI (default — `openai` profile)
+
+Uses the official OpenAI Java SDK via `langchain4j-open-ai-official-spring-boot-starter`.
 
 ```
+OPENAI_API_KEY=your-api-key-here
+OPENAI_MODEL_NAME=gpt-4o          # optional, defaults to gpt-4o
+```
+
+### Azure OpenAI (`azure` profile)
+
+```
+SPRING_PROFILES_ACTIVE=azure
 AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
 AZURE_OPENAI_API_KEY=your-api-key-here
 AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o
 ```
+
+Never hardcode API keys.
 
 ## Build & Run
 
@@ -32,7 +46,15 @@ AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o
 cd langchain4j
 mvn clean install          # build
 mvn test                   # all tests (unit + integration, no live API)
-mvn spring-boot:run        # run (requires Azure OpenAI env vars)
+
+# Run with OpenAI (default)
+OPENAI_API_KEY=sk-... mvn spring-boot:run
+
+# Run with Azure OpenAI
+SPRING_PROFILES_ACTIVE=azure \
+  AZURE_OPENAI_ENDPOINT=https://... \
+  AZURE_OPENAI_API_KEY=... \
+  mvn spring-boot:run
 ```
 
 ---
@@ -164,7 +186,8 @@ com.nutritionplanner/
 │   ├── NutritionTools.java                 # @Tool class for nutrition calculations
 │   └── NutritionPlannerWorkflow.java       # Typed workflow interface
 ├── config/
-│   └── AgenticWorkflowConfig.java          # Composes agents into sequence + loop
+│   ├── AgenticWorkflowConfig.java          # Composes agents into sequence + loop
+│   └── OpenAiModelConfig.java              # @Profile("openai") — wires ChatModel via official SDK
 ├── controller/
 │   ├── NutritionPlannerController.java     # @RestController — /api/nutrition-plan
 │   ├── NutritionPlannerUiController.java   # @Controller — /, /login, /plan, /plan/result
@@ -202,7 +225,15 @@ All tests use mocked AI services — **no live Azure OpenAI calls in CI**.
 ```bash
 cd langchain4j
 docker build -t langchain4j-nutrition-planner .
+
+# Run with OpenAI (default)
 docker run -p 8080:8080 \
+  -e OPENAI_API_KEY=sk-... \
+  langchain4j-nutrition-planner
+
+# Run with Azure OpenAI
+docker run -p 8080:8080 \
+  -e SPRING_PROFILES_ACTIVE=azure \
   -e AZURE_OPENAI_ENDPOINT=... \
   -e AZURE_OPENAI_API_KEY=... \
   -e AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o \

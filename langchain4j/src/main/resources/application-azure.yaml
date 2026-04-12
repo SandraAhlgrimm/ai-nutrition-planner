@@ -1,0 +1,7 @@
+openai:
+  api-key: ${AZURE_OPENAI_API_KEY}
+  base-url: ${AZURE_OPENAI_ENDPOINT}
+  deployment-name: ${AZURE_OPENAI_DEPLOYMENT_NAME:gpt-4o}
+  model-name: ${AZURE_OPENAI_DEPLOYMENT_NAME:gpt-4o}
+  temperature: 0.3
+  azure: true

@@ -1,5 +1,6 @@
 spring:
   application.name: langchain4j-nutrition-planner
+  profiles.active: ${SPRING_PROFILES_ACTIVE:openai}
   security.user:
     password: 123456
     name: alice
@@ -10,21 +11,6 @@ server:
   error:
     include-stacktrace: always
     include-message: always
-
-langchain4j:
-  azure-open-ai:
-    chat-model:
-      endpoint: ${AZURE_OPENAI_ENDPOINT}
-      api-key: ${AZURE_OPENAI_API_KEY}
-      deployment-name: ${AZURE_OPENAI_DEPLOYMENT_NAME:gpt-4o}
-      temperature: 0.3
-      log-requests: true
-      log-responses: true
-    streaming-chat-model:
-      endpoint: ${AZURE_OPENAI_ENDPOINT}
-      api-key: ${AZURE_OPENAI_API_KEY}
-      deployment-name: ${AZURE_OPENAI_DEPLOYMENT_NAME:gpt-4o}
-      temperature: 0.3
 
 logging:
   level:

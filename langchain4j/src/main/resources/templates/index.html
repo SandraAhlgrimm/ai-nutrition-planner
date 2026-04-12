@@ -57,7 +57,7 @@
             submitBtn.disabled = true;
             submitBtn.classList.add('opacity-50');
 
-            const source = new EventSource('/plan/stream?' + params.toString());
+            const source = new EventSource('/plan/stream?' + params.toString(), { withCredentials: true });
 
             source.addEventListener('progress', function(e) {
                 const step = document.createElement('div');
@@ -77,12 +77,19 @@
                 if (header) header.textContent = '✅ Plan generated! Loading results…';
 
                 // Fetch pre-rendered HTML from cache (no double workflow run)
-                var resultId = e.data;
-                fetch('/plan/result?id=' + encodeURIComponent(resultId))
-                    .then(function(r) { return r.text(); })
+                var resultId = e.data.trim();
+                fetch('/plan/result?id=' + encodeURIComponent(resultId), { credentials: 'same-origin' })
+                    .then(function(r) {
+                        if (!r.ok) throw new Error('HTTP ' + r.status);
+                        return r.text();
+                    })
                     .then(function(html) {
                         progress.classList.add('hidden');
-                        result.innerHTML = html;
+                        if (!html || html.trim().length === 0 || html.includes('login')) {
+                            result.innerHTML = '<p class="text-red-600">Session expired. Please <a href="/login" class="underline">log in again</a>.</p>';
+                        } else {
+                            result.innerHTML = html;
+                        }
                     })
                     .catch(function() {
                         progress.classList.add('hidden');

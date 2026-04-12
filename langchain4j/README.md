@@ -136,12 +136,31 @@ sequence(NutritionPlannerWorkflow):
 ```bash
 mvn clean install -pl langchain4j          # build & test
 mvn test -pl langchain4j                   # tests only (no live API needed)
-mvn spring-boot:run -pl langchain4j        # run (requires Azure OpenAI env vars)
+
+# Run with OpenAI (default profile)
+OPENAI_API_KEY=sk-... mvn spring-boot:run -pl langchain4j
+
+# Run with Azure OpenAI
+SPRING_PROFILES_ACTIVE=azure \
+  AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/ \
+  AZURE_OPENAI_API_KEY=your-api-key \
+  AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o \
+  mvn spring-boot:run -pl langchain4j
 ```
 
-Required environment variables:
+### Environment Variables
+
+**OpenAI (default \u2014 `openai` profile):**
 
 ```bash
+export OPENAI_API_KEY=sk-your-api-key
+export OPENAI_MODEL_NAME=gpt-4o          # optional, defaults to gpt-4o
+```
+
+**Azure OpenAI (`azure` profile):**
+
+```bash
+export SPRING_PROFILES_ACTIVE=azure
 export AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
 export AZURE_OPENAI_API_KEY=your-api-key
 export AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o

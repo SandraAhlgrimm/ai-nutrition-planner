@@ -1,0 +1,4 @@
+openai:
+  api-key: ${OPENAI_API_KEY}
+  model-name: ${OPENAI_MODEL_NAME:gpt-4o}
+  temperature: 0.3

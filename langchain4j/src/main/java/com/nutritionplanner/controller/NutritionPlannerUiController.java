@@ -21,13 +21,13 @@ public class NutritionPlannerUiController {
 
     @GetMapping("/login")
     public String login(Model model) {
-        model.addAttribute("aiModel", "Azure OpenAI (" + aiModel + ")");
+        model.addAttribute("aiModel", "LangChain4j &middot; Azure OpenAI (" + aiModel + ")");
         return "login";
     }
 
     @GetMapping("/")
     public String form(Model model) {
-        model.addAttribute("aiModel", "Azure OpenAI (" + aiModel + ")");
+        model.addAttribute("aiModel", "LangChain4j &middot; Azure OpenAI (" + aiModel + ")");
         return "index";
     }
 
@@ -39,7 +39,7 @@ public class NutritionPlannerUiController {
             return "fragments/plan :: error";
         }
         model.addAttribute("plan", plan);
-        model.addAttribute("aiModel", "Azure OpenAI (" + aiModel + ")");
+        model.addAttribute("aiModel", "LangChain4j &middot; Azure OpenAI (" + aiModel + ")");
         return "fragments/plan :: plan";
     }
 }

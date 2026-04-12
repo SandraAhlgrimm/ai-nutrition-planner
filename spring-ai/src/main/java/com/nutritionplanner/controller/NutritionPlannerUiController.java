@@ -2,6 +2,7 @@ package com.nutritionplanner.controller;
 
 import com.nutritionplanner.model.WeeklyPlanRequest;
 import com.nutritionplanner.orchestration.NutritionPlannerOrchestrator;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,18 +18,23 @@ import java.util.List;
 public class NutritionPlannerUiController {
 
     private final NutritionPlannerOrchestrator orchestrator;
+    private final String aiModel;
 
-    public NutritionPlannerUiController(NutritionPlannerOrchestrator orchestrator) {
+    public NutritionPlannerUiController(NutritionPlannerOrchestrator orchestrator,
+                                         @Value("${spring.ai.azure.openai.chat.options.deployment-name:unknown}") String deploymentName) {
         this.orchestrator = orchestrator;
+        this.aiModel = "Spring AI &middot; Azure OpenAI (" + deploymentName + ")";
     }
 
     @GetMapping("/")
-    public String index() {
+    public String index(Model model) {
+        model.addAttribute("aiModel", aiModel);
         return "index";
     }
 
     @GetMapping("/login")
-    public String login() {
+    public String login(Model model) {
+        model.addAttribute("aiModel", aiModel);
         return "login";
     }
 
@@ -59,6 +65,7 @@ public class NutritionPlannerUiController {
         var plan = orchestrator.createPlan(request, principal.getName());
 
         model.addAttribute("plan", plan);
+        model.addAttribute("aiModel", aiModel);
         return "fragments/plan :: plan";
     }
 

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 /**
  * Nutrition Planner Orchestrator - delegates to OrchestratorAgent for agentic planning.
@@ -58,8 +59,9 @@ public class NutritionPlannerOrchestrator {
                 Allergies: %s
                 Disliked Ingredients: %s
 
-                # Requested Meals and Days
+                # Requested Meals and Days (MUST include ALL days listed below)
                 %s
+                You MUST create meals for EVERY day listed above. Do NOT skip any day.
 
                 # Month and Location
                 Month: %s
@@ -94,7 +96,7 @@ public class NutritionPlannerOrchestrator {
                         userProfile.dailyCalorieTarget(),
                         userProfile.allergies(),
                         userProfile.dislikedIngredients(),
-                        request,
+                        formatRequestedDays(request),
                         currentMonth,
                         country,
                         request.additionalInstructions(),
@@ -107,5 +109,13 @@ public class NutritionPlannerOrchestrator {
 
         log.info("Meal plan created for user: {} with {} days", username, weeklyPlan.days().size());
         return weeklyPlan;
+    }
+
+    private String formatRequestedDays(WeeklyPlanRequest request) {
+        return request.days().stream()
+                .map(day -> "- %s: %s".formatted(
+                        day.day(),
+                        day.meals().stream().map(Enum::name).collect(Collectors.joining(", "))))
+                .collect(Collectors.joining("\n"));
     }
 }

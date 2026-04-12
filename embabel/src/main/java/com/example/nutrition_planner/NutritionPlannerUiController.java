@@ -85,7 +85,7 @@ class NutritionPlannerUiController {
             var defaultLlm = FieldUtils.readField(modelProvider, "defaultLlm", true);
             var name = (String) FieldUtils.readField(defaultLlm, "name", true);
             var provider = (String) FieldUtils.readField(defaultLlm, "provider", true);
-            return "%s (%s)".formatted(provider, capitalize(name));
+            return "Embabel &middot; %s (%s)".formatted(provider, capitalize(name));
         } catch (Exception e) {
             return "Unknown AI model";
         }

@@ -1,26 +1,24 @@
 spring:
-  application.name: spring-ai-nutrition-planner
+  application.name: nutrition-planner
+  profiles.active: azure
   security.user:
-    password: 123456
-    name: alice
+      password: 123456
+      name: alice
   ai:
-    azure:
-      openai:
-        endpoint: ${AZURE_OPENAI_ENDPOINT}
-        api-key: ${AZURE_OPENAI_API_KEY}
-        chat:
-          options:
-            deployment-name: ${AZURE_OPENAI_DEPLOYMENT_NAME}
-            temperature: 0.7
-
-server:
-  error:
-    include-stacktrace: always
-    include-message: always
-
-logging:
-  level:
-    com.nutritionplanner: DEBUG
+    # Define AI provider(s) for type of models for autoconfiguration
+    model:
+      chat: none
+      embedding: none
+      image: none
+      audio:
+        speech: none
+        transcription: none
+      moderation: none
+    chat.client.observations.log-completion: true
+    tools.observations.include-content: true
+    mcp.server:
+      name: ${spring.application.name}
+      protocol: STREAMABLE
 
 management:
   endpoints.web.exposure.include: "*"
@@ -33,7 +31,6 @@ management:
     tracing.endpoint: http://localhost:4318/v1/traces
 
 nutrition-planner:
-  max-validation-iterations: 3
   user-profiles:
     - name: alice
       dietary-restrictions:

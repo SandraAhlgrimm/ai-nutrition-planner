@@ -1,12 +1,11 @@
-package com.nutritionplanner;
+package com.example;
 
-import com.nutritionplanner.model.UserProfileProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
+@ConfigurationPropertiesScan
 @SpringBootApplication
-@EnableConfigurationProperties(UserProfileProperties.class)
 public class NutritionPlannerApplication {
 
     public static void main(String[] args) {

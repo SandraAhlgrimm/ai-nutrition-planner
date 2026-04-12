@@ -14,20 +14,21 @@ public class NutritionPlannerUiController {
     private final String aiModel;
 
     public NutritionPlannerUiController(NutritionPlannerService plannerService,
-                                         @Value("${langchain4j.azure-open-ai.chat-model.deployment-name:unknown}") String aiModel) {
+                                         @Value("${ai.provider:unknown}") String provider,
+                                         @Value("${ai.model:unknown}") String modelName) {
         this.plannerService = plannerService;
-        this.aiModel = aiModel;
+        this.aiModel = "LangChain4j · " + provider + " (" + modelName + ")";
     }
 
     @GetMapping("/login")
     public String login(Model model) {
-        model.addAttribute("aiModel", "Azure OpenAI (" + aiModel + ")");
+        model.addAttribute("aiModel", aiModel);
         return "login";
     }
 
     @GetMapping("/")
     public String form(Model model) {
-        model.addAttribute("aiModel", "Azure OpenAI (" + aiModel + ")");
+        model.addAttribute("aiModel", aiModel);
         return "index";
     }
 
@@ -39,7 +40,7 @@ public class NutritionPlannerUiController {
             return "fragments/plan :: error";
         }
         model.addAttribute("plan", plan);
-        model.addAttribute("aiModel", "Azure OpenAI (" + aiModel + ")");
+        model.addAttribute("aiModel", aiModel);
         return "fragments/plan :: plan";
     }
 }

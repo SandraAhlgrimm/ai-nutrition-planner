@@ -1,3 +1,7 @@
+ai:
+  provider: OpenAI
+  model: ${OPENAI_MODEL_NAME:gpt-4o}
+
 openai:
   api-key: ${OPENAI_API_KEY}
   model-name: ${OPENAI_MODEL_NAME:gpt-4o}

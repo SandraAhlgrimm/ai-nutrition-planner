@@ -23,7 +23,7 @@ import java.util.Locale;
  *   optional loop:
  *     ReviseWeeklyPlan:revise
  *     NutritionAudit:validate
- *   Done:createWeeklyPlan
+ *   Done:createNutritionPlan
  */
 @Agent(description = "Supports conscious meal planning and sustainable eating habits.")
 class NutritionPlannerAgent {
@@ -88,7 +88,7 @@ class NutritionPlannerAgent {
 
                         # Additional instructions
                         %s
-                        """.formatted(weeklyPlanRequest, seasonalIngredients, weeklyPlanRequest.additionalInstructions()),
+                        """.formatted(weeklyPlanRequest.days(), seasonalIngredients, weeklyPlanRequest.additionalInstructions()),
                         WeeklyPlan.class);
         log.info("NutritionPlanner:createWeeklyPlan action ended with {}", weeklyPlan);
         return new NutritionAudit(weeklyPlan, seasonalIngredients, userProfile, weeklyPlanRequest.additionalInstructions());
@@ -153,11 +153,11 @@ class NutritionPlannerAgent {
     @State
     record Done(WeeklyPlan weeklyPlan) implements Stage {
 
-        @AchievesGoal(description = "Provides a meal plan for the week",
-                export = @Export(remote = true, name = "createWeeklyPlan", startingInputTypes = WeeklyPlanRequest.class))
+        @AchievesGoal(description = "Provides a nutrition plan for the week",
+                export = @Export(remote = true, name = "createNutritionPlan", startingInputTypes = WeeklyPlanRequest.class))
         @Action
-        WeeklyPlan createWeeklyPlan() {
-            log.info("NutritionPlanner:Done:createWeeklyPlan action called with result: {}", weeklyPlan);
+        WeeklyPlan createNutritionPlan() {
+            log.info("NutritionPlanner:Done:createNutritionPlan action called with result: {}", weeklyPlan);
             return weeklyPlan;
         }
     }

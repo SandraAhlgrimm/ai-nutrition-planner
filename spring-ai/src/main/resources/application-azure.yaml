@@ -1,0 +1,13 @@
+spring:
+  ai:
+    # Define AI provider(s) for type of models for autoconfiguration
+    model:
+      chat: azure-openai
+      embedding: azure-openai
+    # AI provider configuration
+    azure.openai:
+      chat:
+        options:
+          deployment-name: ${AZURE_OPENAI_DEPLOYMENT_NAME}
+      endpoint: ${AZURE_OPENAI_ENDPOINT}
+      api-key: ${AZURE_OPENAI_API_KEY}

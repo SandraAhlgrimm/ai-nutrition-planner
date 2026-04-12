@@ -1,0 +1,10 @@
+spring:
+  ai:
+    # Define AI provider(s) for type of models for autoconfiguration
+    model:
+      chat: openai-sdk
+      embedding: openai-sdk
+    # AI provider configuration
+    openai-sdk:
+      api-key: ${OPENAI_API_KEY}
+      chat.options.model: gpt-5-nano

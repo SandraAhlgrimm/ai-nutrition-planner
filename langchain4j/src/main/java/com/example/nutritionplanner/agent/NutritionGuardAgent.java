@@ -1,8 +1,8 @@
-package com.nutritionplanner.agent;
+package com.example.nutritionplanner.agent;
 
-import com.nutritionplanner.model.NutritionAuditValidationResult;
-import com.nutritionplanner.model.UserProfile;
-import com.nutritionplanner.model.WeeklyPlan;
+import com.example.nutritionplanner.model.NutritionAuditValidationResult;
+import com.example.nutritionplanner.model.UserProfile;
+import com.example.nutritionplanner.model.WeeklyPlan;
 import dev.langchain4j.agentic.Agent;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;

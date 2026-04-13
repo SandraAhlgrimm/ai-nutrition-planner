@@ -1,4 +1,4 @@
-package com.nutritionplanner.model;
+package com.example.nutritionplanner.model;
 
 import org.junit.jupiter.api.Test;
 

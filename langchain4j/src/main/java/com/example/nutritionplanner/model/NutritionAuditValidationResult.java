@@ -1,4 +1,4 @@
-package com.nutritionplanner.model;
+package com.example.nutritionplanner.model;
 
 import java.time.DayOfWeek;
 import java.util.List;

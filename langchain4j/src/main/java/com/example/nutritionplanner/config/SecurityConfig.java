@@ -1,4 +1,4 @@
-package com.nutritionplanner.config;
+package com.example.nutritionplanner.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

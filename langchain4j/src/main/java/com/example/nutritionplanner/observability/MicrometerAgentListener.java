@@ -1,4 +1,4 @@
-package com.nutritionplanner.observability;
+package com.example.nutritionplanner.observability;
 
 import dev.langchain4j.agentic.observability.AgentListener;
 import dev.langchain4j.agentic.observability.AgentRequest;

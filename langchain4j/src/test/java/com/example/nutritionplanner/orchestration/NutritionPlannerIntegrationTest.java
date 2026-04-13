@@ -1,7 +1,7 @@
-package com.nutritionplanner.orchestration;
+package com.example.nutritionplanner.orchestration;
 
-import com.nutritionplanner.agent.NutritionPlannerWorkflow;
-import com.nutritionplanner.model.*;
+import com.example.nutritionplanner.agent.NutritionPlannerWorkflow;
+import com.example.nutritionplanner.model.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

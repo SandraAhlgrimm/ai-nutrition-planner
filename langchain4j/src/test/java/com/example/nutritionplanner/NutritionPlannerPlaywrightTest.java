@@ -1,8 +1,8 @@
-package com.nutritionplanner;
+package com.example.nutritionplanner;
 
 import com.microsoft.playwright.*;
-import com.nutritionplanner.agent.NutritionPlannerWorkflow;
-import com.nutritionplanner.model.*;
+import com.example.nutritionplanner.agent.NutritionPlannerWorkflow;
+import com.example.nutritionplanner.model.*;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;

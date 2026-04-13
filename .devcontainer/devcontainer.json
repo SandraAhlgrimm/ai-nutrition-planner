@@ -1,0 +1,29 @@
+{
+  "name": "AI Nutrition Planner",
+  "image": "mcr.microsoft.com/devcontainers/java:25",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "25",
+      "jdkDistro": "ms",
+      "installMaven": "true",
+      "mavenVersion": "3.9.13"
+    }
+  },
+  "postCreateCommand": "curl -fsSL https://ollama.com/install.sh | sh && ollama serve & sleep 5 && ollama pull qwen2.5",
+  "forwardPorts": [8080, 3000, 4317, 4318, 11434],
+  "portsAttributes": {
+    "8080": { "label": "App" },
+    "3000": { "label": "Grafana" },
+    "11434": { "label": "Ollama" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "vmware.vscode-spring-boot",
+        "GitHub.copilot"
+      ]
+    }
+  }
+}

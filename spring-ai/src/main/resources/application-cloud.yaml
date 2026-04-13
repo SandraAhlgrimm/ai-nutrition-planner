@@ -1,0 +1,13 @@
+# Cloud profile — disables local-only features
+logging:
+  level:
+    com.example: INFO
+
+management:
+  endpoints.web.exposure.include: health,metrics,info
+  endpoint.env.show-values: NEVER
+  tracing:
+    enabled: false
+  otlp:
+    metrics.export.enabled: false
+    tracing.enabled: false

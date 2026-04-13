@@ -25,10 +25,43 @@ Each folder contains its own `AGENTS.md` with framework-specific architecture de
 
 - **Java 25**
 - **Maven 3.9+** (no Maven wrapper — use system Maven)
-- **Docker Desktop** (for Grafana observability stack)
-- **Azure OpenAI** credentials (or use `azd up` to provision)
+- **Docker Desktop** (for Grafana observability stack and Ollama)
+- An LLM provider: **Azure OpenAI**, **OpenAI**, or **Ollama** (local)
 
 ## Setup
+
+### Codespaces (recommended)
+
+Open this repo in a GitHub Codespace. The dev container installs Java 25, Maven, Docker, and Ollama automatically. After the container starts, Ollama is ready at `localhost:11434` with the `qwen2.5` model pre-pulled.
+
+### Ollama (local LLM — no API key required)
+
+Install Ollama and pull a model:
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull qwen2.5
+```
+
+Or start Ollama via Docker Compose (included in this repo):
+
+```bash
+docker compose up ollama -d
+docker compose exec ollama ollama pull qwen2.5
+```
+
+Then run any module with the `ollama` profile:
+
+```bash
+SPRING_PROFILES_ACTIVE=ollama mvn spring-boot:run
+```
+
+You can override the model and base URL with environment variables:
+
+```bash
+export OLLAMA_MODEL_NAME=qwen2.5      # default
+export OLLAMA_BASE_URL=http://localhost:11434  # default
+```
 
 ### Azure OpenAI
 
@@ -90,23 +123,18 @@ docker compose up -d
 
 The dashboard shows agent invocation rates, execution durations (p95), active agents, HTTP endpoint latency, JVM metrics, and distributed traces.
 
-## Deploy to Azure (azd)
+<details>
+<summary><strong>Deploy to Azure (azd)</strong></summary>
 
-The project includes full Azure Developer CLI support for deploying to **Azure Container Apps**:
+The project supports [Azure Developer CLI](https://learn.microsoft.com/azure/developer/azure-developer-cli/) for one-command deployment to Azure Container Apps:
 
 ```bash
 azd auth login
 azd up
 ```
 
-This provisions:
-- **Resource group** with all resources
-- **Azure Container Registry** for Docker images
-- **Azure Container Apps Environment** with Log Analytics
-- **Azure OpenAI** (gpt-4o) with API key passed as ACA secret
-- **Container App** named `ca-langchain4j-{token}` (framework name in the app name)
-
-The app container is built from `langchain4j/Dockerfile` (multi-stage, Java 25) and deployed with HTTP autoscaling (0–3 replicas).
+This provisions a Container Apps Environment, Azure Container Registry, Azure OpenAI (gpt-4o), and one Container App per framework (`langchain4j`, `spring-ai`, `embabel`). Each app is built from its own `Dockerfile` (multi-stage, Java 25) and scales 0–3 replicas. See [`infra/`](infra/) for the Bicep templates and [`azure.yaml`](azure.yaml) for the service manifest.
+</details>
 
 ## Example Request
 

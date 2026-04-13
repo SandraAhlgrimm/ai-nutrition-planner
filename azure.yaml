@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+name: ai-nutrition-planner
+metadata:
+  template: ai-nutrition-planner
+services:
+  langchain4j:
+    project: ./langchain4j
+    host: containerapp
+    language: java
+    docker:
+      path: ./Dockerfile
+  spring-ai:
+    project: ./spring-ai
+    host: containerapp
+    language: java
+    docker:
+      path: ./Dockerfile
+  embabel:
+    project: ./embabel
+    host: containerapp
+    language: java
+    docker:
+      path: ./Dockerfile

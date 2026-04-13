@@ -89,6 +89,43 @@ module langchain4jApp 'modules/container-app.bicep' = {
     tags: union(tags, { 'azd-service-name': 'langchain4j' })
     containerAppsEnvironmentId: containerAppsEnvironment.outputs.id
     containerRegistryName: containerRegistry.outputs.name
+    containerName: 'langchain4j-nutrition-planner'
+    openAiEndpoint: openAi.outputs.endpoint
+    openAiApiKey: openAi.outputs.apiKey
+    openAiDeploymentName: openAi.outputs.deploymentName
+  }
+}
+
+// ── Spring AI Container App ─────────────────────────────────
+module springAiApp 'modules/container-app.bicep' = {
+  name: 'spring-ai-app'
+  scope: rg
+  params: {
+    name: '${abbrs.containerApp}spring-ai-${resourceToken}'
+    location: location
+    tags: union(tags, { 'azd-service-name': 'spring-ai' })
+    containerAppsEnvironmentId: containerAppsEnvironment.outputs.id
+    containerRegistryName: containerRegistry.outputs.name
+    containerName: 'spring-ai-nutrition-planner'
+    springProfiles: 'cloud,azure'
+    openAiEndpoint: openAi.outputs.endpoint
+    openAiApiKey: openAi.outputs.apiKey
+    openAiDeploymentName: openAi.outputs.deploymentName
+  }
+}
+
+// ── Embabel Container App ───────────────────────────────────
+module embabelApp 'modules/container-app.bicep' = {
+  name: 'embabel-app'
+  scope: rg
+  params: {
+    name: '${abbrs.containerApp}embabel-${resourceToken}'
+    location: location
+    tags: union(tags, { 'azd-service-name': 'embabel' })
+    containerAppsEnvironmentId: containerAppsEnvironment.outputs.id
+    containerRegistryName: containerRegistry.outputs.name
+    containerName: 'embabel-nutrition-planner'
+    springProfiles: 'cloud,azure'
     openAiEndpoint: openAi.outputs.endpoint
     openAiApiKey: openAi.outputs.apiKey
     openAiDeploymentName: openAi.outputs.deploymentName
@@ -102,3 +139,5 @@ output AZURE_RESOURCE_GROUP string = rg.name
 output AZURE_OPENAI_ENDPOINT string = openAi.outputs.endpoint
 output AZURE_OPENAI_DEPLOYMENT_NAME string = openAi.outputs.deploymentName
 output SERVICE_LANGCHAIN4J_ENDPOINT string = langchain4jApp.outputs.fqdn
+output SERVICE_SPRING_AI_ENDPOINT string = springAiApp.outputs.fqdn
+output SERVICE_EMBABEL_ENDPOINT string = embabelApp.outputs.fqdn

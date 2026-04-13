@@ -82,13 +82,13 @@ class NutritionPlannerUiController {
 
         try {
             var name = (String)FieldUtils.readField(chatModelDefaultOptions, "model", true);
-            return "%s (%s)".formatted(provider, capitalize(name));
+            return "Spring AI &middot; %s (%s)".formatted(provider, capitalize(name));
         } catch (Exception e) {
             try {
                 var name = (String)FieldUtils.readField(chatModelDefaultOptions, "deploymentName", true);
-                return "%s (%s)".formatted(provider, capitalize(name));
+                return "Spring AI &middot; %s (%s)".formatted(provider, capitalize(name));
             } catch (Exception e2) {
-                return provider;
+                return "Spring AI &middot; " + provider;
             }
         }
     }

@@ -1,7 +1,6 @@
 package com.example.nutrition_planner;
 
 import com.embabel.agent.api.annotation.LlmTool;
-import com.embabel.agent.api.annotation.UnfoldingTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,8 +28,10 @@ import java.util.stream.Stream;
  * For cases where the prompt contribution is large or spans multiple unrelated tools, Embabel also
  * provides {@code LlmReference} — an alternative that contributes context via the system prompt
  * rather than as a single invokable tool.
+ *
+ * NOTE: @UnfoldingTools disabled for Azure OpenAI gpt-4o compatibility — the model calls the
+ * parent tool name directly instead of the context tool. Tools are exposed directly via @LlmTool.
  */
-@UnfoldingTools(name = "weekly_meal_plan_tools", description = "Weekly meal plan tools. Pass category: 'nutrition' for daily/weekly nutrition totals, or 'meal' for meal-related information such as counts")
 record WeeklyPlan(List<DailyPlan> days) {
 
     private static final Logger log = LoggerFactory.getLogger(WeeklyPlan.class);

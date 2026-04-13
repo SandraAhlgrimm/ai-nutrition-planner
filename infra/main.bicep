@@ -90,6 +90,7 @@ module langchain4jApp 'modules/container-app.bicep' = {
     containerAppsEnvironmentId: containerAppsEnvironment.outputs.id
     containerRegistryName: containerRegistry.outputs.name
     containerName: 'langchain4j-nutrition-planner'
+    springProfiles: 'cloud,azure'
     openAiEndpoint: openAi.outputs.endpoint
     openAiApiKey: openAi.outputs.apiKey
     openAiDeploymentName: openAi.outputs.deploymentName

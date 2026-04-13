@@ -50,7 +50,7 @@ class NutritionPlannerAgentIntegrationTests extends EmbabelMockitoIntegrationTes
                 .thenReturn(new SeasonalIngredients(List.of(new Recipe.Ingredient("asparagus", "500", "g"))));
 
         // Step 2 – createMealPlan
-        whenCreateObject(prompt -> prompt.contains("User requested meals and days"), WeeklyPlan.class)
+        whenCreateObject(prompt -> prompt.contains("EVERY requested meal"), WeeklyPlan.class)
                 .thenReturn(INITIAL_PLAN);
 
         // Step 3 – NutritionAudit:validate (first pass — fails, triggering the revision loop)
@@ -82,7 +82,7 @@ class NutritionPlannerAgentIntegrationTests extends EmbabelMockitoIntegrationTes
 
         // 2. createMealPlan — initial plan, not a revision
         verifyCreateObjectMatching(
-                prompt -> prompt.contains("User requested meals and days"), WeeklyPlan.class, llm -> llm.getTools().isEmpty());
+                prompt -> prompt.contains("EVERY requested meal"), WeeklyPlan.class, llm -> llm.getTools().isEmpty());
 
         // 3. NutritionAudit:validate (first) — dailyNutritionTotals tool must be registered via withToolObject()
         verifyCreateObjectMatching(

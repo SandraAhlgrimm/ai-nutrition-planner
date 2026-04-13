@@ -66,6 +66,7 @@ class NutritionPlannerAgent {
 
                         Return a list of ingredients in English that are currently in season for the month of %s in %s.
                         Focus on fish, meat, fruits, vegetables, and herbs that are at peak availability and quality.
+                        Use English for all ingredient names, quantities, and units (e.g., "200", "g").
                         """.formatted(currentMonth, country),
                         SeasonalIngredients.class);
         log.info("NutritionPlanner:fetchSeasonalIngredients action ended with {}", seasonalIngredients);
@@ -80,15 +81,24 @@ class NutritionPlannerAgent {
                 .withLlm(LlmOptions.withAutoLlm())
                 .withPromptElements(Personas.RECIPE_CURATOR)
                 .createObject("""
+                        Create a weekly meal plan with recipes for EVERY requested meal below. Do not skip any meal.
+                        Write all recipe names, instructions, ingredient names, quantities, and units in English.
+
                         # User requested meals and days
                         %s
 
                         # Seasonal ingredients
                         %s
 
+                        # User profile
+                        %s
+
                         # Additional instructions
                         %s
-                        """.formatted(weeklyPlanRequest.days(), seasonalIngredients, weeklyPlanRequest.additionalInstructions()),
+
+                        IMPORTANT: You MUST provide a recipe for each requested meal. Include complete nutrition information
+                        (calories, proteinGrams, carbGrams, fatGrams, sodiumMg) for every recipe.
+                        """.formatted(weeklyPlanRequest.days(), seasonalIngredients, userProfile, weeklyPlanRequest.additionalInstructions()),
                         WeeklyPlan.class);
         log.info("NutritionPlanner:createWeeklyPlan action ended with {}", weeklyPlan);
         return new NutritionAudit(weeklyPlan, seasonalIngredients, userProfile, weeklyPlanRequest.additionalInstructions());

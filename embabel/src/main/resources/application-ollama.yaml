@@ -1,0 +1,16 @@
+spring:
+  ai:
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+
+embabel:
+  models:
+    default-llm: ${OLLAMA_MODEL_NAME:qwen2.5:14b}
+  agent:
+    platform:
+      llm-operations:
+        prompts:
+          default-timeout: 600s
+      models:
+        openai:
+          api-key: ${OPENAI_API_KEY:unused}

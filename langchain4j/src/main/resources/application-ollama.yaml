@@ -1,0 +1,8 @@
+ai:
+  provider: Ollama
+  model: ${OLLAMA_MODEL_NAME:qwen2.5}
+
+ollama:
+  base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+  model-name: ${OLLAMA_MODEL_NAME:qwen2.5}
+  temperature: 0.3

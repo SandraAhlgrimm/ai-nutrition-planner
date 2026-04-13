@@ -3,6 +3,8 @@ param location string
 param tags object = {}
 param containerAppsEnvironmentId string
 param containerRegistryName string
+param containerName string
+param springProfiles string = 'cloud'
 param openAiEndpoint string
 
 @secure()
@@ -42,7 +44,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
     template: {
       containers: [
         {
-          name: 'langchain4j-nutrition-planner'
+          name: containerName
           // azd replaces this placeholder image during deploy
           image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
           resources: {
@@ -53,7 +55,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'AZURE_OPENAI_ENDPOINT', value: openAiEndpoint }
             { name: 'AZURE_OPENAI_API_KEY', secretRef: 'openai-api-key' }
             { name: 'AZURE_OPENAI_DEPLOYMENT_NAME', value: openAiDeploymentName }
-            { name: 'SPRING_PROFILES_ACTIVE', value: 'cloud' }
+            { name: 'SPRING_PROFILES_ACTIVE', value: springProfiles }
           ]
         }
       ]

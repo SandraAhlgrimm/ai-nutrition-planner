@@ -1,7 +1,7 @@
-package com.nutritionplanner.agent;
+package com.example.nutritionplanner.agent;
 
-import com.nutritionplanner.model.NutritionInfo;
-import com.nutritionplanner.model.WeeklyPlan;
+import com.example.nutritionplanner.model.NutritionInfo;
+import com.example.nutritionplanner.model.WeeklyPlan;
 import dev.langchain4j.agent.tool.Tool;
 
 import java.time.DayOfWeek;

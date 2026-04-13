@@ -1,4 +1,4 @@
-package com.nutritionplanner.model;
+package com.example.nutritionplanner.model;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

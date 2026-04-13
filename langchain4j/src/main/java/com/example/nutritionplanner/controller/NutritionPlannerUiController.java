@@ -1,6 +1,6 @@
-package com.nutritionplanner.controller;
+package com.example.nutritionplanner.controller;
 
-import com.nutritionplanner.orchestration.NutritionPlannerService;
+import com.example.nutritionplanner.orchestration.NutritionPlannerService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;

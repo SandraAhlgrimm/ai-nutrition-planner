@@ -1,6 +1,6 @@
-package com.nutritionplanner.agent;
+package com.example.nutritionplanner.agent;
 
-import com.nutritionplanner.model.SeasonalIngredients;
+import com.example.nutritionplanner.model.SeasonalIngredients;
 import dev.langchain4j.agentic.Agent;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;

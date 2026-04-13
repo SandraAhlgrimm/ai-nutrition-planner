@@ -1,7 +1,7 @@
-package com.nutritionplanner.controller;
+package com.example.nutritionplanner.controller;
 
-import com.nutritionplanner.model.WeeklyPlanRequest;
-import com.nutritionplanner.orchestration.NutritionPlannerService;
+import com.example.nutritionplanner.model.WeeklyPlanRequest;
+import com.example.nutritionplanner.orchestration.NutritionPlannerService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;

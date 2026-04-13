@@ -1,4 +1,4 @@
-package com.nutritionplanner.config;
+package com.example.nutritionplanner.config;
 
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;

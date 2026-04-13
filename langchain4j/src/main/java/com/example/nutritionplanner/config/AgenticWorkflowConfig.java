@@ -1,13 +1,13 @@
-package com.nutritionplanner.config;
+package com.example.nutritionplanner.config;
 
-import com.nutritionplanner.agent.*;
-import com.nutritionplanner.model.NutritionAuditValidationResult;
-import com.nutritionplanner.model.WeeklyPlan;
-import com.nutritionplanner.observability.MicrometerAgentListener;
+import com.example.nutritionplanner.agent.*;
+import com.example.nutritionplanner.model.NutritionAuditValidationResult;
+import com.example.nutritionplanner.model.WeeklyPlan;
+import com.example.nutritionplanner.observability.MicrometerAgentListener;
 import dev.langchain4j.agentic.AgenticServices;
 import dev.langchain4j.agentic.observability.AgentListener;
 import dev.langchain4j.agentic.observability.AgentRequest;
-import com.nutritionplanner.orchestration.NutritionPlannerService;
+import com.example.nutritionplanner.orchestration.NutritionPlannerService;
 import dev.langchain4j.model.chat.ChatModel;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;

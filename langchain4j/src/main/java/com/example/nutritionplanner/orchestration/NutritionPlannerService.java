@@ -1,10 +1,10 @@
-package com.nutritionplanner.orchestration;
+package com.example.nutritionplanner.orchestration;
 
-import com.nutritionplanner.agent.NutritionPlannerWorkflow;
-import com.nutritionplanner.model.UserProfile;
-import com.nutritionplanner.model.UserProfileProperties;
-import com.nutritionplanner.model.WeeklyPlan;
-import com.nutritionplanner.model.WeeklyPlanRequest;
+import com.example.nutritionplanner.agent.NutritionPlannerWorkflow;
+import com.example.nutritionplanner.model.UserProfile;
+import com.example.nutritionplanner.model.UserProfileProperties;
+import com.example.nutritionplanner.model.WeeklyPlan;
+import com.example.nutritionplanner.model.WeeklyPlanRequest;
 import dev.langchain4j.agentic.observability.AgentListener;
 import dev.langchain4j.agentic.observability.AgentRequest;
 import dev.langchain4j.agentic.observability.AgentResponse;

@@ -4,7 +4,7 @@ spring:
 
 logging:
   level:
-    com.nutritionplanner: INFO
+    com.example.nutritionplanner: INFO
 
 management:
   endpoints.web.exposure.include: health,metrics,info

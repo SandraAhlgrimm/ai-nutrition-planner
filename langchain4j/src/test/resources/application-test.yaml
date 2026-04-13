@@ -15,7 +15,7 @@ openai:
 
 logging:
   level:
-    com.nutritionplanner: DEBUG
+    com.example.nutritionplanner: DEBUG
 
 nutrition-planner:
   max-validation-iterations: 3

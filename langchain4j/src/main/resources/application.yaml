@@ -4,17 +4,15 @@ spring:
   security.user:
     password: 123456
     name: alice
-  ai:
-    chat.client.observations.log-completion: true
 
-server:
-  error:
-    include-stacktrace: always
-    include-message: always
+langchain4j.open-ai.chat-model:
+  log-requests: true
+  log-responses: true
 
 logging:
   level:
     com.nutritionplanner: DEBUG
+    dev.langchain4j: DEBUG
 
 management:
   endpoints.web.exposure.include: "*"

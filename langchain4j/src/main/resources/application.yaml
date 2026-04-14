@@ -1,13 +1,9 @@
 spring:
   application.name: langchain4j-nutrition-planner
-  profiles.active: ${SPRING_PROFILES_ACTIVE:openai}
+  profiles.active: openai
   security.user:
     password: 123456
     name: alice
-
-langchain4j.open-ai.chat-model:
-  log-requests: true
-  log-responses: true
 
 logging:
   level:

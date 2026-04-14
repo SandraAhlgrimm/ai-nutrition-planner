@@ -1,11 +1,8 @@
-ai:
-  provider: Azure OpenAI
-  model: ${AZURE_OPENAI_DEPLOYMENT_NAME:gpt-4o}
-
-openai:
-  api-key: ${AZURE_OPENAI_API_KEY}
-  base-url: ${AZURE_OPENAI_ENDPOINT}
-  deployment-name: ${AZURE_OPENAI_DEPLOYMENT_NAME:gpt-4o}
-  model-name: ${AZURE_OPENAI_DEPLOYMENT_NAME:gpt-4o}
-  temperature: 0.3
-  azure: true
+langchain4j:
+  # AI provider configuration
+  azure-open-ai:
+    chat-model:
+      api-key: ${AZURE_OPENAI_API_KEY}
+      deployment-name: ${AZURE_OPENAI_DEPLOYMENT_NAME:gpt-4o}
+      endpoint: ${AZURE_OPENAI_ENDPOINT}
+      temperature: 0.3

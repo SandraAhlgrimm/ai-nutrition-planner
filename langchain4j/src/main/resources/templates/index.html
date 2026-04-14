@@ -11,8 +11,6 @@
         .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { display: flex; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .spinner { animation: spin 1s linear infinite; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-        .progress-step { animation: fadeIn 0.3s ease-out; }
     </style>
     <script>
         function toggleAll(btn) {
@@ -38,103 +36,7 @@
             }, () => {});
         }
 
-        function submitWithSSE(form) {
-            const formData = new FormData(form);
-            const params = new URLSearchParams();
-            for (const [key, value] of formData.entries()) {
-                params.append(key, value);
-            }
-
-            const progress = document.getElementById('progress');
-            const progressSteps = document.getElementById('progressSteps');
-            const result = document.getElementById('result');
-            const submitBtn = document.getElementById('submitBtn');
-
-            // Show progress, hide result
-            progress.classList.remove('hidden');
-            progressSteps.innerHTML = '';
-            result.innerHTML = '';
-            submitBtn.disabled = true;
-            submitBtn.classList.add('opacity-50');
-
-            const source = new EventSource('/plan/stream?' + params.toString(), { withCredentials: true });
-
-            source.addEventListener('progress', function(e) {
-                const step = document.createElement('div');
-                step.className = 'progress-step flex items-center gap-2 text-sm text-gray-600 py-1';
-                step.textContent = e.data;
-                progressSteps.appendChild(step);
-                progressSteps.scrollTop = progressSteps.scrollHeight;
-            });
-
-            source.addEventListener('complete', function(e) {
-                source.close();
-
-                // Stop the spinner, show success
-                var spinner = progress.querySelector('.spinner');
-                if (spinner) spinner.style.display = 'none';
-                var header = progress.querySelector('span');
-                if (header) header.textContent = '✅ Plan generated! Loading results…';
-
-                // Fetch pre-rendered HTML from cache (no double workflow run)
-                var resultId = e.data.trim();
-                fetch('/plan/result?id=' + encodeURIComponent(resultId), { credentials: 'same-origin' })
-                    .then(function(r) {
-                        if (!r.ok) throw new Error('HTTP ' + r.status);
-                        return r.text();
-                    })
-                    .then(function(html) {
-                        progress.classList.add('hidden');
-                        if (!html || html.trim().length === 0 || html.includes('login')) {
-                            result.innerHTML = '<p class="text-red-600">Session expired. Please <a href="/login" class="underline">log in again</a>.</p>';
-                        } else {
-                            result.innerHTML = html;
-                        }
-                    })
-                    .catch(function() {
-                        progress.classList.add('hidden');
-                        result.innerHTML = '<p class="text-red-600">Failed to load results.</p>';
-                    })
-                    .finally(function() {
-                        submitBtn.disabled = false;
-                        submitBtn.classList.remove('opacity-50');
-                    });
-            });
-
-            source.addEventListener('error', function(e) {
-                source.close();
-                var spinner = progress.querySelector('.spinner');
-                if (spinner) spinner.style.display = 'none';
-                var header = progress.querySelector('span');
-                if (header) header.textContent = '❌ Error';
-                const step = document.createElement('div');
-                step.className = 'progress-step text-sm text-red-600 py-1';
-                step.textContent = '❌ ' + (e.data || 'An error occurred. Please try again.');
-                progressSteps.appendChild(step);
-                submitBtn.disabled = false;
-                submitBtn.classList.remove('opacity-50');
-            });
-
-            source.onerror = function() {
-                source.close();
-                var spinner = progress.querySelector('.spinner');
-                if (spinner) spinner.style.display = 'none';
-                var header = progress.querySelector('span');
-                if (header && !header.textContent.startsWith('✅') && !header.textContent.startsWith('❌')) {
-                    header.textContent = '❌ Connection lost. Please try again.';
-                }
-                submitBtn.disabled = false;
-                submitBtn.classList.remove('opacity-50');
-            };
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            detectCountry();
-            document.getElementById('planForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                submitWithSSE(this);
-            });
-        });
+        document.addEventListener('DOMContentLoaded', detectCountry);
     </script>
 </head>
 <body class="bg-gray-100 min-h-screen font-sans">
@@ -148,7 +50,7 @@
 
     <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
 
-        <form id="planForm" hx-post="/plan" hx-target="#result" hx-swap="innerHTML" hx-indicator="#spinner" class="space-y-6">
+        <form hx-post="/plan" hx-target="#result" hx-swap="innerHTML" hx-indicator="#spinner" class="space-y-6">
 
             <!-- Days & Meals -->
             <div>
@@ -243,7 +145,7 @@
                            placeholder="e.g. Prefer quick recipes under 30 minutes."/>
                 </div>
                 <div class="flex items-center gap-3">
-                    <button id="submitBtn" type="submit"
+                    <button type="submit"
                             class="border border-gray-400 bg-white hover:bg-gray-50 text-gray-800 font-medium px-5 py-1.5 rounded text-sm transition-colors">
                         Generate Plan
                     </button>
@@ -258,18 +160,6 @@
             </div>
 
         </form>
-
-        <!-- Progress area for SSE streaming -->
-        <div id="progress" class="hidden mt-6 border border-blue-200 bg-blue-50 rounded-lg p-4">
-            <div class="flex items-center gap-2 mb-3">
-                <svg class="spinner w-4 h-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                </svg>
-                <span class="text-sm font-semibold text-blue-800">Generating your plan…</span>
-            </div>
-            <div id="progressSteps" class="max-h-40 overflow-y-auto space-y-1 pl-6"></div>
-        </div>
 
         <!-- Result area populated by HTMX -->
         <div id="result" class="mt-6"></div>

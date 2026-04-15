@@ -102,7 +102,6 @@ class NutritionPlannerAgent {
                         .param("instructions", weeklyPlanRequest.additionalInstructions())
                 )
                 .advisors(validationRetryAdvisor)
-                .tools()
                 .call()
                 .entity(WeeklyPlan.class);
         log.info("NutritionService:createWeeklyPlan action ended with {}", weeklyPlan);

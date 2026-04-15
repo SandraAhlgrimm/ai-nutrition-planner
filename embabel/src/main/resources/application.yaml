@@ -9,6 +9,7 @@ spring:
     mcp.server.protocol: STREAMABLE
 
 embabel:
+  agent.platform.process-type: CONCURRENT
   models.default-llm: gpt-5-nano
   agent.platform.llm-operations.prompts.default-timeout: 180s
   observability:

@@ -13,6 +13,7 @@ logging:
 management:
   endpoints.web.exposure.include: "*"
   endpoint.env.show-values: ALWAYS
+  otlp.metrics.export.enabled: false
 
 nutrition-planner:
   max-validation-iterations: 3

@@ -22,6 +22,7 @@ logging.level:
 management:
   endpoints.web.exposure.include: "*"
   endpoint.env.show-values: ALWAYS
+  otlp.metrics.export.enabled: false
 
 nutrition-planner:
   user-profiles:

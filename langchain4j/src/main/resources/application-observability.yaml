@@ -1,0 +1,7 @@
+management:
+  tracing:
+    sampling.probability: 1.0
+    enabled: true
+  otlp:
+    metrics.export.step: 5s
+    tracing.endpoint: http://localhost:4318/v1/traces

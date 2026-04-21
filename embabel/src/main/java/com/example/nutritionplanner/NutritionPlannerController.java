@@ -1,4 +1,4 @@
-package com.example.nutrition_planner;
+package com.example.nutritionplanner;
 
 import com.embabel.agent.api.invocation.AgentInvocation;
 import com.embabel.agent.core.AgentPlatform;

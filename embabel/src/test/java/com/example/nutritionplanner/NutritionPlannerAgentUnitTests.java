@@ -1,4 +1,4 @@
-package com.example.nutrition_planner;
+package com.example.nutritionplanner;
 
 import com.embabel.agent.test.unit.FakeOperationContext;
 import org.junit.jupiter.api.BeforeEach;

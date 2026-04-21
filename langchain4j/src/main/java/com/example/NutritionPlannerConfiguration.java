@@ -1,5 +1,6 @@
 package com.example;
 
+import dev.langchain4j.agentic.observability.AgentMonitor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -19,5 +20,10 @@ class NutritionPlannerConfiguration {
                         .anyRequest().authenticated())
                 .formLogin(form -> form.loginPage("/login").permitAll())
                 .httpBasic(Customizer.withDefaults()).build();
+    }
+
+    @Bean
+    AgentMonitor agentMonitor() {
+        return new AgentMonitor();
     }
 }

@@ -7,17 +7,29 @@ services:
     project: ./langchain4j
     host: containerapp
     language: java
+    hooks:
+      prepackage:
+        shell: sh
+        run: cd langchain4j && ./mvnw spring-boot:build-image -Dspring-boot.build-image.imageName=ai-nutrition-planer-langchain4j
     docker:
-      path: ./Dockerfile
+      image: ai-nutrition-planer-langchain4j
   spring-ai:
     project: ./spring-ai
     host: containerapp
     language: java
+    hooks:
+      prepackage:
+        shell: sh
+        run: cd spring-ai && ./mvnw spring-boot:build-image -Dspring-boot.build-image.imageName=ai-nutrition-planer-spring-ai
     docker:
-      path: ./Dockerfile
+      image: ai-nutrition-planer-spring-ai
   embabel:
     project: ./embabel
     host: containerapp
     language: java
+    hooks:
+      prepackage:
+        shell: sh
+        run: cd embabel && ./mvnw spring-boot:build-image -Dspring-boot.build-image.imageName=ai-nutrition-planer-embabel
     docker:
-      path: ./Dockerfile
+      image: ai-nutrition-planer-embabel

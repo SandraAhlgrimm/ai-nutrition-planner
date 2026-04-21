@@ -19,19 +19,19 @@ interface AgentListeners {
         private static final Logger log = LoggerFactory.getLogger(LoggingListener.class);
 
         @Override
-            public boolean inheritedBySubagents() {
-                return true;
-            }
+        public boolean inheritedBySubagents() {
+            return true;
+        }
 
-            @Override
-            public void beforeAgentInvocation(AgentRequest request) {
-                log.info("Agent '{}' invoked with inputs: {}", request.agentName(), request.inputs().keySet());
-            }
+        @Override
+        public void beforeAgentInvocation(AgentRequest request) {
+            log.info("Agent '{}' invoked with inputs: {}", request.agentName(), request.inputs().keySet());
+        }
 
-            @Override
-            public void afterAgentInvocation(dev.langchain4j.agentic.observability.AgentResponse response) {
-                log.info("Agent '{}' completed", response.agentName());
-            }
+        @Override
+        public void afterAgentInvocation(dev.langchain4j.agentic.observability.AgentResponse response) {
+            log.info("Agent '{}' completed", response.agentName());
+        }
     }
 
     class MicrometerAgentListener implements AgentListener {

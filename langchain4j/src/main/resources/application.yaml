@@ -5,20 +5,14 @@ spring:
     password: 123456
     name: alice
 
-logging:
-  level:
-    com.nutritionplanner: DEBUG
-    dev.langchain4j: DEBUG
-
 management:
   endpoints.web.exposure.include: "*"
-  endpoint.env.show-values: ALWAYS
   otlp.metrics.export.enabled: false
 
 nutrition-planner:
   max-validation-iterations: 3
   user-profiles:
-    - name: alice
+    - username: alice
       dietary-restrictions:
         - vegetarian
       health-goals:

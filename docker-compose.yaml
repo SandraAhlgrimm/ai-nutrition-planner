@@ -10,17 +10,26 @@ services:
       - ./grafana/dashboards-provisioning.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/custom.yaml:ro
     environment:
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /otel-lgtm/grafana/conf/provisioning/dashboards/custom/custom-dashboard.json
+    profiles:
+      - observability
 
-#  ollama:
-#    image: ollama/ollama:latest
-#    ports:
-#      - "11434:11434"
-#    volumes:
-#      - ollama-data:/root/.ollama
-#    deploy:
-#      resources:
-#        reservations:
-#          memory: 4g
-#
-#volumes:
-#  ollama-data:
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    entrypoint: >
+      sh -c "ollama serve &
+             until ollama list > /dev/null 2>&1; do sleep 1; done &&
+             ollama pull qwen2.5 &&
+             wait"
+    deploy:
+      resources:
+        reservations:
+          memory: 4g
+    profiles:
+      - ollama
+
+volumes:
+  ollama-data:

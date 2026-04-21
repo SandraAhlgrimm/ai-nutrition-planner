@@ -15,19 +15,19 @@
 
         <div class="border border-gray-200 rounded-b divide-y divide-gray-100">
 
-            <div th:if="${day.breakfast().present}" class="p-6">
+            <div th:if="${day.breakfast() != null}" class="p-6">
                 <p class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Breakfast</p>
-                <div th:replace="~{fragments/plan :: recipe(${day.breakfast().get()})}"></div>
+                <div th:replace="~{fragments/plan :: recipe(${day.breakfast()})}"></div>
             </div>
 
-            <div th:if="${day.lunch().present}" class="p-6">
+            <div th:if="${day.lunch() != null}" class="p-6">
                 <p class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Lunch</p>
-                <div th:replace="~{fragments/plan :: recipe(${day.lunch().get()})}"></div>
+                <div th:replace="~{fragments/plan :: recipe(${day.lunch()})}"></div>
             </div>
 
-            <div th:if="${day.dinner().present}" class="p-6">
+            <div th:if="${day.dinner() != null}" class="p-6">
                 <p class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Dinner</p>
-                <div th:replace="~{fragments/plan :: recipe(${day.dinner().get()})}"></div>
+                <div th:replace="~{fragments/plan :: recipe(${day.dinner()})}"></div>
             </div>
 
         </div>

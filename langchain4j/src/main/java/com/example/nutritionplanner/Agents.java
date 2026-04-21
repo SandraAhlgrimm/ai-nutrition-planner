@@ -1,29 +1,52 @@
 package com.example.nutritionplanner;
 
 import dev.langchain4j.agentic.Agent;
+import dev.langchain4j.agentic.declarative.*;
+import dev.langchain4j.agentic.observability.AgentListener;
+import dev.langchain4j.agentic.observability.AgentMonitor;
+import dev.langchain4j.agentic.observability.ComposedAgentListener;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
+import io.micrometer.core.instrument.MeterRegistry;
 
 interface Agents {
 
     /**
-     * Typed entry point for the composed agentic nutrition planning workflow.
+     * Typed entry point for the composed agentic nutrition planning workflow
      */
     interface NutritionPlanner {
 
-        @Agent(description = "Creates a validated weekly nutrition plan",
-                outputKey = "weeklyPlan")
+        // Non-Declarative API: AgenticServices.sequenceBuilder(Agents.NutritionPlanner.class)
+        @SequenceAgent(description = "Creates a validated weekly nutrition plan", typedOutputKey = WeeklyPlan.class,
+                subAgents = {SeasonalIngredientAgent.class, WeeklyValidatedPlanCreator.class})
         WeeklyPlan createNutritionPlan(
-                @V("userProfile") UserProfile userProfile,
-                @V("request") WeeklyPlanRequest request,
+                @K(UserProfile.class) UserProfile userProfile,
+                @K(WeeklyPlanRequest.class) WeeklyPlanRequest request,
                 @V("month") String month,
                 @V("country") String country,
                 @V("additionalInstructions") String additionalInstructions);
+
+        @ChatModelSupplier
+        static ChatModel chatModel() {
+            return ApplicationContextProvider.getBean(ChatModel.class);
+        }
+
+        @AgentListenerSupplier
+        static AgentListener composedAgentListener() {
+            var meterRegistry = ApplicationContextProvider.getBean(MeterRegistry.class);
+            var agentMonitor = ApplicationContextProvider.getBean(AgentMonitor.class);
+            ApplicationContextProvider.getBean(AgentMonitor.class);
+            return new ComposedAgentListener(new AgentListeners.LoggingListener(),
+                    new AgentListeners.MicrometerAgentListener(meterRegistry),
+                    agentMonitor);
+        }
     }
 
     interface SeasonalIngredientAgent {
 
+        // Non-Declarative API: AgenticServices.agentBuilder(Agents.SeasonalIngredientAgent.class)
         @UserMessage("""
             You are a nutrition expert with deep knowledge of seasonal produce.
 
@@ -31,105 +54,109 @@ interface Agents {
             Focus on fish, meat, fruits, vegetables, and herbs that are at peak availability and quality.
             """)
         @Agent(description = "Fetches seasonal ingredients for a given location and time of year",
-                outputKey = "seasonalIngredients")
+                typedOutputKey = SeasonalIngredients.class)
         SeasonalIngredients fetchSeasonalIngredients(@V("month") String month, @V("country") String country);
+    }
+
+    interface WeeklyValidatedPlanCreator {
+
+        // Non-Declarative API: AgenticServices.loopBuilder()
+        @LoopAgent(subAgents = {WeeklyPlanCreator.class, NutritionGuard.class}, typedOutputKey = WeeklyPlan.class,
+                maxIterations = 3)
+        WeeklyPlan createValidatedWeeklyPlan();
+
+        @ExitCondition(testExitAtLoopEnd = true, description = "score greater than 0.8")
+        static boolean exit(@K(NutritionAuditValidationResult.class) NutritionAuditValidationResult validationResult) {
+            return validationResult.allPassed();
+        }
     }
 
     interface WeeklyPlanCreator {
 
-        @SystemMessage("""
-            You are a Recipe Curator — a culinary expert specializing in weekly meal planning.
-            Tone: Creative yet practical. You craft balanced, appealing recipes using seasonal
-            ingredients and always provide accurate nutrition information for each dish.
-            Instructions: Draft recipes in English based on the user requested meals and days.
-            Use seasonal ingredients as much as possible and provide nutrition information for each recipe.
-            Return a JSON object matching the WeeklyPlan schema with days, each having optional breakfast, lunch, dinner recipes.
-            """)
+        @SystemMessage(Personas.RECIPE_CURATOR)
         @UserMessage("""
             Create a weekly meal plan based on the following inputs:
 
             # User requested meals and days
-            {{request}}
+            {{WeeklyPlanRequest}}
 
             # Seasonal ingredients
-            {{seasonalIngredients}}
+            {{SeasonalIngredients}}
 
             # User profile (dietary restrictions, allergies, preferences)
-            {{userProfile}}
+            {{UserProfile}}
 
             # Additional instructions
             {{additionalInstructions}}
+            
+            If available, don't create and revise this weekly meal plan based on the following feedback instead:
+
+            # Current response
+            {{WeeklyPlan}}
+
+            # Feedback
+            {{NutritionAuditValidationResult}}
             """)
         @Agent(description = "Creates a weekly meal plan using seasonal ingredients and user preferences",
-                outputKey = "weeklyPlan")
+                typedOutputKey = WeeklyPlan.class)
         WeeklyPlan createWeeklyPlan(
-                @V("request") WeeklyPlanRequest request,
-                @V("seasonalIngredients") SeasonalIngredients seasonalIngredients,
-                @V("userProfile") UserProfile userProfile,
-                @V("additionalInstructions") String additionalInstructions);
-    }
-
-    interface WeeklyPlanReviserAgent {
-
-        @SystemMessage("""
-                You are a Recipe Curator — a culinary expert specializing in weekly meal planning.
-                Tone: Creative yet practical. You craft balanced, appealing recipes using seasonal
-                ingredients and always provide accurate nutrition information for each dish.
-                Instructions: Revise the recipes based on feedback from a nutrition expert.
-                Fix all violations while keeping the meals appealing and seasonal.
-                Return a JSON object matching the WeeklyPlan schema with days, each having optional breakfast, lunch, dinner recipes.
-                """)
-        @UserMessage("""
-                Revise the recipes based on the following feedback from a nutrition expert.
-                
-                # Current recipes
-                {{weeklyPlan}}
-                
-                # Feedback from nutrition expert
-                {{validationResult}}
-                
-                # Additional instructions
-                {{additionalInstructions}}
-                """)
-        @Agent(description = "Revises a weekly plan based on validation feedback",
-                outputKey = "weeklyPlan")
-        WeeklyPlan revisWeeklyPlan(
-                @V("weeklyPlan") WeeklyPlan weeklyPlan,
-                @V("validationResult") NutritionAuditValidationResult validationResult,
-                @V("additionalInstructions") String additionalInstructions);
-
+                @K(WeeklyPlanRequest.class) WeeklyPlanRequest request,
+                @K(SeasonalIngredients.class) SeasonalIngredients seasonalIngredients,
+                @K(UserProfile.class) UserProfile userProfile,
+                @V("additionalInstructions") String additionalInstructions,
+                @K(WeeklyPlan.class) WeeklyPlan weeklyPlan,
+                @K(NutritionAuditValidationResult.class) NutritionAuditValidationResult validationResult);
     }
 
     interface NutritionGuard {
 
-        @SystemMessage("""
-            You are a Nutrition Guard — a strict dietary compliance validator specialized in ensuring
-            meal plans meet user health requirements and dietary restrictions.
-            Tone: Thorough, precise, and uncompromising. You apply dietary rules consistently and
-            flag every violation without exception. Be concise and factual in your assessments.
-            Instructions: Validate a list of recipes against a user profile and flag any violations.
-            Check each recipe for:
-            1. NUTRITION_INFO: Nutrition information is available for each recipe
-            2. CALORIE_OVERFLOW: calories exceed daily calorie target
-            3. ALLERGEN_PRESENT: recipe contains an ingredient matching user's allergies
-            4. RESTRICTION_VIOLATION: recipe violates dietary restrictions (e.g., meat for vegetarian)
-            5. DISLIKED_INGREDIENTS_PRESENT: recipe contains disliked ingredients
-            Use the available tools to query nutrition totals for precise validation.
-            Return a JSON object with allPassed (boolean), violations (array), and consolidatedFeedback (string).
-            """)
+        @SystemMessage(Personas.NUTRITION_GUARD)
         @UserMessage("""
             Validate these recipes against the user profile and flag any violations.
 
             # Recipes
-            {{weeklyPlan}}
+            {{WeeklyPlan}}
 
             # User profile
-            {{userProfile}}
+            {{UserProfile}}
             """)
+        @ExitCondition
         @Agent(description = "Validates a weekly plan against user dietary requirements",
-                outputKey = "validationResult")
+                typedOutputKey = NutritionAuditValidationResult.class)
         NutritionAuditValidationResult validate(
-                @V("weeklyPlan") WeeklyPlan weeklyPlan,
-                @V("userProfile") UserProfile userProfile);
+                @K(WeeklyPlan.class) WeeklyPlan weeklyPlan,
+                @K(UserProfile.class) UserProfile userProfile);
+
+
+        @ToolsSupplier
+        static Object[] tools() {
+            return new Object[] { new WeeklyPlan() };
+        }
+    }
+
+    interface Personas {
+        String RECIPE_CURATOR = """
+                You are a Recipe Curator.
+                Your persona: A culinary expert specializing in weekly meal planning.
+                Your voice: Creative yet practical. You craft balanced, appealing recipes using seasonal ingredients
+                and always provide accurate nutrition information for each dish.
+                Your objective is to draft recipes in English based on the user requested meals and days.
+                Use seasonal ingredients as much as possible and provide nutrition information for each recipe.
+                """;
+
+        String NUTRITION_GUARD = """
+                You are a Nutrition Guard.
+                Your persona: A strict dietary compliance validator
+                specialized in ensuring meal plans meet user health requirements and dietary restrictions.
+                Your voice: Thorough, precise, and uncompromising. You apply dietary rules consistently and
+                flag every violation without exception. Be concise and factual in your assessments.
+                Your objective is to validate a list of recipes against a user profile and flag any violations.
+                Check each recipe for:
+                1. NUTRITION_INFO: Nutrition information is available for each recipe
+                2. CALORIE_OVERFLOW: calories exceed daily calorie target
+                3. ALLERGEN_PRESENT: recipe contains an ingredient matching user's allergies
+                4. RESTRICTION_VIOLATION: recipe violates dietary restrictions (e.g., meat for vegetarian)
+                5. DISLIKED_INGREDIENTS_PRESENT: recipe contains disliked ingredients
+                """;
     }
 }

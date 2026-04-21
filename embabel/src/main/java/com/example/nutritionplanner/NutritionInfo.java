@@ -1,4 +1,4 @@
-package com.example.nutrition_planner;
+package com.example.nutritionplanner;
 
 import java.util.List;
 

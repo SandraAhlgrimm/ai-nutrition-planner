@@ -16,13 +16,8 @@ embabel:
     service-name: ${spring.application.name}
     trace-http-details: true
 
-logging.level:
-    com.embabel.agent: DEBUG
-    io.modelcontextprotocol.server: DEBUG
-
 management:
   endpoints.web.exposure.include: "*"
-  endpoint.env.show-values: ALWAYS
   otlp.metrics.export.enabled: false
 
 nutrition-planner:

@@ -1,6 +1,6 @@
 spring:
   application.name: nutrition-planner
-  profiles.active: azure
+  profiles.active: openai
   security.user:
       password: 123456
       name: alice
@@ -22,7 +22,6 @@ spring:
 
 management:
   endpoints.web.exposure.include: "*"
-  endpoint.env.show-values: ALWAYS
   otlp.metrics.export.enabled: false
 
 nutrition-planner:

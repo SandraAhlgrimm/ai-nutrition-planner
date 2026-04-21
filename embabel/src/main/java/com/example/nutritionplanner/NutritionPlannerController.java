@@ -23,17 +23,13 @@ class NutritionPlannerController {
 
     @PostMapping
      ResponseEntity<WeeklyPlan> createNutritionPlan(@RequestBody WeeklyPlanRequest request, Principal principal) {
-        var invocation = AgentInvocation.builder(agentPlatform)
-                // .options(ProcessOptions.DEFAULT.withVerbosity(
-                //        Verbosity.DEFAULT.withDebug(true).withShowPlanning(true).withShowLlmResponses(true).withShowPrompts(true)))
-                .build(WeeklyPlan.class);
-
+        var invocation = AgentInvocation.builder(agentPlatform).build(WeeklyPlan.class);
         var inputs = Map.of(
                 "user", principal.getName(),
                 "request", request
         );
-        var weeklyPlan = invocation.invoke(inputs);
 
+        var weeklyPlan = invocation.invoke(inputs);
         return ResponseEntity.ok(weeklyPlan);
     }
 }

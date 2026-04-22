@@ -19,7 +19,7 @@ The agent creates a personalized weekly meal plan:
 |-----------|--------|-------------|
 | [Embabel](https://github.com/embabel/embabel-agent) | [`embabel/`](embabel/) | Declarative agent DSL with goals and actions |
 | [LangChain4j](https://docs.langchain4j.dev) | [`langchain4j/`](langchain4j/) | `langchain4j-agentic` module — `@Agent` interfaces composed with `sequenceBuilder` / `loopBuilder` |
-| [Spring AI](https://spring.io/projects/spring-ai) | [`spring-ai/`](spring-ai/) | `ChatClient` fluent API with `.entity()` structured output |
+| [Spring AI](https://spring.io/projects/spring-ai) | [`spring-ai/`](spring-ai/) | `Advisors` and fluent `ChatClient` API |
 
 ## Prerequisites
 

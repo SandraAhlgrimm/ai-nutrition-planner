@@ -2,6 +2,8 @@
 
 A sample project demonstrating how to build AI agents with different Java/Spring frameworks. The same nutrition planning use case is implemented across three frameworks to compare their programming models, abstractions, and features.
 
+[Slides: Comparing Agentic AI Frameworks for Java](slides.pdf)
+
 ## Use Case
 
 The agent creates a personalized weekly meal plan:

@@ -20,6 +20,7 @@ spring:
       name: ${spring.application.name}
       protocol: STREAMABLE
 
+logging.level.org.springframework.ai: DEBUG
 management:
   endpoints.web.exposure.include: "*"
   otlp.metrics.export.enabled: false

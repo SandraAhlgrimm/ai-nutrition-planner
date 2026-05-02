@@ -2,14 +2,18 @@ package com.example.nutritionplanner;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springaicommunity.agent.tools.FileSystemTools;
+import org.springaicommunity.agent.tools.ShellTools;
+import org.springaicommunity.agent.tools.SkillsTool;
 import org.springaicommunity.mcp.annotation.McpTool;
 import org.springaicommunity.tool.search.ToolSearchToolCallAdvisor;
 import org.springaicommunity.tool.search.ToolSearcher;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.util.Locale;
 
 /**
@@ -32,6 +36,9 @@ class NutritionPlannerAgent {
     private final ChatClient chatClient;
     private final ToolSearcher toolSearcher;
 
+    @Value("classpath:skills")
+    private Resource skillsResource;
+
     public NutritionPlannerAgent(UserProfileProperties userProfileProperties, ChatClient.Builder chatClientBuilder, ToolSearcher toolSearcher) {
         this.userProfileProperties = userProfileProperties;
         this.chatClient = chatClientBuilder.build();
@@ -49,7 +56,7 @@ class NutritionPlannerAgent {
         var result = Workflow.parallel(() -> fetchUserProfileForUser(name), () -> fetchSeasonalIngredients(request));
         var userProfile = (UserProfile) result.getFirst();
         var seasonalIngredients = (SeasonalIngredients) result.getLast();
-        log.info("Phase 1 complete — profile: {}, seasonal items: {}", userProfile.name(), seasonalIngredients.items().size());
+        log.info("Phase 1 complete — profile: {}, seasonal items: {}", userProfile.name(), seasonalIngredients.ingredients());
 
         // Phase 2: Create weekly plan with validation loop
         var weeklyPlan = createWeeklyPlan(request, seasonalIngredients, userProfile);
@@ -66,16 +73,20 @@ class NutritionPlannerAgent {
 
     private SeasonalIngredients fetchSeasonalIngredients(WeeklyPlanRequest weeklyPlanRequest) {
         log.info("NutritionService:fetchSeasonalIngredients action called");
-        var currentMonth = LocalDate.now().getMonth();
-        var country = Locale.of("", weeklyPlanRequest.countryCode()).getDisplayCountry(Locale.ENGLISH);
+        var country =Locale.of("", weeklyPlanRequest.countryCode()).getDisplayCountry(Locale.ENGLISH);
+
+        var skillTool = SkillsTool.builder().addSkillsResource(skillsResource).build();
         var seasonalIngredients = chatClient.prompt()
                 .user(u -> u.text("""
                         You are a nutrition expert with deep knowledge of seasonal produce.
 
-                        Return a list of ingredients in English that are currently in season for the month of {month} in {country}.
+                        Use the available skill to determine the current month, then return a list of ingredients \
+                        in English that are currently in season for that month in {country}.
                         Focus on fish, meat, fruits, vegetables, and herbs that are at peak availability and quality.
-                        """).param("month",currentMonth).param("country",country)
+                        """).param("country",country)
                 )
+                .toolCallbacks(skillTool)
+                .tools(new ShellTools()) // FileSystemTools may be also necessary for other examples
                 .call()
                 .entity(SeasonalIngredients.class);
         log.info("NutritionService:fetchSeasonalIngredients action ended with {}", seasonalIngredients);

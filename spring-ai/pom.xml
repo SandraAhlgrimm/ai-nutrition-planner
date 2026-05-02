@@ -37,6 +37,7 @@
             <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
         </dependency>
 
+        <!-- Experimental Spring AI capabilities -->
         <dependency>
             <groupId>org.springaicommunity</groupId>
             <artifactId>tool-search-tool</artifactId>
@@ -46,6 +47,11 @@
             <groupId>org.springaicommunity</groupId>
             <artifactId>tool-searcher-lucene</artifactId>
             <version>1.0.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springaicommunity</groupId>
+            <artifactId>spring-ai-agent-utils</artifactId>
+            <version>0.7.0</version>
         </dependency>
 
         <!-- Spring Boot Web -->

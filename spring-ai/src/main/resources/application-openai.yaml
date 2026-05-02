@@ -7,4 +7,4 @@ spring:
     # AI provider configuration
     openai-sdk:
       api-key: ${OPENAI_API_KEY}
-      chat.options.model: gpt-5-nano
+      chat.options.model: gpt-5.4-mini

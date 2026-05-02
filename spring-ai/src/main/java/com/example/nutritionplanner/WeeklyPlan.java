@@ -3,15 +3,16 @@ package com.example.nutritionplanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.lang.Nullable;
 
 import java.time.DayOfWeek;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-record WeeklyPlan(List<DailyPlan> days) {
+public record WeeklyPlan(List<DailyPlan> days) {
 
     private static final Logger log = LoggerFactory.getLogger(WeeklyPlan.class);
 
@@ -31,7 +32,7 @@ record WeeklyPlan(List<DailyPlan> days) {
                 .findFirst()
                 .map(d -> new NutritionInfo(
                         Stream.of(d.breakfast(), d.lunch(), d.dinner())
-                                .flatMap(Optional::stream)
+                                .filter(Objects::nonNull)
                                 .collect(Collectors.toList())
                 ))
                 .orElse(new NutritionInfo(List.of()));
@@ -43,11 +44,11 @@ record WeeklyPlan(List<DailyPlan> days) {
     public long totalMealCount() {
         var count = days.stream()
                 .flatMap(d -> Stream.of(d.breakfast(), d.lunch(), d.dinner()))
-                .filter(Optional::isPresent)
+                .filter(Objects::nonNull)
                 .count();
         log.info("WeeklyPlan:totalMealCount tool method finished with {}", count);
         return count;
     }
 
-    record DailyPlan(DayOfWeek day, Optional<Recipe> breakfast, Optional<Recipe> lunch, Optional<Recipe> dinner) {}
+    public record DailyPlan(DayOfWeek day, @Nullable Recipe breakfast, @Nullable Recipe lunch, @Nullable Recipe dinner) {}
 }

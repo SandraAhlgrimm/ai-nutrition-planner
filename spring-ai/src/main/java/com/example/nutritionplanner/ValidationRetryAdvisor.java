@@ -15,18 +15,26 @@ class ValidationRetryAdvisor<T> implements CallAdvisor {
 
     private static final Logger log = LoggerFactory.getLogger(ValidationRetryAdvisor.class);
 
+    private static final int DEFAULT_MAX_RETRIES = 3;
+
     private final Function<T, ValidationResult> validator;
     private final BeanOutputConverter<T> converter;
+    private final int maxRetries;
 
     ValidationRetryAdvisor(Class<T> responseType, Function<T, ValidationResult> validator) {
+        this(responseType, validator, DEFAULT_MAX_RETRIES);
+    }
+
+    ValidationRetryAdvisor(Class<T> responseType, Function<T, ValidationResult> validator, int maxRetries) {
         this.validator = validator;
         this.converter = new BeanOutputConverter<>(responseType);
+        this.maxRetries = maxRetries;
     }
 
     @Override
     public ChatClientResponse adviseCall(ChatClientRequest request, CallAdvisorChain chain) {
         var response = chain.nextCall(request);
-        while (true) {
+        for (int attempt = 0; attempt < maxRetries; attempt++) {
             var entity = toEntity(response);
             var validationResult = validator.apply(entity);
 
@@ -35,10 +43,12 @@ class ValidationRetryAdvisor<T> implements CallAdvisor {
                 return response;
             }
 
-            log.info("ValidationRetryAdvisor: validation failed, revising...");
+            log.info("ValidationRetryAdvisor: validation failed (attempt {}/{}), revising...", attempt + 1, maxRetries);
             request = withValidationFeedback(request, entity, validationResult);
             response = chain.copy(this).nextCall(request);
         }
+        log.warn("ValidationRetryAdvisor: max retries ({}) reached, returning last response", maxRetries);
+        return response;
     }
 
     private ChatClientRequest withValidationFeedback(ChatClientRequest originalRequest, T entity, ValidationResult validationResult) {

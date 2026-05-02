@@ -63,6 +63,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-thymeleaf</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.github.wimdeblauwe</groupId>
+            <artifactId>htmx-spring-boot-thymeleaf</artifactId>
+            <version>4.0.3</version>
+        </dependency>
         <!-- Security -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

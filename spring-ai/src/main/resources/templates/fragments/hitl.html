@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<body>
+
+<div th:fragment="hitl" class="bg-blue-50 border border-blue-200 rounded-lg p-5 mb-4">
+
+    <h3 class="text-sm font-semibold text-gray-700 mb-4">A few questions before we proceed</h3>
+
+    <form th:attr="hx-post='/interaction/' + ${interactionId} + '/answers'" hx-target="#sse-content" hx-swap="innerHTML">
+        <div th:each="q, qStat : ${questions}" class="mb-6 last:mb-4">
+
+            <div class="flex items-center gap-2 mb-3">
+                <span class="text-xs font-medium bg-slate-700 text-white px-2 py-0.5 rounded"
+                      th:text="${q.header()}"></span>
+                <p class="text-sm font-medium text-gray-800" th:text="${q.question()}"></p>
+            </div>
+
+            <input type="hidden" th:name="|answers[${qStat.index}].question|" th:value="${q.question()}"/>
+
+            <div class="space-y-2 pl-2">
+                <label th:each="opt : ${q.options()}" class="flex items-start gap-3 cursor-pointer">
+                    <input type="radio"
+                           th:name="|answers[${qStat.index}].answer|"
+                           th:value="${opt.label()}"
+                           class="mt-0.5 accent-slate-700"
+                           required/>
+                    <span class="text-sm text-gray-700">
+                        <span class="font-medium" th:text="${opt.label()}"></span>
+                        <span class="text-gray-400 ml-1" th:text="${opt.description()}"></span>
+                    </span>
+                </label>
+            </div>
+        </div>
+
+        <button type="submit"
+                class="border border-gray-400 bg-white hover:bg-gray-50 text-gray-800 font-medium px-5 py-1.5 rounded text-sm transition-colors">
+            Submit Answers
+        </button>
+
+    </form>
+
+</div>
+
+</body>
+</html>

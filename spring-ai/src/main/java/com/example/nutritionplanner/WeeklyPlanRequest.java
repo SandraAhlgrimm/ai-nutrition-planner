@@ -1,11 +1,15 @@
 package com.example.nutritionplanner;
 
 import java.time.DayOfWeek;
-import java.util.List;
+import java.util.EnumMap;
+import java.util.Map;
+import java.util.Set;
 
-record WeeklyPlanRequest(List<DayPlanRequest> days, String countryCode, String additionalInstructions) {
-    record DayPlanRequest(DayOfWeek day, List<MealType> meals) {}
+record WeeklyPlanRequest(Map<DayOfWeek, Set<MealType>> meals, String countryCode, String additionalInstructions) {
 
+    WeeklyPlanRequest() {
+        this(new EnumMap<>(DayOfWeek.class), "DE", "");
+    }
     enum MealType {
         BREAKFAST,
         LUNCH,

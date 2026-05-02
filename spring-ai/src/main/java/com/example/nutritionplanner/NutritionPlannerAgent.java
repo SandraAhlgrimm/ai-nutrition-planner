@@ -2,7 +2,7 @@ package com.example.nutritionplanner;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springaicommunity.agent.tools.FileSystemTools;
+import org.springaicommunity.agent.tools.AskUserQuestionTool;
 import org.springaicommunity.agent.tools.ShellTools;
 import org.springaicommunity.agent.tools.SkillsTool;
 import org.springaicommunity.mcp.annotation.McpTool;
@@ -15,18 +15,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.Locale;
+import java.util.Map;
 
-/**
- * Agent flow:
- *
- * sequential:
- *   parallel:
- *     fetchUserProfile
- *     fetchSeasonalIngredients
- *   loop:
- *     createWeeklyPlan
- *     validateWeeklyPlan
- */
 @Service
 class NutritionPlannerAgent {
 
@@ -39,7 +29,8 @@ class NutritionPlannerAgent {
     @Value("classpath:skills")
     private Resource skillsResource;
 
-    public NutritionPlannerAgent(UserProfileProperties userProfileProperties, ChatClient.Builder chatClientBuilder, ToolSearcher toolSearcher) {
+    public NutritionPlannerAgent(UserProfileProperties userProfileProperties, ChatClient.Builder chatClientBuilder,
+                                 ToolSearcher toolSearcher) {
         this.userProfileProperties = userProfileProperties;
         this.chatClient = chatClientBuilder.build();
         this.toolSearcher = toolSearcher;
@@ -48,10 +39,10 @@ class NutritionPlannerAgent {
     @McpTool(description = "Provides a nutrition plan for the week")
     WeeklyPlan createNutritionPlan(WeeklyPlanRequest request) {
         var auth = SecurityContextHolder.getContext().getAuthentication();
-        return createNutritionPlan(auth.getName(), request);
+        return createNutritionPlan(auth.getName(), request, _ -> Map.of());
     }
 
-    WeeklyPlan createNutritionPlan(String name, WeeklyPlanRequest request) {
+    WeeklyPlan createNutritionPlan(String name, WeeklyPlanRequest request, AskUserQuestionTool.QuestionHandler questionHandler) {
         // Phase 1: Parallel — fetch user profile and seasonal ingredients
         var result = Workflow.parallel(() -> fetchUserProfileForUser(name), () -> fetchSeasonalIngredients(request));
         var userProfile = (UserProfile) result.getFirst();
@@ -59,21 +50,21 @@ class NutritionPlannerAgent {
         log.info("Phase 1 complete — profile: {}, seasonal items: {}", userProfile.name(), seasonalIngredients.ingredients());
 
         // Phase 2: Create weekly plan with validation loop
-        var weeklyPlan = createWeeklyPlan(request, seasonalIngredients, userProfile);
-        log.info("Phase 2 complete — weekly plan created with {} days", weeklyPlan.days().size());
+        var weeklyPlan = createWeeklyPlan(request, seasonalIngredients, userProfile, questionHandler);
+        log.info("Phase 2 complete — weekly plan created with {} meals", weeklyPlan.totalMealCount());
         return weeklyPlan;
     }
 
     private UserProfile fetchUserProfileForUser(String user) {
-        log.info("NutritionService:fetchUserProfile action called");
+        log.info("NutritionPlannerAgent:fetchUserProfile action called");
         var userProfile = userProfileProperties.getUserProfile(user);
-        log.info("NutritionService:fetchUserProfile action ended with {}", userProfile);
+        log.info("NutritionPlannerAgent:fetchUserProfile action ended with {}", userProfile);
         return userProfile;
     }
 
     private SeasonalIngredients fetchSeasonalIngredients(WeeklyPlanRequest weeklyPlanRequest) {
-        log.info("NutritionService:fetchSeasonalIngredients action called");
-        var country =Locale.of("", weeklyPlanRequest.countryCode()).getDisplayCountry(Locale.ENGLISH);
+        log.info("NutritionPlannerAgent:fetchSeasonalIngredients action called");
+        var country = Locale.of("", weeklyPlanRequest.countryCode()).getDisplayCountry(Locale.ENGLISH);
 
         var skillTool = SkillsTool.builder().addSkillsResource(skillsResource).build();
         var seasonalIngredients = chatClient.prompt()
@@ -86,18 +77,21 @@ class NutritionPlannerAgent {
                         """).param("country",country)
                 )
                 .toolCallbacks(skillTool)
-                .tools(new ShellTools()) // FileSystemTools may be also necessary for other examples
+                .tools(new ShellTools()) // Required for SkillsTool, FileSystemTools may be also necessary for other examples
                 .call()
                 .entity(SeasonalIngredients.class);
-        log.info("NutritionService:fetchSeasonalIngredients action ended with {}", seasonalIngredients);
+        log.info("NutritionPlannerAgent:fetchSeasonalIngredients action ended with {}", seasonalIngredients);
         return seasonalIngredients;
     }
 
     private WeeklyPlan createWeeklyPlan(WeeklyPlanRequest weeklyPlanRequest, SeasonalIngredients seasonalIngredients,
-                                        UserProfile userProfile) {
-        log.info("NutritionService:createWeeklyPlan action called");
+                                        UserProfile userProfile, AskUserQuestionTool.QuestionHandler questionHandler) {
+        log.info("NutritionPlannerAgent:createWeeklyPlan action called");
+
         var validationRetryAdvisor = new ValidationRetryAdvisor<>(WeeklyPlan.class,
                 plan -> this.validateWeeklyPlan(plan, userProfile));
+        var askUserQuestionTool = AskUserQuestionTool.builder().questionHandler(questionHandler).build();
+
         var weeklyPlan = chatClient.prompt()
                 .system(Personas.RECIPE_CURATOR)
                 .user(u -> u.text("""
@@ -109,23 +103,27 @@ class NutritionPlannerAgent {
 
                         # Additional instructions
                         {instructions}
-                        """).param("mealsAndDays", weeklyPlanRequest.days()).param("ingredients", seasonalIngredients)
+                        
+                        Ask the user for additional information to refine the recipes if there is no current response included! 
+                        Do not ask the user about dietary restrictions, allergies, or nutritional requirements.
+                        """).param("mealsAndDays", weeklyPlanRequest.meals()).param("ingredients", seasonalIngredients)
                         .param("instructions", weeklyPlanRequest.additionalInstructions())
                 )
                 .advisors(validationRetryAdvisor)
+                .tools(askUserQuestionTool)
                 .call()
                 .entity(WeeklyPlan.class);
-        log.info("NutritionService:createWeeklyPlan action ended with {}", weeklyPlan);
+        log.info("NutritionPlannerAgent:createWeeklyPlan action ended with {}", weeklyPlan);
         return weeklyPlan;
     }
 
     private NutritionAuditValidationResult validateWeeklyPlan(WeeklyPlan weeklyPlan, UserProfile userProfile) {
-        log.info("NutritionService:validateWeeklyPlan action called");
+        log.info("NutritionPlannerAgent:validateWeeklyPlan action called");
         var toolSearchAdvisor = ToolSearchToolCallAdvisor.builder().toolSearcher(toolSearcher).build();
         var validationResult = chatClient.prompt()
                 .system(Personas.NUTRITION_GUARD)
                 .user(u -> u.text("""
-                        Use available tools to calculate total calories, protein, carbs, fat, and sodium etc.
+                        You have to use available tools to calculate total calories, protein, carbs, fat, and sodium etc.
                         
                         # Validate these recipes:
                         {weeklyPlan}
@@ -139,7 +137,7 @@ class NutritionPlannerAgent {
                 .call()
                 .entity(NutritionAuditValidationResult.class);
 
-        log.info("NutritionService:validateWeeklyPlan action ended with {}", validationResult);
+        log.info("NutritionPlannerAgent:validateWeeklyPlan action ended with {}", validationResult);
         return validationResult;
     }
 

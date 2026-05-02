@@ -14,16 +14,18 @@ spring:
         speech: none
         transcription: none
       moderation: none
-    chat.client.observations.log-completion: true
     tools.observations.include-content: true
     mcp.server:
       name: ${spring.application.name}
       protocol: STREAMABLE
 
-logging.level.org.springframework.ai: DEBUG
 management:
   endpoints.web.exposure.include: "*"
   otlp.metrics.export.enabled: false
+
+logging.level:
+  org.springaicommunity: debug
+  org.springframework.ai: debug
 
 nutrition-planner:
   user-profiles:

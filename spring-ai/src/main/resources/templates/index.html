@@ -6,12 +6,7 @@
     <title>AI Nutrition Planner</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/htmx.org@2.0.3"></script>
-    <style>
-        .htmx-indicator { display: none; }
-        .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { display: flex; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .spinner { animation: spin 1s linear infinite; }
-    </style>
+    <script src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"></script>
     <script>
         function toggleAll(btn) {
             const card = btn.closest('.day-card');
@@ -37,6 +32,16 @@
         }
 
         document.addEventListener('DOMContentLoaded', detectCountry);
+
+        function setGenerating(generating) {
+            document.getElementById('generate-btn').disabled = generating;
+        }
+
+        document.addEventListener('htmx:afterSwap', function(evt) {
+            if (evt.detail.target?.id === 'plan-events-container') setGenerating(true);
+        });
+        document.addEventListener('htmx:sseError', function() { setGenerating(false); });
+        document.addEventListener('htmx:sseClose', function() { setGenerating(false); });
     </script>
 </head>
 <body class="bg-gray-100 min-h-screen font-sans">
@@ -50,83 +55,24 @@
 
     <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
 
-        <form hx-post="/plan" hx-target="#result" hx-swap="innerHTML" hx-indicator="#spinner" class="space-y-6">
+        <form hx-post="/plan" hx-target="#plan-events-container" hx-swap="innerHTML" class="space-y-6" modelAttribute="weeklyPlanRequest">
 
             <!-- Days & Meals -->
             <div>
                 <h2 class="text-sm font-semibold text-gray-700 mb-3">Days &amp; Meals</h2>
                 <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
 
-                    <div class="day-card border border-gray-200 rounded p-3 bg-gray-50">
+                    <div th:each="day : ${T(java.time.DayOfWeek).values()}" class="day-card border border-gray-200 rounded p-3 bg-gray-50">
                         <div class="flex items-center justify-between mb-2">
-                            <p class="font-semibold text-gray-700 text-xs">Monday</p>
+                            <p th:text="${day}" class="font-semibold text-gray-700 text-xs">Day</p>
                             <button type="button" onclick="toggleAll(this)" class="text-xs text-blue-600 hover:underline">All</button>
                         </div>
-                        <label class="flex items-center gap-1 text-xs text-gray-600 mb-1"><input type="checkbox" name="monday" value="BREAKFAST"/> Breakfast</label>
-                        <label class="flex items-center gap-1 text-xs text-gray-600 mb-1"><input type="checkbox" name="monday" value="LUNCH"/> Lunch</label>
-                        <label class="flex items-center gap-1 text-xs text-gray-600"><input type="checkbox" name="monday" value="DINNER"/> Dinner</label>
-                    </div>
 
-                    <div class="day-card border border-gray-200 rounded p-3 bg-gray-50">
-                        <div class="flex items-center justify-between mb-2">
-                            <p class="font-semibold text-gray-700 text-xs">Tuesday</p>
-                            <button type="button" onclick="toggleAll(this)" class="text-xs text-blue-600 hover:underline">All</button>
-                        </div>
-                        <label class="flex items-center gap-1 text-xs text-gray-600 mb-1"><input type="checkbox" name="tuesday" value="BREAKFAST"/> Breakfast</label>
-                        <label class="flex items-center gap-1 text-xs text-gray-600 mb-1"><input type="checkbox" name="tuesday" value="LUNCH"/> Lunch</label>
-                        <label class="flex items-center gap-1 text-xs text-gray-600"><input type="checkbox" name="tuesday" value="DINNER"/> Dinner</label>
+                        <label th:each="meal, iter : ${T(com.example.nutritionplanner.WeeklyPlanRequest.MealType).values()}" class="flex items-center gap-1 text-xs text-gray-600 mb-1"
+                               th:classappend="${!iter.last} ? 'mb-1'">
+                            <input type="checkbox" th:name="|meals[${day}]|" th:value="${meal}"> <span th:text="${meal}">Meal</span>
+                        </label>
                     </div>
-
-                    <div class="day-card border border-gray-200 rounded p-3 bg-gray-50">
-                        <div class="flex items-center justify-between mb-2">
-                            <p class="font-semibold text-gray-700 text-xs">Wednesday</p>
-                            <button type="button" onclick="toggleAll(this)" class="text-xs text-blue-600 hover:underline">All</button>
-                        </div>
-                        <label class="flex items-center gap-1 text-xs text-gray-600 mb-1"><input type="checkbox" name="wednesday" value="BREAKFAST"/> Breakfast</label>
-                        <label class="flex items-center gap-1 text-xs text-gray-600 mb-1"><input type="checkbox" name="wednesday" value="LUNCH"/> Lunch</label>
-                        <label class="flex items-center gap-1 text-xs text-gray-600"><input type="checkbox" name="wednesday" value="DINNER"/> Dinner</label>
-                    </div>
-
-                    <div class="day-card border border-gray-200 rounded p-3 bg-gray-50">
-                        <div class="flex items-center justify-between mb-2">
-                            <p class="font-semibold text-gray-700 text-xs">Thursday</p>
-                            <button type="button" onclick="toggleAll(this)" class="text-xs text-blue-600 hover:underline">All</button>
-                        </div>
-                        <label class="flex items-center gap-1 text-xs text-gray-600 mb-1"><input type="checkbox" name="thursday" value="BREAKFAST"/> Breakfast</label>
-                        <label class="flex items-center gap-1 text-xs text-gray-600 mb-1"><input type="checkbox" name="thursday" value="LUNCH"/> Lunch</label>
-                        <label class="flex items-center gap-1 text-xs text-gray-600"><input type="checkbox" name="thursday" value="DINNER"/> Dinner</label>
-                    </div>
-
-                    <div class="day-card border border-gray-200 rounded p-3 bg-gray-50">
-                        <div class="flex items-center justify-between mb-2">
-                            <p class="font-semibold text-gray-700 text-xs">Friday</p>
-                            <button type="button" onclick="toggleAll(this)" class="text-xs text-blue-600 hover:underline">All</button>
-                        </div>
-                        <label class="flex items-center gap-1 text-xs text-gray-600 mb-1"><input type="checkbox" name="friday" value="BREAKFAST"/> Breakfast</label>
-                        <label class="flex items-center gap-1 text-xs text-gray-600 mb-1"><input type="checkbox" name="friday" value="LUNCH"/> Lunch</label>
-                        <label class="flex items-center gap-1 text-xs text-gray-600"><input type="checkbox" name="friday" value="DINNER"/> Dinner</label>
-                    </div>
-
-                    <div class="day-card border border-gray-200 rounded p-3 bg-gray-50">
-                        <div class="flex items-center justify-between mb-2">
-                            <p class="font-semibold text-gray-700 text-xs">Saturday</p>
-                            <button type="button" onclick="toggleAll(this)" class="text-xs text-blue-600 hover:underline">All</button>
-                        </div>
-                        <label class="flex items-center gap-1 text-xs text-gray-600 mb-1"><input type="checkbox" name="saturday" value="BREAKFAST"/> Breakfast</label>
-                        <label class="flex items-center gap-1 text-xs text-gray-600 mb-1"><input type="checkbox" name="saturday" value="LUNCH"/> Lunch</label>
-                        <label class="flex items-center gap-1 text-xs text-gray-600"><input type="checkbox" name="saturday" value="DINNER"/> Dinner</label>
-                    </div>
-
-                    <div class="day-card border border-gray-200 rounded p-3 bg-gray-50">
-                        <div class="flex items-center justify-between mb-2">
-                            <p class="font-semibold text-gray-700 text-xs">Sunday</p>
-                            <button type="button" onclick="toggleAll(this)" class="text-xs text-blue-600 hover:underline">All</button>
-                        </div>
-                        <label class="flex items-center gap-1 text-xs text-gray-600 mb-1"><input type="checkbox" name="sunday" value="BREAKFAST"/> Breakfast</label>
-                        <label class="flex items-center gap-1 text-xs text-gray-600 mb-1"><input type="checkbox" name="sunday" value="LUNCH"/> Lunch</label>
-                        <label class="flex items-center gap-1 text-xs text-gray-600"><input type="checkbox" name="sunday" value="DINNER"/> Dinner</label>
-                    </div>
-
                 </div>
             </div>
 
@@ -145,24 +91,16 @@
                            placeholder="e.g. Prefer quick recipes under 30 minutes."/>
                 </div>
                 <div class="flex items-center gap-3">
-                    <button type="submit"
-                            class="border border-gray-400 bg-white hover:bg-gray-50 text-gray-800 font-medium px-5 py-1.5 rounded text-sm transition-colors">
+                    <button id="generate-btn" type="submit"
+                            class="border border-gray-400 bg-white hover:bg-gray-50 text-gray-800 font-medium px-5 py-1.5 rounded text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none">
                         Generate Plan
                     </button>
-                    <div id="spinner" class="htmx-indicator items-center gap-2 text-sm text-gray-500">
-                        <svg class="spinner w-4 h-4 text-slate-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                        </svg>
-                        Generating…
-                    </div>
                 </div>
             </div>
 
         </form>
 
-        <!-- Result area populated by HTMX -->
-        <div id="result" class="mt-6"></div>
+        <div id="plan-events-container" class="mt-6"></div>
 
     </div>
 

@@ -3,32 +3,24 @@ package com.example.nutritionplanner;
 import com.embabel.agent.api.annotation.*;
 import com.embabel.agent.api.common.Ai;
 import com.embabel.agent.prompt.persona.Persona;
+import com.embabel.agent.skills.Skills;
 import com.embabel.common.ai.model.LlmOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.time.LocalDate;
+import java.io.IOException;
 import java.util.Locale;
 
-/**
- * Agent flow:
- *
- * sequential:
- *   parallel:
- *     fetchUserProfile
- *     fetchSeasonalIngredients
- *   createWeeklyPlan
- *   NutritionAudit:validate
- *   optional loop:
- *     ReviseWeeklyPlan:revise
- *     NutritionAudit:validate
- *   Done:createNutritionPlan
- */
 @Agent(description = "Supports conscious meal planning and sustainable eating habits.")
 class NutritionPlannerAgent {
 
     private static final Logger log = LoggerFactory.getLogger(NutritionPlannerAgent.class);
+
+    @Value("classpath:skills")
+    private Resource skillsResource;
 
     private final UserProfileProperties userProfileProperties;
 
@@ -41,9 +33,9 @@ class NutritionPlannerAgent {
 
     @Action
     UserProfile fetchUserProfileForUser(String user) {
-        log.info("NutritionPlanner:fetchUserProfile action called");
+        log.info("NutritionPlannerAgent:fetchUserProfile action called");
         var userProfile = userProfileProperties.getUserProfile(user);
-        log.info("NutritionPlanner:fetchUserProfile action ended with {}", userProfile);
+        log.info("NutritionPlannerAgent:fetchUserProfile action ended with {}", userProfile);
         return userProfile;
     }
 
@@ -55,28 +47,33 @@ class NutritionPlannerAgent {
     }
 
     @Action
-    SeasonalIngredients fetchSeasonalIngredients(WeeklyPlanRequest weeklyPlanRequest, Ai ai) {
-        log.info("NutritionPlanner:fetchSeasonalIngredients action called");
-        var currentMonth = LocalDate.now().getMonth();
+    SeasonalIngredients fetchSeasonalIngredients(WeeklyPlanRequest weeklyPlanRequest, Ai ai) throws IOException {
+        log.info("NutritionPlannerAgent:fetchSeasonalIngredients action called");
         var country = Locale.of("", weeklyPlanRequest.countryCode()).getDisplayCountry(Locale.ENGLISH);
+
+        var skills = new Skills("classpath-skills", "Skills available on the classpath")
+                .withLocalSkills(skillsResource.getFile().toPath().toString())
+                .withScriptExecutionEngine(ProcessSkillScriptExecutionEngineFactory.create()); // see ProcessSkillScriptExecutionEngineFactory.kt
+
         var seasonalIngredients = ai
                 .withLlm(LlmOptions.withAutoLlm()) // PromptRunner
+                .withReference(skills)
                 .createObject("""
                         You are a nutrition expert with deep knowledge of seasonal produce.
 
-                        Return a list of ingredients in English that are currently in season for the month of %s in %s.
+                        Use the available skill to determine the current month, then return a list of ingredients \
+                        in English that are currently in season for that month in {country}.
                         Focus on fish, meat, fruits, vegetables, and herbs that are at peak availability and quality.
-                        Use English for all ingredient names, quantities, and units (e.g., "200", "g").
-                        """.formatted(currentMonth, country),
+                        """.formatted(country),
                         SeasonalIngredients.class);
-        log.info("NutritionPlanner:fetchSeasonalIngredients action ended with {}", seasonalIngredients);
+        log.info("NutritionPlannerAgent:fetchSeasonalIngredients action ended with {}", seasonalIngredients);
         return seasonalIngredients;
     }
 
     @Action
     NutritionAudit createWeeklyPlan(WeeklyPlanRequest weeklyPlanRequest, SeasonalIngredients seasonalIngredients,
                                     UserProfile userProfile, Ai ai) {
-        log.info("NutritionPlanner:createWeeklyPlan action called");
+        log.info("NutritionPlannerAgent:createWeeklyPlan action called");
         var weeklyPlan = ai
                 .withLlm(LlmOptions.withAutoLlm())
                 .withPromptElements(Personas.RECIPE_CURATOR)
@@ -100,7 +97,7 @@ class NutritionPlannerAgent {
                         (calories, proteinGrams, carbGrams, fatGrams, sodiumMg) for every recipe.
                         """.formatted(weeklyPlanRequest.days(), seasonalIngredients, userProfile, weeklyPlanRequest.additionalInstructions()),
                         WeeklyPlan.class);
-        log.info("NutritionPlanner:createWeeklyPlan action ended with {}", weeklyPlan);
+        log.info("NutritionPlannerAgent:createWeeklyPlan action ended with {}", weeklyPlan);
         return new NutritionAudit(weeklyPlan, seasonalIngredients, userProfile, weeklyPlanRequest.additionalInstructions());
     }
 
@@ -110,7 +107,7 @@ class NutritionPlannerAgent {
 
         @Action(canRerun = true)
         Stage validate(Ai ai) {
-            log.info("NutritionPlanner:NutritionAudit:validate action called");
+            log.info("NutritionPlannerAgent:NutritionAudit:validate action called");
             var validationResult = ai
                     .withLlm(LlmOptions.withAutoLlm())
                     .withToolObject(weeklyPlan)
@@ -124,7 +121,7 @@ class NutritionPlannerAgent {
                         # Against this user profile:
                         %s
                         """.formatted(weeklyPlan, userProfile), NutritionAuditValidationResult.class);
-            log.info("NutritionPlanner:NutritionAudit:validate action ended with {}", validationResult);
+            log.info("NutritionPlannerAgent:NutritionAudit:validate action ended with {}", validationResult);
             if (validationResult.allPassed()) {
                 return new Done(weeklyPlan);
             }
@@ -139,7 +136,7 @@ class NutritionPlannerAgent {
 
         @Action(canRerun = true)
         Stage revise(Ai ai) {
-            log.info("NutritionPlanner:WeeklyPlan:revise action called");
+            log.info("NutritionPlannerAgent:WeeklyPlan:revise action called");
             var revisedWeeklyPlan = ai
                     .withLlm(LlmOptions.withAutoLlm())
                     .withPromptElements(Personas.RECIPE_CURATOR)
@@ -155,7 +152,7 @@ class NutritionPlannerAgent {
                         # Additional instructions
                         %s
                         """.formatted(weeklyPlan, validationResult, additionalInstructions), WeeklyPlan.class);
-            log.info("NutritionPlanner:WeeklyPlan:revise action ended with {}", revisedWeeklyPlan);
+            log.info("NutritionPlannerAgent:WeeklyPlan:revise action ended with {}", revisedWeeklyPlan);
             return new NutritionAudit(revisedWeeklyPlan, seasonalIngredients, userProfile, additionalInstructions);
         }
     }
@@ -167,7 +164,7 @@ class NutritionPlannerAgent {
                 export = @Export(remote = true, name = "createNutritionPlan", startingInputTypes = WeeklyPlanRequest.class))
         @Action
         WeeklyPlan createNutritionPlan() {
-            log.info("NutritionPlanner:Done:createNutritionPlan action called with result: {}", weeklyPlan);
+            log.info("NutritionPlannerAgent:Done:createNutritionPlan action called with result: {}", weeklyPlan);
             return weeklyPlan;
         }
     }

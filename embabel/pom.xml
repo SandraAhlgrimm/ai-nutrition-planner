@@ -13,7 +13,8 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<properties>
 		<java.version>25</java.version>
-		<embabel-agent.version>0.3.4</embabel-agent.version>
+		<embabel-agent.version>0.3.5</embabel-agent.version>
+		<embabel-agent-experimental.version>0.3.5-SNAPSHOT</embabel-agent-experimental.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -35,6 +36,12 @@
 			<groupId>com.embabel.agent</groupId>
 			<artifactId>embabel-agent-starter-observability</artifactId>
 			<version>${embabel-agent.version}</version>
+		</dependency>
+
+		<!-- experimental -->
+		<dependency>
+			<groupId>com.embabel.agent</groupId>
+			<artifactId>embabel-agent-skills</artifactId>
 		</dependency>
 
 		<dependency>
@@ -94,6 +101,28 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>com.embabel.agent</groupId>
+				<artifactId>embabel-agent-experimental-bom</artifactId>
+				<version>${embabel-agent-experimental.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+	<repositories>
+		<repository>
+			<id>embabel-snapshots</id>
+			<url>https://repo.embabel.com/artifactory/libs-snapshot</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
 
 	<build>
 		<plugins>

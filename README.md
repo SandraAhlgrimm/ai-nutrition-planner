@@ -21,6 +21,20 @@ The agent creates a personalized weekly meal plan:
 | [LangChain4j](https://docs.langchain4j.dev) | [`langchain4j/`](langchain4j/) | `langchain4j-agentic` module — `@Agent` interfaces composed with `sequenceBuilder` / `loopBuilder` |
 | [Spring AI](https://spring.io/projects/spring-ai) | [`spring-ai/`](spring-ai/) | `Advisors` and fluent `ChatClient` API |
 
+## Agentic AI Patterns Implemented
+
+| Pattern | Embabel |                                   LangChain4j                                    | Spring AI |
+|---------|:-------:|:--------------------------------------------------------------------------------:|:---------:|
+| **Parallel Execution** — independent steps run concurrently | ✅ framework-managed |                                        ❌                                         | ✅ `Workflow.parallel()` |
+| **Validation / Reflection Loop** — iterate until output passes quality checks | ✅ `@State` machine (NutritionAudit → ReviseWeeklyPlan) |                        ✅ `@LoopAgent` + `@ExitCondition`                         | ✅ `ValidationRetryAdvisor` |
+| **Tool Use** — agent calls external functions | ✅ `withToolObject()` |                                ✅ `@ToolsSupplier`                                | ✅ `.tools()` on `ChatClient` |
+| **Tool Search** — dynamic tool discovery at runtime | ✅ `UnfoldingTool` — invoke to reveal; LLM calls a facade tool that progressively discloses its inner tools | ❌  | ✅ `ToolSearchToolCallAdvisor` — separate search step discovers tools via metadata before each call |
+| **Human-in-the-Loop** — pause workflow for user input | ❌ |                                        ❌                                         | ✅ `AskUserQuestionTool` |
+| **Agent Skills** — invoke pre-packaged executable skills | ✅ `Skills` with script engine |                                        ❌                                         | ✅ `SkillsTool` |
+| **Multi-Agent Orchestration** — specialized sub-agents collaborate | ✅ goal-driven action graph |                        ✅ `@SequenceAgent` with sub-agents                        | ✅ custom orchestration in code — no direct framework support |
+| **Persona** — role-based system prompts per agent | ✅ first-class `Persona` object | ✅ custom implementation via `@SystemMessage` | ✅ custom implementation via `.system()` on `ChatClient` |
+| **MCP Server** — expose agent as a Model Context Protocol tool | ✅ `@Export(remote = true)` |                                        ❌                                         | ✅ `@McpTool` |
+
 ## Prerequisites
 
 - **Java 25**

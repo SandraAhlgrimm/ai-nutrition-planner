@@ -11,6 +11,7 @@ import org.springaicommunity.tool.search.ToolSearcher;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -38,8 +39,7 @@ class NutritionPlannerAgent {
 
     @McpTool(description = "Provides a nutrition plan for the week")
     WeeklyPlan createNutritionPlan(WeeklyPlanRequest request) {
-        var auth = SecurityContextHolder.getContext().getAuthentication();
-        return createNutritionPlan(auth.getName(), request, _ -> Map.of());
+        return createNutritionPlan(currentUsername(), request, _ -> Map.of());
     }
 
     WeeklyPlan createNutritionPlan(String name, WeeklyPlanRequest request, AskUserQuestionTool.QuestionHandler questionHandler) {
@@ -60,6 +60,14 @@ class NutritionPlannerAgent {
         var userProfile = userProfileProperties.getUserProfile(user);
         log.info("NutritionPlannerAgent:fetchUserProfile action ended with {}", userProfile);
         return userProfile;
+    }
+
+    private String currentUsername() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken)) {
+            return auth.getName();
+        }
+        return userProfileProperties.userProfiles().getFirst().name();
     }
 
     private SeasonalIngredients fetchSeasonalIngredients(WeeklyPlanRequest weeklyPlanRequest) {

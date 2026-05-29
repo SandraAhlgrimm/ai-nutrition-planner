@@ -33,7 +33,7 @@ The agent creates a personalized weekly meal plan:
 | **Agent Skills** — invoke pre-packaged executable skills | ✅ `Skills` with script engine |                                        ❌                                         | ✅ `SkillsTool` |
 | **Multi-Agent Orchestration** — specialized sub-agents collaborate | ✅ goal-driven action graph |                        ✅ `@SequenceAgent` with sub-agents                        | ✅ custom orchestration in code — no direct framework support |
 | **Persona** — role-based system prompts per agent | ✅ first-class `Persona` object | ✅ custom implementation via `@SystemMessage` | ✅ custom implementation via `.system()` on `ChatClient` |
-| **MCP Server** — expose agent as a Model Context Protocol tool | ✅ `@Export(remote = true)` |                                        ✅ `@McpTool`                                         | ✅ `@McpTool` |
+| **MCP Server** — expose agent as a Model Context Protocol tool | ✅ `@Export(remote = true)` |                                        ❌                                         | ✅ `@McpTool` |
 
 ## Prerequisites
 

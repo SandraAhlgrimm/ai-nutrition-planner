@@ -14,6 +14,8 @@ import org.springframework.core.io.Resource;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.Locale;
 import java.util.Map;
@@ -66,6 +68,13 @@ class NutritionPlannerAgent {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken)) {
             return auth.getName();
+        }
+        var requestAttributes = RequestContextHolder.getRequestAttributes();
+        if (requestAttributes instanceof ServletRequestAttributes servletRequestAttributes) {
+            var principal = servletRequestAttributes.getRequest().getUserPrincipal();
+            if (principal != null) {
+                return principal.getName();
+            }
         }
         return userProfileProperties.userProfiles().getFirst().name();
     }

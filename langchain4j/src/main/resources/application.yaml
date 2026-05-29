@@ -4,6 +4,10 @@ spring:
   security.user:
     password: 123456
     name: alice
+  ai:
+    mcp.server:
+      name: ${spring.application.name}
+      protocol: STREAMABLE
 
 management:
   endpoints.web.exposure.include: "*"

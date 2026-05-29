@@ -15,6 +15,7 @@
     <properties>
         <java.version>25</java.version>
         <langchain4j.version>1.13.0</langchain4j.version>
+        <spring-ai.version>1.1.4</spring-ai.version>
     </properties>
 
     <dependencies>
@@ -66,6 +67,12 @@
             <artifactId>langchain4j-agentic</artifactId>
         </dependency>
 
+        <!-- MCP Server -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
+        </dependency>
+
         <!-- Observability -->
         <dependency>
             <groupId>io.micrometer</groupId>
@@ -104,6 +111,13 @@
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-bom</artifactId>
                 <version>${langchain4j.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

@@ -2,8 +2,10 @@ package com.example.nutritionplanner;
 
 import dev.langchain4j.agentic.AgenticServices;
 import dev.langchain4j.agentic.observability.AgentMonitor;
+import org.springaicommunity.mcp.annotation.McpTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -20,6 +22,12 @@ class NutritionPlannerAgent {
     NutritionPlannerAgent(UserProfileProperties userProfileProperties, AgentMonitor agentMonitor) {
         this.userProfileProperties = userProfileProperties;
         this.agentMonitor = agentMonitor;
+    }
+
+    @McpTool(description = "Provides a nutrition plan for the week")
+    WeeklyPlan createNutritionPlan(WeeklyPlanRequest request) {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        return createNutritionPlan(auth.getName(), request);
     }
 
     WeeklyPlan createNutritionPlan(String username, WeeklyPlanRequest request) {

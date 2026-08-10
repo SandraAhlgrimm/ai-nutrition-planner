@@ -1,9 +1,8 @@
 spring:
   application.name: langchain4j-nutrition-planner
-  profiles.active: openai
+  profiles.active: ollama
   security.user:
-    password: 123456
-    name: alice
+    name: ${SPRING_SECURITY_USER_NAME:alice}
 
 management:
   endpoints.web.exposure.include: "*"
@@ -12,7 +11,7 @@ management:
 nutrition-planner:
   max-validation-iterations: 3
   user-profiles:
-    - username: alice
+    - username: ${SPRING_SECURITY_USER_NAME:alice}
       dietary-restrictions:
         - vegetarian
       health-goals:

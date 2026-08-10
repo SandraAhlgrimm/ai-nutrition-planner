@@ -1,8 +1,8 @@
-# LangChain4j module (Video 1 path)
+# LangChain4j module
 
 This module contains the LangChain4j implementation of the nutrition planner.
 
-## Beginner flow for Video 1
+## Beginner local flow
 
 Use this path for a basic first run:
 
@@ -39,10 +39,10 @@ Use one of these profiles when you want hosted models:
   - `AZURE_OPENAI_API_KEY` (required)
   - `AZURE_OPENAI_DEPLOYMENT_NAME` (optional, default `gpt-4o`)
 
-## Advanced features kept for later videos
+## Advanced features
 
 The implementation already includes advanced agentic patterns (validation loops, tools, observability listeners, and multi-agent orchestration).  
-For Video 1, treat these as internal implementation details and focus on:
+For a first run, treat these as internal implementation details and focus on:
 
 - choosing days/meals in the UI
 - generating a nutrition plan

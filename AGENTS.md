@@ -10,7 +10,7 @@ Agentic Spring implementations comparing three AI frameworks: **LangChain4j**, *
 - **Spring Boot 3.5.13** / Spring Framework 6.2
 - **Build**: Maven (system install, no wrapper) — modules use `spring-boot-starter-parent` 3.5.13
 - **AI Frameworks**:
-  - LangChain4j 1.13.0 (`langchain4j-spring-boot-starter` + `langchain4j-agentic`)
+  - LangChain4j 1.18.1 (`langchain4j-spring-boot-starter` + `langchain4j-agentic`)
   - Spring AI 2.0 (`org.springframework.ai:spring-ai-*-spring-boot-starter`)
   - Embabel (`com.embabel.agent:embabel-agent-starter`)
 

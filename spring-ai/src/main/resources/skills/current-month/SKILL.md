@@ -1,16 +1,12 @@
 ---
 name: current-month
 description: Returns the current month name in English
-allowed-tools: Read, Bash
+allowed-tools: currentMonth
 ---
 
-Execute `scripts/current-month.sh` to get the current month name in English.
+Call the `currentMonth` tool to get the current month name in English, using the
+application's UTC clock. Do not infer the month from training data.
 
-## Example
-
-```
-$ scripts/current-month.sh
-May
-```
-
-Return the output as-is — a single capitalized English month name.
+Use the returned month when selecting seasonal ingredients for the requested country.
+No shell commands or filesystem access are needed; this skill also works inside a
+packaged application JAR.

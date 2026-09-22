@@ -40,8 +40,27 @@
         document.addEventListener('htmx:afterSwap', function(evt) {
             if (evt.detail.target?.id === 'plan-events-container') setGenerating(true);
         });
-        document.addEventListener('htmx:sseError', function() { setGenerating(false); });
+        document.addEventListener('htmx:sseError', function() {
+            setGenerating(false);
+            const content = document.getElementById('sse-content');
+            if (content) {
+                const message = document.createElement('p');
+                message.setAttribute('role', 'alert');
+                message.className = 'text-red-700 mt-2';
+                message.textContent = 'The connection was interrupted. Generate a new plan to retry.';
+                content.replaceWith(message);
+            }
+        });
         document.addEventListener('htmx:sseClose', function() { setGenerating(false); });
+        document.addEventListener('htmx:responseError', function(evt) {
+            setGenerating(false);
+            const target = evt.detail.target;
+            const message = document.createElement('p');
+            message.setAttribute('role', 'alert');
+            message.className = 'text-red-700 mt-2';
+            message.textContent = 'The request failed. Check the selected meals, country code and answers, then retry.';
+            target.appendChild(message);
+        });
     </script>
 </head>
 <body class="bg-gray-100 min-h-screen font-sans">
@@ -82,7 +101,7 @@
                     <label class="block text-xs font-medium text-gray-600 mb-1" for="countryCode">Country (ISO code)</label>
                     <input id="countryCode" name="countryCode" type="text" maxlength="2"
                            class="border border-gray-300 rounded px-3 py-1.5 text-sm w-20 focus:outline-none focus:ring-1 focus:ring-slate-500"
-                           placeholder="DE"/>
+                           placeholder="DE" value="DE" required/>
                 </div>
                 <div class="flex-1 min-w-48">
                     <label class="block text-xs font-medium text-gray-600 mb-1" for="additionalInstructions">Additional instructions</label>

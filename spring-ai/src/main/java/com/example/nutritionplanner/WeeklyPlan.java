@@ -3,7 +3,7 @@ package com.example.nutritionplanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.time.DayOfWeek;
 import java.util.List;
@@ -13,6 +13,11 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public record WeeklyPlan(List<DailyPlan> days) {
+
+    public WeeklyPlan {
+        days = List.copyOf(days);
+        if (days.isEmpty()) throw new IllegalArgumentException("A weekly plan must contain days");
+    }
 
     private static final Logger log = LoggerFactory.getLogger(WeeklyPlan.class);
 
@@ -35,7 +40,7 @@ public record WeeklyPlan(List<DailyPlan> days) {
                                 .filter(Objects::nonNull)
                                 .collect(Collectors.toList())
                 ))
-                .orElse(new NutritionInfo(List.of()));
+                .orElseThrow(() -> new IllegalArgumentException("No meals planned for " + day));
         log.info("WeeklyPlan:nutritionTotalsForDay tool method finished with {} for {}", nutritionInfo, day);
         return nutritionInfo;
     }
@@ -50,5 +55,9 @@ public record WeeklyPlan(List<DailyPlan> days) {
         return count;
     }
 
-    public record DailyPlan(DayOfWeek day, @Nullable Recipe breakfast, @Nullable Recipe lunch, @Nullable Recipe dinner) {}
+    public record DailyPlan(DayOfWeek day, @Nullable Recipe breakfast, @Nullable Recipe lunch, @Nullable Recipe dinner) {
+        public DailyPlan {
+            Objects.requireNonNull(day, "Plan day is required");
+        }
+    }
 }

@@ -2,9 +2,8 @@ spring:
   ai:
     # Define AI provider(s) for type of models for autoconfiguration
     model:
-      chat: openai-sdk
-      embedding: openai-sdk
+      chat: openai
     # AI provider configuration
-    openai-sdk:
+    openai:
       api-key: ${OPENAI_API_KEY}
-      chat.options.model: gpt-5.4-mini
+      chat.model: ${OPENAI_MODEL_NAME:gpt-4o}

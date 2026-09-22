@@ -31,6 +31,9 @@ means **four failed audits**, an explicit `NutritionPlanValidationException`, an
 no returned plan. Original requested days, meals, country, profile, instructions,
 seasonal ingredients, and collected browser answers survive revisions. A
 deterministic shape check also rejects missing/extra meals and duplicate days.
+Every audit also receives the recorded questions and answers, so it can apply
+the user's cooking preferences without treating an already completed question as
+an unmet instruction. Exhaustion displays the final audit feedback in the browser.
 Malformed model output, missing audits/answers, and tool failures propagate as
 errors rather than empty successful responses.
 

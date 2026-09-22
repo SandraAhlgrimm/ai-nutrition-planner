@@ -63,8 +63,9 @@ abstract class SseInteractionController {
                 completeInteraction(interactionId);
             } catch (Exception e) {
                 log.error("Nutrition interaction {} failed", interactionId, e);
-                failInteraction(interactionId, e instanceof NutritionPlanValidationException
-                        ? e.getMessage() : "Nutrition planning failed. Please try again.");
+                failInteraction(interactionId, e instanceof NutritionPlanValidationException rejected
+                        ? rejected.getMessage() + ". " + rejected.feedback()
+                        : "Nutrition planning failed. Please try again.");
             } finally {
                 cleanup.accept(interactionId);
             }

@@ -134,7 +134,10 @@ selected provider, not instead of it.
 Each profile configures only its selected chat model. Inactive providers do not
 need credentials. Spring AI and Embabel use the current OpenAI SDK integration
 for Azure; keep supplying the Azure resource-root URL, for example
-`https://your-resource.openai.azure.com/`.
+`https://your-resource.openai.azure.com/`. A Foundry resource's
+`https://your-resource.services.ai.azure.com/` root also works. Do not paste a
+project URL containing `/api/projects/...` or a full `/responses` operation URL
+into `AZURE_OPENAI_ENDPOINT`.
 
 For local Ollama:
 

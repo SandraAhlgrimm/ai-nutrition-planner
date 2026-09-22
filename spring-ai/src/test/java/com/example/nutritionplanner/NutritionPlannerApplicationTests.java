@@ -198,6 +198,11 @@ class NutritionPlannerApplicationTests {
         mvc.perform(asyncDispatch(events)).andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Vegetable soup")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("event:done")));
+        assertThat(script.allPrompts)
+                .filteredOn(prompt -> prompt.getSystemMessage().getText().contains("Nutrition Guard"))
+                .isNotEmpty()
+                .allSatisfy(prompt -> assertThat(prompt.getUserMessage().getText())
+                        .contains(TestPlans.QUESTION, TestPlans.ANSWER));
         mvc.perform(post("/interaction/" + id + "/answers").with(user("alice")))
                 .andExpect(status().isNotFound());
     }
@@ -213,6 +218,7 @@ class NutritionPlannerApplicationTests {
         events.getAsyncResult(5000);
         mvc.perform(asyncDispatch(events)).andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("No valid nutrition plan after 4")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Use less sodium")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("event:done")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Your Weekly Plan"))));
         assertThat(script.audits).hasValue(4);

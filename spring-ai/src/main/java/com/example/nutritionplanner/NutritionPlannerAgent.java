@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import java.time.Clock;
 import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -99,7 +100,8 @@ class NutritionPlannerAgent {
                                         AskUserQuestionTool.@Nullable QuestionHandler questionHandler) {
         var answers = new LinkedHashMap<String, String>();
         var validationRetryAdvisor = new ValidationRetryAdvisor<>(WeeklyPlan.class,
-                plan -> this.validateWeeklyPlan(plan, userProfile, weeklyPlanRequest), 3, answers::toString);
+                plan -> this.validateWeeklyPlan(plan, userProfile, weeklyPlanRequest, Map.copyOf(answers)),
+                3, answers::toString);
         var prompt = chatClient.prompt()
                 .system(Personas.RECIPE_CURATOR)
                 .user(u -> u.text("""
@@ -149,7 +151,8 @@ class NutritionPlannerAgent {
     }
 
     private ValidationRetryAdvisor.ValidationResult validateWeeklyPlan(WeeklyPlan weeklyPlan, UserProfile userProfile,
-                                                                       WeeklyPlanRequest request) {
+                                                                       WeeklyPlanRequest request,
+                                                                       Map<String, String> userAnswers) {
         var toolSearchAdvisor = ToolSearchToolCallingAdvisor.builder()
                 .toolIndex(toolIndex).toolCallingManager(toolCallingManager).build();
         var auditId = UUID.randomUUID().toString();
@@ -167,7 +170,15 @@ class NutritionPlannerAgent {
 
                         # Original requested days, meals, country and instructions:
                         {request}
+
+                        # Questions already asked and the user's recorded answers:
+                        {userAnswers}
+
+                        Apply these cooking preferences when auditing the recipes.
+                        Questions with recorded answers have already been completed;
+                        do not require the plan to repeat that conversation.
                         """).param("weeklyPlan", weeklyPlan).param("userProfile", userProfile).param("request", request)
+                        .param("userAnswers", userAnswers.toString())
                 )
                 .advisors(toolSearchAdvisor)
                 .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, auditId))

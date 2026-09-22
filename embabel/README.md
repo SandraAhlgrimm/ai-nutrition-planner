@@ -30,6 +30,14 @@ Choose exactly one model profile; add `observability` separately, for example
 
 Application configuration selects one Spring AI `ChatModel` using
 `spring.ai.model.chat` and wraps it with Embabel's maintained `SpringAiLlmService`.
+The bridge explicitly uses the released `OllamaOptionsConverter` or
+`StandardOpenAiOptionsConverter`: Spring AI 2 requires provider-specific options,
+including when Embabel adds tool callbacks. The generic default converter is not
+a production provider adapter. The Ollama converter's artifact also contains
+catalogue autoconfiguration; that autoconfiguration is excluded so merely using
+the converter cannot enable model discovery or another provider.
+Model properties use Spring AI 2's flattened `spring.ai.ollama.chat.model` and
+`spring.ai.openai.chat.model` keys, not the deprecated `chat.options.model` aliases.
 All planning and prompting above that boundary use Embabel APIs. Inactive providers
 need no credentials. Ollama does not discover or download models at startup; pull a
 tool-capable model yourself before making planning requests.
@@ -63,6 +71,12 @@ the looping action clears the blackboard. Deterministic checks reject omitted or
 extra requested meals/days and missing recipe nutrition even if the model claims
 the audit passed. Semantic dietary judgments and nutrition estimates still come
 from the model; this is a framework sample, not a clinical nutrition service.
+
+`DailyPlan` stores nullable meal recipes with explicit JSON property names and
+retains its Optional-based Java accessors/constructor. This avoids Embabel 1.5.2's
+schema normalizer calling Jackson 3 `asString()` on an Optional's JSON Schema
+type array. Models may omit unrequested meal fields; responses still serialize
+the same `breakfast`/`lunch`/`dinner` fields with nulls for absent meals.
 
 `process-type: CONCURRENT`, virtual threads, and the shared Spring task executor
 allow the profile and seasonal actions to overlap. A latch-based integration test
@@ -121,6 +135,11 @@ wiring, overlapping actions, REST/auth/UI failures, two authenticated MCP users,
 MCP exhaustion, packaged-classpath skills, isolated provider startup, Azure SDK
 wire format, and actual local OTLP exports. All model responses are fake or served
 by an in-process HTTP fixture; no live model service, real key, or Docker is used.
+The provider regression additionally runs the production GOAP graph through real
+Embabel `Ai`/tool-loop and Spring AI clients against that fixture for all three
+profiles, including skill activation/script execution, progressive nutrition tool
+disclosure, structured JSON binding, and custom model names in native options and
+every HTTP request.
 The integration profile is named `offline`, because Embabel deliberately disables
 automatic agent registration when the literal `test` profile is active.
 
@@ -134,3 +153,6 @@ automatic agent registration when the literal `test` profile is active.
 - [Non-retryable domain failures](https://github.com/embabel/embabel-agent/blob/v1.5.2/embabel-agent-api/src/main/kotlin/com/embabel/agent/core/Retry.kt)
 - [MCP integration](https://github.com/embabel/embabel-agent/blob/v1.5.2/embabel-agent-docs/src/main/asciidoc/reference/integrations/page.adoc)
 - [Spring AI 2.0.1 OpenAI/Azure setup](https://github.com/spring-projects/spring-ai/blob/v2.0.1/models/spring-ai-openai/src/main/java/org/springframework/ai/openai/setup/OpenAiSetup.java)
+- [Embabel native Ollama options converter](https://github.com/embabel/embabel-agent/blob/v1.5.2/embabel-agent-autoconfigure/models/embabel-agent-ollama-autoconfigure/src/main/kotlin/com/embabel/agent/config/models/ollama/OllamaModelsConfig.kt)
+- [Embabel native OpenAI options converters](https://github.com/embabel/embabel-agent/blob/v1.5.2/embabel-agent-openai/src/main/kotlin/com/embabel/agent/openai/converters.kt)
+- [Embabel 1.5.2 schema normalization](https://github.com/embabel/embabel-agent/blob/v1.5.2/embabel-agent-common/embabel-agent-ai/src/main/kotlin/com/embabel/common/ai/converters/jsonSchemaSupport.kt)

@@ -1,12 +1,17 @@
 package com.example.nutritionplanner;
 
+import com.embabel.common.ai.converters.JacksonOutputConverter;
+import com.embabel.common.ai.converters.RequiredFieldNormalization;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.DayOfWeek;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class WeeklyPlanTests {
 
@@ -71,5 +76,28 @@ class WeeklyPlanTests {
         assertEquals(2, totals.size());
         assertEquals(500, totals.get(DayOfWeek.MONDAY).calories());
         assertEquals(500, totals.get(DayOfWeek.WEDNESDAY).calories());
+    }
+
+    @Test
+    void nativeOutputSchemaAndPublicJsonPreserveOptionalMealContract() {
+        var mapper = JsonMapper.builder().build();
+        var converter = new JacksonOutputConverter<>(WeeklyPlan.class, mapper, RequiredFieldNormalization.ENABLED);
+        var schema = converter.getJsonSchema();
+        assertTrue(schema.contains("\"breakfast\"") && schema.contains("\"lunch\"") && schema.contains("\"dinner\""));
+        assertFalse(schema.contains("breakfastRecipe"));
+
+        var lunch = recipe(500, 25, 60, 12, 400);
+        var plan = converter.convert("""
+                {"days":[{"day":"MONDAY","lunch":%s}]}
+                """.formatted(mapper.writeValueAsString(lunch)));
+        var day = plan.days().getFirst();
+        assertEquals(Optional.empty(), day.breakfast());
+        assertEquals(Optional.of(lunch), day.lunch());
+        assertEquals(Optional.empty(), day.dinner());
+        var json = mapper.readTree(mapper.writeValueAsString(plan)).path("days").get(0);
+        assertEquals(java.util.Set.of("day", "breakfast", "lunch", "dinner"), json.propertyNames());
+        assertTrue(json.path("breakfast").isNull());
+        assertTrue(json.path("dinner").isNull());
+        assertEquals(plan, mapper.readValue(mapper.writeValueAsString(plan), WeeklyPlan.class));
     }
 }

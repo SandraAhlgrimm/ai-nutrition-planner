@@ -3,8 +3,8 @@ spring:
     model.chat: openai
     openai:
       api-key: ${OPENAI_API_KEY}
-      chat.options.model: ${OPENAI_MODEL_NAME:gpt-4o}
+      chat.model: ${OPENAI_MODEL_NAME:gpt-4o}
 
 nutrition-planner:
   provider: OpenAI
-  model: ${spring.ai.openai.chat.options.model}
+  model: ${spring.ai.openai.chat.model}

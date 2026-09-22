@@ -5,8 +5,8 @@ spring:
       api-key: ${AZURE_OPENAI_API_KEY}
       base-url: ${AZURE_OPENAI_ENDPOINT}
       microsoft-foundry: true
-      chat.options.model: ${AZURE_OPENAI_DEPLOYMENT_NAME:gpt-4o}
+      chat.model: ${AZURE_OPENAI_DEPLOYMENT_NAME:gpt-4o}
 
 nutrition-planner:
   provider: Azure OpenAI
-  model: ${spring.ai.openai.chat.options.model}
+  model: ${spring.ai.openai.chat.model}

@@ -3,7 +3,7 @@ spring:
     model.chat: ollama
     ollama:
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
-      chat.options.model: ${OLLAMA_MODEL_NAME:qwen2.5}
+      chat.model: ${OLLAMA_MODEL_NAME:qwen2.5}
       init.pull-model-strategy: never
 
 embabel:
@@ -15,4 +15,4 @@ embabel:
 
 nutrition-planner:
   provider: Ollama
-  model: ${spring.ai.ollama.chat.options.model}
+  model: ${spring.ai.ollama.chat.model}

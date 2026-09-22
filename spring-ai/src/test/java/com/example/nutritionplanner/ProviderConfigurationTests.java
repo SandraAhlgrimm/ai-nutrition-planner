@@ -77,5 +77,7 @@ class ProviderConfigurationTests {
         assertThat(metrics.getStep()).isEqualTo(Duration.ofSeconds(5));
         assertThat(metrics.isEnabled()).isTrue();
         assertThat(environment.getProperty("management.tracing.export.enabled", Boolean.class)).isTrue();
+        assertThat(environment.getProperty(
+                "management.metrics.distribution.percentiles-histogram.http.server.requests", Boolean.class)).isTrue();
     }
 }

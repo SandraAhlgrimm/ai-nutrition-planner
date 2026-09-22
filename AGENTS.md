@@ -6,13 +6,13 @@ Agentic Spring implementations comparing three AI frameworks: **LangChain4j**, *
 
 ## Tech Stack
 
-- **Java 25** — use modern language features: flexible constructor bodies (JEP 513), primitive types in pattern matching (JEP 507), scoped values (JEP 506), compact source files (JEP 512)
-- **Spring Boot 3.5.13** / Spring Framework 6.2
-- **Build**: Maven (system install, no wrapper) — modules use `spring-boot-starter-parent` 3.5.13
+- **Java 25** — prefer standard language features, records, and scoped values; preview features require explicit compiler and runtime configuration.
+- **Spring Boot 4.1.1** / Spring Framework 7
+- **Build**: Maven — each module independently inherits `spring-boot-starter-parent` 4.1.1. Use system Maven at the root; wrappers are also available inside each module.
 - **AI Frameworks**:
-  - LangChain4j 1.12.2-beta22 (`langchain4j-spring-boot-starter` + `langchain4j-agentic`)
-  - Spring AI 2.0 (`org.springframework.ai:spring-ai-*-spring-boot-starter`)
-  - Embabel (`com.embabel.agent:embabel-agent-starter`)
+  - LangChain4j BOM 1.20.0, agentic and Spring Boot 4 starters 1.20.0-beta30 (`langchain4j-spring-boot4-starter` + `langchain4j-agentic`)
+  - Spring AI 2.0.1 (`org.springframework.ai:spring-ai-starter-model-*`); community agent utilities 0.12.0 provide skills and human interaction.
+  - Embabel 1.5.2 (`com.embabel.agent:embabel-agent-starter-*`), built on Spring AI 2.0.1
 
 ## Build & Test Commands
 
@@ -27,7 +27,7 @@ mvn spring-boot:run -pl <module-name>          # run a specific module
 
 ## Architecture
 
-The project is a multi-module Maven structure. Each AI framework gets its own module sharing a common domain model:
+The root POM aggregates three independently runnable Maven modules. Each framework implements the same domain with its own DTOs and has no runtime dependency on another sample. Keep the successful REST request/response contract comparable without introducing a shared framework abstraction.
 
 ```
 ai-nutrition-planner/
@@ -38,42 +38,48 @@ ai-nutrition-planner/
 ├── grafana/                 # Grafana dashboard + provisioning
 ├── docker-compose.yaml      # LGTM observability stack
 ├── azure.yaml               # azd project manifest
-└── pom.xml                  # parent POM
+└── pom.xml                  # reactor aggregator, not the modules' parent
 ```
 
 ## Key Conventions
 
-### Spring Boot 3.5 Specifics
+### Spring Boot 4 Specifics
 
 - Use **virtual threads** as the default execution model.
-- Apply **`@Nullable`/`@NonNull` annotations** for null safety across public APIs.
+- Use **JSpecify null-safety annotations** where required by public APIs and framework contracts.
 - Use **declarative HTTP service clients** (`@HttpExchange`) instead of `RestTemplate` or `WebClient` for external API calls.
-- Target **Jakarta EE 10** APIs — use `jakarta.*` packages exclusively, never `javax.*`.
+- Use **Jakarta APIs** (`jakarta.*`), not legacy `javax.*` equivalents.
+- Account for **Jackson 3** and Boot 4's modular starters and test dependencies when migrating configuration, serialization, or controller tests.
 
 ### Java 25 Specifics
 
 - Prefer **records** for DTOs, domain value objects, and AI model responses.
 - Use **sealed interfaces** to model domain hierarchies (meal types, nutrient categories).
-- Use **pattern matching with `switch`** (including primitives) instead of if-else chains.
+- Use **pattern matching with `switch`** where it improves clarity; do not introduce primitive-pattern preview features without configuring and testing preview support.
 - Use **scoped values** (`ScopedValue`) over `ThreadLocal` for request-scoped context.
 - Use **flexible constructor bodies** — validate inputs before `super()`/`this()` calls.
 
 ### AI Framework Patterns
 
-- **LangChain4j**: define agents with `@Agent`-annotated interfaces. Compose with `AgenticServices.sequenceBuilder()` / `loopBuilder()`. Configure models via `application.yml` properties under `langchain4j.*`.
-- **Spring AI**: use autoconfigured `ChatClient` beans. Configure under `spring.ai.*`. Prefer the `ChatClient.Builder` fluent API.
-- **Embabel**: define goals and actions using `@Agent`, `@Goal`, `@Action` annotations. Let the GOAP planner compose action chains — avoid hardwiring workflow sequences.
+- **LangChain4j**: define agents with `@Agent`-annotated interfaces. Compose with native `AgenticServices.sequenceBuilder()`, `parallelBuilder()`, and `loopBuilder()`. Use the dedicated `*-spring-boot4-starter` artifacts and configure models under `langchain4j.*`.
+- **Spring AI**: use the autoconfigured `ChatClient.Builder` fluent API and current native tool-calling/search advisors. Configure under `spring.ai.*`. Application-managed concurrency and retry policy are not a native multi-agent orchestration framework.
+- **Embabel**: define typed actions and goals using `@Agent`, `@Action`, and `@AchievesGoal`, with `@State` for the audit/revision lifecycle. Let the GOAP planner compose action chains rather than hardwiring their execution order.
+- **Shared retry contract**: generate an initial plan and allow at most three revisions. Audit every candidate, including the final revision. Stop on success; expose exhaustion as an explicit error (HTTP 422 for REST), never as a successful invalid or unaudited plan.
 
 ### Testing
 
-- **JUnit 5** exclusively.
+- Use **Boot-managed JUnit Jupiter 6**. Spring Framework 7's `SpringExtension` requires Jupiter 6 or newer; do not force the old JUnit 5 version or downgrade `spring-test`.
 - Use **`@SpringBootTest`** for integration tests, **`@WebMvcTest`** for controller slices.
 - Use **`@MockitoBean`** (from `org.springframework.test.context.bean.override.mockito`) instead of `@MockBean`.
 - Mock AI model responses in unit tests — never call live APIs in CI.
 - Each module should have tests validating its agentic workflow independently.
+- Cover first-pass success, revision success, success on the final permitted revision, and exhaustion with exact generation/audit counts.
+- Embabel workflow integration tests use the `offline` profile; the framework disables automatic agent registration under the literal `test` profile.
 
 ### Configuration
 
 - Externalize all API keys and model endpoints via environment variables or Spring config profiles.
 - Never hardcode API keys — use `${ENV_VAR}` placeholders in `application.yml`.
-- Use Spring profiles (`dev`, `test`, `prod`) to switch between AI providers or models.
+- Select exactly one provider profile: `openai`, `azure`, or `ollama`. Add `observability` independently when exporting telemetry.
+- Preserve the environment variable names documented in `.env.example`; Spring Boot does not automatically import that file.
+- Skills and other bundled resources must work from a packaged JAR, not only from an exploded source-tree classpath.

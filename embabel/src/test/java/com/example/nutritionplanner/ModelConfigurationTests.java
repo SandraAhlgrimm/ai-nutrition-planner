@@ -158,7 +158,12 @@ class ModelConfigurationTests {
                     "management.otlp.metrics.export.step=100ms").run(context -> {
                 assertThat(context).hasNotFailed().hasSingleBean(SpanExporter.class);
                 Observation.createNotStarted("nutrition.test", context.getBean(ObservationRegistry.class)).observe(() -> {});
-                context.getBean(MeterRegistry.class).counter("nutrition.test").increment();
+                var registry = context.getBean(MeterRegistry.class);
+                registry.counter("nutrition.test").increment();
+                var httpTimer = registry.timer("http.server.requests");
+                httpTimer.record(1, TimeUnit.MILLISECONDS);
+                assertTrue(httpTimer.takeSnapshot().histogramCounts().length > 0,
+                        "HTTP latency histograms must be available for the dashboard percentile panels");
                 assertTrue(traces.await(5, TimeUnit.SECONDS), "OTLP trace export must be active");
                 assertTrue(metrics.await(5, TimeUnit.SECONDS), "OTLP metric export must be active");
             });

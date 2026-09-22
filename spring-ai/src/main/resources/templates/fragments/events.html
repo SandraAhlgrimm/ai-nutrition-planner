@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 <body>
 
-<div th:fragment="events" id="sse-content" hx-ext="sse" sse-swap="content-update" hx-swap="innerHTML"
+<div th:fragment="events" id="sse-content" hx-ext="sse" sse-swap="content-update" sse-close="done" hx-swap="innerHTML"
      th:attr="sse-connect='/interactions/' + ${interactionId} + '/events'"></div>
 
 </body>

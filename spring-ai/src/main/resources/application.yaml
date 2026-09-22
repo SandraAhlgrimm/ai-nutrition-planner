@@ -1,6 +1,7 @@
 spring:
   application.name: nutrition-planner
-  profiles.active: openai
+  profiles.default: openai
+  threads.virtual.enabled: true
   security.user:
       password: 123456
       name: alice
@@ -14,18 +15,21 @@ spring:
         speech: none
         transcription: none
       moderation: none
-    tools.observations.include-content: true
+    tools.observations.include-content: false
     mcp.server:
       name: ${spring.application.name}
       protocol: STREAMABLE
+      streamable-http.mcp-endpoint: /mcp
 
 management:
   endpoints.web.exposure.include: "*"
   otlp.metrics.export.enabled: false
+  tracing.export.enabled: false
+  logging.export.enabled: false
 
 logging.level:
-  org.springaicommunity: debug
-  org.springframework.ai: debug
+  org.springaicommunity: info
+  org.springframework.ai: info
 
 nutrition-planner:
   user-profiles:

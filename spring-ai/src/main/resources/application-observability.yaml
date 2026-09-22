@@ -1,7 +1,10 @@
 management:
   tracing:
     sampling.probability: 1.0
-    enabled: true
+    export.enabled: true
+  opentelemetry.tracing.export.otlp.endpoint: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
   otlp:
-    metrics.export.step: 5s
-    tracing.endpoint: http://localhost:4318/v1/traces
+    metrics.export:
+      enabled: true
+      step: 5s
+      url: ${OTEL_EXPORTER_OTLP_METRICS_ENDPOINT:http://localhost:4318/v1/metrics}

@@ -4,12 +4,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClientRequest;
 import org.springframework.ai.chat.client.ChatClientResponse;
+import org.springframework.ai.chat.client.advisor.ToolCallingAdvisor;
 import org.springframework.ai.chat.client.advisor.api.CallAdvisor;
 import org.springframework.ai.chat.client.advisor.api.CallAdvisorChain;
 import org.springframework.ai.converter.BeanOutputConverter;
 
-import java.util.function.BiFunction;
+import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 class ValidationRetryAdvisor<T> implements CallAdvisor {
 
@@ -20,52 +22,77 @@ class ValidationRetryAdvisor<T> implements CallAdvisor {
     private final Function<T, ValidationResult> validator;
     private final BeanOutputConverter<T> converter;
     private final int maxRetries;
+    private final Supplier<String> revisionContext;
 
     ValidationRetryAdvisor(Class<T> responseType, Function<T, ValidationResult> validator) {
         this(responseType, validator, DEFAULT_MAX_RETRIES);
     }
 
     ValidationRetryAdvisor(Class<T> responseType, Function<T, ValidationResult> validator, int maxRetries) {
-        this.validator = validator;
+        this(responseType, validator, maxRetries, () -> "");
+    }
+
+    ValidationRetryAdvisor(Class<T> responseType, Function<T, ValidationResult> validator, int maxRetries,
+                           Supplier<String> revisionContext) {
+        if (maxRetries < 0 || maxRetries > DEFAULT_MAX_RETRIES) {
+            throw new IllegalArgumentException("At most three revisions are allowed");
+        }
+        this.validator = Objects.requireNonNull(validator);
         this.converter = new BeanOutputConverter<>(responseType);
         this.maxRetries = maxRetries;
+        this.revisionContext = Objects.requireNonNull(revisionContext);
     }
 
     @Override
     public ChatClientResponse adviseCall(ChatClientRequest request, CallAdvisorChain chain) {
         var response = chain.nextCall(request);
-        for (int attempt = 0; attempt < maxRetries; attempt++) {
+        for (int attempt = 0; ; attempt++) {
             var entity = toEntity(response);
-            var validationResult = validator.apply(entity);
+            var validationResult = Objects.requireNonNull(validator.apply(entity), "Missing nutrition audit");
 
             if (validationResult.allPassed()) {
                 log.info("ValidationRetryAdvisor: validation passed");
                 return response;
             }
 
-            log.info("ValidationRetryAdvisor: validation failed (attempt {}/{}), revising...", attempt + 1, maxRetries);
-            request = withValidationFeedback(request, entity, validationResult);
-            response = chain.copy(this).nextCall(request);
+            if (attempt == maxRetries) {
+                log.warn("Nutrition validation failed after {} audited candidates", attempt + 1);
+                throw new NutritionPlanValidationException(attempt + 1, validationResult.feedback());
+            }
+            log.info("Validation failed; creating revision {}/{}", attempt + 1, maxRetries);
+            response = chain.copy(this).nextCall(withValidationFeedback(request, entity, validationResult));
         }
-        log.warn("ValidationRetryAdvisor: max retries ({}) reached, returning last response", maxRetries);
-        return response;
     }
 
     private ChatClientRequest withValidationFeedback(ChatClientRequest originalRequest, T entity, ValidationResult validationResult) {
         var revisedPrompt = originalRequest.prompt().augmentUserMessage(m -> m.mutate().text("""
-            Revise the response based on the following feedback.
+            %s
+
+            # Revision
+            Revise the candidate below using the audit feedback. Preserve all original
+            requested days, meals, dietary profile, seasonal ingredients and instructions.
+            Use the user's answers below; do not ask answered questions again.
+
+            # User answers collected so far
+            %s
 
             # Current response
             %s
 
             # Feedback
             %s
-            """.formatted(entity, validationResult.feedback())).build());
+            """.formatted(m.getText(), revisionContext.get(), entity, validationResult.feedback())).build());
         return originalRequest.mutate().prompt(revisedPrompt).build();
     }
 
     private T toEntity(ChatClientResponse response) {
-        return converter.convert(response.chatResponse().getResult().getOutput().getText());
+        var chatResponse = Objects.requireNonNull(response.chatResponse(), "Model returned no response");
+        var result = Objects.requireNonNull(chatResponse.getResult(), "Model returned no generation");
+        var text = result.getOutput().getText();
+        if (text == null || text.isBlank()) {
+            throw new IllegalStateException("Model returned no structured plan");
+        }
+        return Objects.requireNonNull(converter.convert(text), "Model returned a null plan");
     }
 
     @Override
@@ -75,7 +102,8 @@ class ValidationRetryAdvisor<T> implements CallAdvisor {
 
     @Override
     public int getOrder() {
-        return 0;
+        // Audit completed candidates, never intermediate tool-call responses.
+        return ToolCallingAdvisor.DEFAULT_ORDER - 100;
     }
 
     interface ValidationResult {

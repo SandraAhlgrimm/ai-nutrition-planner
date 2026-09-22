@@ -56,6 +56,7 @@ class ModelConfigurationTests {
                 assertThat(context).hasNotFailed().hasSingleBean(ChatModel.class).hasSingleBean(SpringAiLlmService.class);
                 var service = context.getBean(ModelProvider.class).getLlm(ModelSelectionCriteria.getPlatformDefault());
                 assertEquals(profile.equals("ollama") ? "qwen2.5" : "gpt-4o", service.getName());
+                assertEquals(service.getName(), context.getBean(ChatModel.class).getOptions().getModel());
                 assertEquals(profile.equals("ollama") ? OllamaChatModel.class : OpenAiChatModel.class,
                         context.getBean(ChatModel.class).getClass());
                 assertFalse(context.getBean(AgentPlatform.class).agents().isEmpty(), "Real annotation scanning must register the graph");
@@ -100,6 +101,7 @@ class ModelConfigurationTests {
                     .run(context -> {
                         assertThat(context).hasNotFailed();
                         assertNull(path.get(), "No startup probe should be sent");
+                        assertEquals("my-deployment", context.getBean(ChatModel.class).getOptions().getModel());
                         assertEquals("ok", context.getBean(ChatModel.class).call("Say ok"));
                         assertEquals("/openai/v1/chat/completions", path.get());
                         assertEquals("test-azure-key", key.get());

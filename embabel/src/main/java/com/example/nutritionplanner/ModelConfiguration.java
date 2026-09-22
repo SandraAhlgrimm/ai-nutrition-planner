@@ -1,6 +1,9 @@
 package com.example.nutritionplanner;
 
+import com.embabel.agent.config.models.ollama.OllamaOptionsConverter;
+import com.embabel.agent.openai.StandardOpenAiOptionsConverter;
 import com.embabel.agent.spi.support.springai.SpringAiLlmService;
+import com.embabel.common.ai.model.OptionsConverter;
 import org.jspecify.annotations.Nullable;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.model.openai.autoconfigure.OpenAiCommonProperties;
@@ -32,7 +35,9 @@ class ModelConfiguration {
                 && environment.getRequiredProperty("spring.ai.openai.api-key").isBlank()) {
             throw new IllegalArgumentException("The selected OpenAI or Azure profile requires a nonempty API key");
         }
-        return new SpringAiLlmService(model, provider, chatModel);
+        OptionsConverter optionsConverter = environment.acceptsProfiles(Profiles.of("ollama"))
+                ? new OllamaOptionsConverter() : StandardOpenAiOptionsConverter.INSTANCE;
+        return new SpringAiLlmService(model, provider, chatModel, optionsConverter);
     }
 
     @Bean

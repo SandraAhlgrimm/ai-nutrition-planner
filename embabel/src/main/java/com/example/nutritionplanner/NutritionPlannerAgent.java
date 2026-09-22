@@ -57,7 +57,7 @@ class NutritionPlannerAgent {
                 .withPromptElements(Personas.RECIPE_CURATOR)
                 .createObject("""
                         Create a weekly meal plan with recipes for EVERY requested meal below. Do not skip any meal
-                        or add unrequested days or meals. Use null for meals that were not requested.
+                        or add unrequested days or meals. Omit properties for meals that were not requested.
                         Write all recipe names, instructions, ingredient names, quantities, and units in English.
 
                         # User requested meals and days
@@ -132,7 +132,7 @@ class NutritionPlannerAgent {
                     .withPromptElements(Personas.RECIPE_CURATOR)
                     .createObject("""
                         Revise the recipes based on the following feedback from a nutrition expert.
-                        Keep EVERY requested day and meal, do not add unrequested meals, and provide complete
+                        Keep EVERY requested day and meal, omit unrequested meal properties, and provide complete
                         nutrition information. Write all recipe content in English.
 
                         # Recipes

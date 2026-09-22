@@ -2,6 +2,8 @@ package com.example.nutritionplanner;
 
 import com.embabel.agent.api.annotation.LlmTool;
 import com.embabel.agent.api.annotation.UnfoldingTools;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,19 +101,37 @@ public record WeeklyPlan(List<DailyPlan> days) {
         return List.copyOf(violations);
     }
 
-    public record DailyPlan(DayOfWeek day, Optional<Recipe> breakfast, Optional<Recipe> lunch, Optional<Recipe> dinner) {
+    // Nullable storage avoids Embabel 1.5.2's Optional-schema type-array normalization bug.
+    // Preserve the JSON field names and the existing Optional-based Java accessors.
+    public record DailyPlan(DayOfWeek day,
+                            @JsonProperty("breakfast") @Nullable Recipe breakfastRecipe,
+                            @JsonProperty("lunch") @Nullable Recipe lunchRecipe,
+                            @JsonProperty("dinner") @Nullable Recipe dinnerRecipe) {
         public DailyPlan {
             Objects.requireNonNull(day, "Day is required");
-            Objects.requireNonNull(breakfast, "Breakfast must be a recipe or empty");
-            Objects.requireNonNull(lunch, "Lunch must be a recipe or empty");
-            Objects.requireNonNull(dinner, "Dinner must be a recipe or empty");
+        }
+
+        public DailyPlan(DayOfWeek day, Optional<Recipe> breakfast, Optional<Recipe> lunch, Optional<Recipe> dinner) {
+            this(day, breakfast.orElse(null), lunch.orElse(null), dinner.orElse(null));
+        }
+
+        public Optional<Recipe> breakfast() {
+            return Optional.ofNullable(breakfastRecipe);
+        }
+
+        public Optional<Recipe> lunch() {
+            return Optional.ofNullable(lunchRecipe);
+        }
+
+        public Optional<Recipe> dinner() {
+            return Optional.ofNullable(dinnerRecipe);
         }
 
         Optional<Recipe> meal(WeeklyPlanRequest.MealType meal) {
             return switch (meal) {
-                case BREAKFAST -> breakfast;
-                case LUNCH -> lunch;
-                case DINNER -> dinner;
+                case BREAKFAST -> breakfast();
+                case LUNCH -> lunch();
+                case DINNER -> dinner();
             };
         }
     }

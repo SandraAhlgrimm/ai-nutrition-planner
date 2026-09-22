@@ -19,6 +19,7 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -31,6 +32,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntFunction;
 import java.util.regex.Pattern;
 
 import static com.example.nutritionplanner.PlanFixtures.*;
@@ -104,6 +106,47 @@ class NutritionWorkflowTest {
         assertThat(model.verifiedToolResults.get()).isEqualTo(12);
         assertThat(monitor.successfulExecutions()).isEmpty();
         assertThat(monitor.failedExecutions()).hasSize(1);
+        assertIdle();
+    }
+
+    @ParameterizedTest
+    @MethodSource("com.example.nutritionplanner.RequestShapeAuditTest#invalidPlans")
+    void mistakenPassingModelAuditCannotAcceptBadShapeAndExhaustsAtFourAudits(
+            WeeklyPlan invalidPlan, String expectedFeedback) {
+        var model = new ScriptedChatModel(1);
+        model.planCandidates = candidate -> invalidPlan;
+        model.useTools = false;
+        var planner = planner(model);
+
+        assertThatThrownBy(() -> invoke(planner, "alice"))
+                .isInstanceOfSatisfying(PlanValidationException.class, exception -> {
+                    assertThat(exception.audit().allPassed()).isFalse();
+                    assertThat(exception.audit().consolidatedFeedback()).contains(expectedFeedback);
+                });
+        assertThat(model.initials.get()).isEqualTo(1);
+        assertThat(model.revisions.get()).isEqualTo(3);
+        assertThat(model.audits.get()).isEqualTo(4);
+        assertThat(model.generationPrompts.subList(1, 4)).allSatisfy(prompt ->
+                assertThat(prompt).contains(expectedFeedback, ALICE.toString(), REQUEST.toString()));
+        assertThat(monitor.successfulExecutions()).isEmpty();
+        assertIdle();
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {2, 4})
+    void shapeRepairMustBeReauditedBeforeItCanPass(int repairedCandidate) {
+        var model = new ScriptedChatModel(1);
+        model.planCandidates = candidate -> candidate < repairedCandidate
+                ? new WeeklyPlan(List.of(plan(candidate).days().getFirst())) : plan(candidate);
+        model.useTools = false;
+
+        assertThat(invoke(planner(model), "alice")).isEqualTo(plan(repairedCandidate));
+        assertThat(model.initials.get()).isEqualTo(1);
+        assertThat(model.revisions.get()).isEqualTo(repairedCandidate - 1);
+        assertThat(model.audits.get()).isEqualTo(repairedCandidate);
+        assertThat(model.generationPrompts.subList(1, repairedCandidate)).allSatisfy(prompt ->
+                assertThat(prompt).contains("Missing requested day: THURSDAY", ALICE.toString(), REQUEST.toString()));
+        assertThat(monitor.successfulExecutions()).hasSize(1);
         assertIdle();
     }
 
@@ -265,6 +308,8 @@ class NutritionWorkflowTest {
         private String planResponseOverride;
         private String auditResponseOverride;
         private boolean invalidToolRequest;
+        private boolean useTools = true;
+        private IntFunction<WeeklyPlan> planCandidates = PlanFixtures::plan;
 
         ScriptedChatModel(int passingAudit) {
             this.passingAudit = passingAudit;
@@ -295,7 +340,8 @@ class NutritionWorkflowTest {
                     initials.incrementAndGet();
                 }
                 int candidate = candidates.incrementAndGet();
-                return response(planResponseOverride != null ? planResponseOverride : JSON.writeValueAsString(plan(candidate)));
+                return response(planResponseOverride != null ? planResponseOverride
+                        : JSON.writeValueAsString(planCandidates.apply(candidate)));
             }
             assertThat(prompt).contains("Audit this candidate");
             if (!(request.messages().getLast() instanceof ToolExecutionResultMessage)) {
@@ -303,6 +349,10 @@ class NutritionWorkflowTest {
                 auditPrompts.add(prompt);
                 assertThat(request.toolSpecifications()).extracting(spec -> spec.name())
                         .containsExactlyInAnyOrder("dailyNutritionTotals", "nutritionTotalsForDay", "totalMealCount");
+                if (!useTools) {
+                    boolean passed = passingAudit > 0 && audits.get() >= passingAudit;
+                    return response(JSON.writeValueAsString(passed ? PASSED : failed(audits.get())));
+                }
                 if (invalidToolRequest) {
                     return response(AiMessage.from(tool("nutritionTotalsForDay", "{\"day\":\"NOT_A_DAY\"}")));
                 }

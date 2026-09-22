@@ -61,7 +61,7 @@ class AgentConfiguration {
         var reviser = AgenticServices.agentBuilder(Agents.WeeklyPlanReviser.class).chatModel(model).build();
         var revisions = AgenticServices.loopBuilder()
                 .name("reviseAndAudit")
-                .subAgents(reviser, nutritionGuard(model, "auditRevision"))
+                .subAgents(reviser, nutritionGuard(model, "auditRevision"), new RequestShapeAudit())
                 .maxIterations(MAX_REVISIONS)
                 .testExitAtLoopEnd(true)
                 .exitCondition("All dietary and request checks passed", AgentConfiguration::auditPassed)
@@ -74,7 +74,8 @@ class AgentConfiguration {
                 .build();
 
         return AgenticServices.sequenceBuilder(Agents.NutritionPlanner.class)
-                .subAgents(preparation, creator, nutritionGuard(model, "auditInitialPlan"), reviseIfNeeded)
+                .subAgents(preparation, creator, nutritionGuard(model, "auditInitialPlan"),
+                        new RequestShapeAudit(), reviseIfNeeded)
                 .output(AgentConfiguration::validatedPlan)
                 .listener(listener)
                 .build();

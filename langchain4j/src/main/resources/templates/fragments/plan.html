@@ -2,6 +2,12 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 <body>
 
+<div th:fragment="error" role="alert" class="border border-red-200 bg-red-50 rounded p-4 text-red-800">
+    <h2 class="font-semibold">Unable to create a validated meal plan</h2>
+    <p th:text="${error}">No validated plan was returned.</p>
+    <p th:if="${feedback != null && !#strings.isEmpty(feedback)}" th:text="${feedback}"></p>
+</div>
+
 <div th:fragment="plan" class="space-y-0">
 
     <h2 class="text-lg font-semibold text-gray-800 mb-4">Your Weekly Plan</h2>

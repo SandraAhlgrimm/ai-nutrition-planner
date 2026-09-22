@@ -1,27 +1,10 @@
 spring:
   ai:
-    azure:
-      openai:
-        endpoint: https://dummy.openai.azure.com/
-        api-key: dummy-key
-        chat:
-          options:
-            deployment-name: gpt-4o
-            temperature: 0.7
-  security.user:
-    password: 123456
-    name: alice
+    model:
+      chat: none
+    mcp.server.enabled: false
 
-nutrition-planner:
-  max-validation-iterations: 3
-  user-profiles:
-    - name: alice
-      dietary-restrictions:
-        - vegetarian
-      health-goals:
-        - weight-loss
-      daily-calorie-target: 1800
-      allergies:
-        - nuts
-      disliked-ingredients:
-        - cilantro
+management:
+  tracing.export.enabled: false
+  otlp.metrics.export.enabled: false
+  logging.export.enabled: false

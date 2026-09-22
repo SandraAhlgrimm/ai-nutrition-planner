@@ -1,24 +1,46 @@
+server.servlet.session.cookie.name: NUTRITION_EMBABEL_SESSION
+
 spring:
   application.name: nutrition-planner
+  profiles.default: openai
+  threads.virtual.enabled: true
+  mvc.problemdetails.enabled: true
   security.user:
       password: 123456
       name: alice
   ai:
-    chat.client.observations.log-completion: true
-    tools.observations.include-content: true
-    mcp.server.protocol: STREAMABLE
+    model:
+      chat: none
+      embedding: none
+      image: none
+      moderation: none
+      audio:
+        speech: none
+        transcription: none
+    mcp:
+      client.enabled: false
+      server:
+        name: nutrition-planner
+        protocol: STREAMABLE
+        type: SYNC
 
 embabel:
-  agent.platform.process-type: CONCURRENT
-  models.default-llm: gpt-5-nano
-  agent.platform.llm-operations.prompts.default-timeout: 180s
-  observability:
-    service-name: ${spring.application.name}
-    trace-http-details: true
+  agent:
+    application.name: nutrition-planner
+    platform:
+      process-type: CONCURRENT
+      threading.shared: true
+      llm-operations.prompts.default-timeout: 180s
+      observability:
+        service-name: ${spring.application.name}
+        trace-http-details: false
+        capture-message-content: false
+  models.default-llm: ${nutrition-planner.model}
 
 management:
-  endpoints.web.exposure.include: "*"
+  endpoints.web.exposure.include: health,info,metrics
   otlp.metrics.export.enabled: false
+  tracing.export.otlp.enabled: false
 
 nutrition-planner:
   user-profiles:

@@ -20,6 +20,7 @@ class NutritionPlannerController {
 
     @PostMapping
     ResponseEntity<WeeklyPlan> createNutritionPlan(@RequestBody WeeklyPlanRequest request, Principal principal) {
+        request.validate();
         var weeklyPlan = nutritionPlannerAgent.createNutritionPlan(principal.getName(), request);
         return ResponseEntity.ok(weeklyPlan);
     }

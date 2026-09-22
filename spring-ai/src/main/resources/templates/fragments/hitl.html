@@ -6,7 +6,8 @@
 
     <h3 class="text-sm font-semibold text-gray-700 mb-4">A few questions before we proceed</h3>
 
-    <form th:attr="hx-post='/interaction/' + ${interactionId} + '/answers'" hx-target="#sse-content" hx-swap="innerHTML">
+    <form th:attr="hx-post='/interaction/' + ${interactionId} + '/answers'" hx-swap="none"
+          hx-disabled-elt="find button[type='submit']">
         <div th:each="q, qStat : ${questions}" class="mb-6 last:mb-4">
 
             <div class="flex items-center gap-2 mb-3">
@@ -19,17 +20,23 @@
 
             <div class="space-y-2 pl-2">
                 <label th:each="opt : ${q.options()}" class="flex items-start gap-3 cursor-pointer">
-                    <input type="radio"
+                    <input th:type="${q.multiSelect()} ? 'checkbox' : 'radio'"
                            th:name="|answers[${qStat.index}].answer|"
                            th:value="${opt.label()}"
                            class="mt-0.5 accent-slate-700"
-                           required/>
+                           th:required="${!q.multiSelect()}"/>
                     <span class="text-sm text-gray-700">
                         <span class="font-medium" th:text="${opt.label()}"></span>
                         <span class="text-gray-400 ml-1" th:text="${opt.description()}"></span>
                     </span>
                 </label>
             </div>
+            <label class="block mt-2 text-sm text-gray-600">
+                Other
+                <input type="text" th:name="|answers[${qStat.index}].customAnswer|"
+                       class="border border-gray-300 rounded px-2 py-1"
+                       oninput="this.closest('.mb-6').querySelectorAll('input[type=radio]').forEach(r => r.required = !this.value)"/>
+            </label>
         </div>
 
         <button type="submit"

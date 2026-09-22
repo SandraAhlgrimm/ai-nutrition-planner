@@ -1,6 +1,9 @@
+server.servlet.session.cookie.name: NUTRITION_LANGCHAIN4J_SESSION
+
 spring:
   application.name: langchain4j-nutrition-planner
-  profiles.active: openai
+  profiles.default: openai
+  threads.virtual.enabled: true
   security.user:
     password: 123456
     name: alice
@@ -8,9 +11,9 @@ spring:
 management:
   endpoints.web.exposure.include: "*"
   otlp.metrics.export.enabled: false
+  tracing.export.otlp.enabled: false
 
 nutrition-planner:
-  max-validation-iterations: 3
   user-profiles:
     - username: alice
       dietary-restrictions:

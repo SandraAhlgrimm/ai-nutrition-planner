@@ -1,13 +1,14 @@
 {
   "uid": "nutrition-planner-agent",
   "title": "AI Nutrition Planner — Agent Observability",
+  "description": "LangChain4j agent-node metrics, shared HTTP/JVM metrics, and nutrition-planner traces. Spring AI and Embabel use different native agent metrics; this is not a normalized framework benchmark.",
   "schemaVersion": 38,
-  "version": 2,
+  "version": 3,
   "refresh": "5s",
   "time": { "from": "now-1h", "to": "now" },
   "panels": [
 
-    { "type": "row", "id": 1, "title": "Agent Overview", "gridPos": { "x": 0, "y": 0, "w": 24, "h": 1 } },
+    { "type": "row", "id": 1, "title": "LangChain4j Agent Nodes", "gridPos": { "x": 0, "y": 0, "w": 24, "h": 1 } },
 
     {
       "type": "stat", "id": 2, "title": "Active Agents",
@@ -19,7 +20,7 @@
     },
 
     {
-      "type": "stat", "id": 3, "title": "Plans Generated",
+      "type": "stat", "id": 3, "title": "Plan Invocations",
       "gridPos": { "x": 4, "y": 1, "w": 4, "h": 4 },
       "datasource": { "uid": "prometheus" },
       "options": { "colorMode": "background", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
@@ -60,7 +61,7 @@
       "datasource": { "uid": "prometheus" },
       "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
       "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green", "value": 0 }, { "color": "orange", "value": 1 }] } } },
-      "targets": [{ "expr": "agent_invocations_total{agent=\"reviseMealPlan\"}", "legendFormat": "Revisions" }]
+      "targets": [{ "expr": "agent_invocations_total{agent=\"reviseWeeklyPlan\"}", "legendFormat": "Revisions" }]
     },
 
     { "type": "row", "id": 10, "title": "Agent Execution", "gridPos": { "x": 0, "y": 5, "w": 24, "h": 1 } },
@@ -73,9 +74,9 @@
       "options": { "legend": { "displayMode": "table", "placement": "right", "calcs": ["mean", "max"] } },
       "targets": [
         { "expr": "histogram_quantile(0.95, rate(agent_duration_milliseconds_bucket{agent=\"fetchSeasonalIngredients\"}[5m])) / 1000", "legendFormat": "Seasonal Ingredients" },
-        { "expr": "histogram_quantile(0.95, rate(agent_duration_milliseconds_bucket{agent=\"createMealPlan\"}[5m])) / 1000", "legendFormat": "Create Meal Plan" },
-        { "expr": "histogram_quantile(0.95, rate(agent_duration_milliseconds_bucket{agent=\"validate\"}[5m])) / 1000", "legendFormat": "Validate" },
-        { "expr": "histogram_quantile(0.95, rate(agent_duration_milliseconds_bucket{agent=\"reviseMealPlan\"}[5m])) / 1000", "legendFormat": "Revise Meal Plan" }
+        { "expr": "histogram_quantile(0.95, rate(agent_duration_milliseconds_bucket{agent=\"createWeeklyPlan\"}[5m])) / 1000", "legendFormat": "Create Meal Plan" },
+        { "expr": "histogram_quantile(0.95, rate(agent_duration_milliseconds_bucket{agent=~\"auditInitialPlan|auditRevision\"}[5m])) / 1000", "legendFormat": "{{agent}}" },
+        { "expr": "histogram_quantile(0.95, rate(agent_duration_milliseconds_bucket{agent=\"reviseWeeklyPlan\"}[5m])) / 1000", "legendFormat": "Revise Meal Plan" }
       ]
     },
 
@@ -101,9 +102,9 @@
       "options": { "legend": { "displayMode": "table", "placement": "right", "calcs": ["mean", "max"] } },
       "targets": [
         { "expr": "rate(agent_invocations_total{agent=\"fetchSeasonalIngredients\"}[5m])", "legendFormat": "Seasonal Ingredients" },
-        { "expr": "rate(agent_invocations_total{agent=\"createMealPlan\"}[5m])", "legendFormat": "Create Meal Plan" },
-        { "expr": "rate(agent_invocations_total{agent=\"validate\"}[5m])", "legendFormat": "Validate" },
-        { "expr": "rate(agent_invocations_total{agent=\"reviseMealPlan\"}[5m])", "legendFormat": "Revise Meal Plan" }
+        { "expr": "rate(agent_invocations_total{agent=\"createWeeklyPlan\"}[5m])", "legendFormat": "Create Meal Plan" },
+        { "expr": "rate(agent_invocations_total{agent=~\"auditInitialPlan|auditRevision\"}[5m])", "legendFormat": "{{agent}}" },
+        { "expr": "rate(agent_invocations_total{agent=\"reviseWeeklyPlan\"}[5m])", "legendFormat": "Revise Meal Plan" }
       ]
     },
 
@@ -115,8 +116,8 @@
       "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
       "targets": [
         { "expr": "histogram_quantile(0.95, rate(http_server_requests_milliseconds_bucket{uri=\"/plan\"}[5m])) / 1000", "legendFormat": "POST /plan" },
-        { "expr": "histogram_quantile(0.95, rate(http_server_requests_milliseconds_bucket{uri=\"/plan/stream\"}[5m])) / 1000", "legendFormat": "GET /plan/stream (SSE)" },
-        { "expr": "histogram_quantile(0.95, rate(http_server_requests_milliseconds_bucket{uri=\"/plan/result\"}[5m])) / 1000", "legendFormat": "GET /plan/result" }
+        { "expr": "histogram_quantile(0.95, rate(http_server_requests_milliseconds_bucket{uri=\"/api/nutrition-plan\"}[5m])) / 1000", "legendFormat": "POST /api/nutrition-plan" },
+        { "expr": "histogram_quantile(0.95, rate(http_server_requests_milliseconds_bucket{uri=\"/interactions/{interactionId}/events\"}[5m])) / 1000", "legendFormat": "GET /interactions/{id}/events (SSE)" }
       ]
     },
 
@@ -151,14 +152,14 @@
     { "type": "row", "id": 50, "title": "Traces", "gridPos": { "x": 0, "y": 32, "w": 24, "h": 1 } },
 
     {
-      "type": "traces", "id": 51, "title": "Plan Generation Traces",
+      "type": "traces", "id": 51, "title": "Nutrition Planner Traces",
       "gridPos": { "x": 0, "y": 33, "w": 24, "h": 15 },
       "datasource": { "uid": "tempo" },
       "options": {},
       "targets": [
         {
           "queryType": "traceql",
-          "query": "{resource.service.name=\"langchain4j-nutrition-planner\" && name=~\"http post.*plan\"}",
+          "query": "{resource.service.name=~\".*nutrition-planner\"}",
           "limit": 20
         }
       ]

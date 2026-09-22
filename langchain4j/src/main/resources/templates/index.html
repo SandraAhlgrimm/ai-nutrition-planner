@@ -37,13 +37,20 @@
         }
 
         document.addEventListener('DOMContentLoaded', detectCountry);
+
+        document.addEventListener('htmx:beforeSwap', event => {
+            if (event.detail.target.id === 'result' && [400, 422, 502].includes(event.detail.xhr.status)) {
+                event.detail.shouldSwap = true;
+                event.detail.isError = false;
+            }
+        });
     </script>
 </head>
 <body class="bg-gray-100 min-h-screen font-sans">
 
 <nav class="bg-slate-800 px-6 py-4">
     <span class="text-xl font-bold text-white">AI Nutrition Planner</span>
-    <span class="ml-3 text-xs text-slate-400 italic">powered by <span th:utext="${aiModel}" /></span>
+    <span class="ml-3 text-xs text-slate-400 italic">powered by <span th:text="${aiModel}"></span></span>
 </nav>
 
 <main class="max-w-5xl mx-auto py-8 px-4 space-y-6">
@@ -136,7 +143,7 @@
                     <label class="block text-xs font-medium text-gray-600 mb-1" for="countryCode">Country (ISO code)</label>
                     <input id="countryCode" name="countryCode" type="text" maxlength="2"
                            class="border border-gray-300 rounded px-3 py-1.5 text-sm w-20 focus:outline-none focus:ring-1 focus:ring-slate-500"
-                           placeholder="DE"/>
+                           placeholder="DE" value="DE" required/>
                 </div>
                 <div class="flex-1 min-w-48">
                     <label class="block text-xs font-medium text-gray-600 mb-1" for="additionalInstructions">Additional instructions</label>

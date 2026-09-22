@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 
 import java.time.DayOfWeek;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -12,7 +11,7 @@ class WeeklyPlanTests {
 
     private static Recipe recipe(int calories, double protein, double carbs, double fat, int sodium) {
         return new Recipe("Test Recipe", List.of(),
-                new NutritionInfo(calories, protein, carbs, fat, sodium), "", 0);
+                new NutritionInfo(calories, protein, carbs, fat, sodium), "Cook and serve.", 10);
     }
 
     @Test
@@ -23,7 +22,7 @@ class WeeklyPlanTests {
 
         var plan = new WeeklyPlan(
                 List.of(new WeeklyPlan.DailyPlan(DayOfWeek.MONDAY,
-                        Optional.of(breakfast), Optional.of(lunch), Optional.of(dinner))));
+                        breakfast, lunch, dinner)));
 
         var totals = plan.dailyNutritionTotals();
 
@@ -43,7 +42,7 @@ class WeeklyPlanTests {
 
         var plan = new WeeklyPlan(
                 List.of(new WeeklyPlan.DailyPlan(DayOfWeek.TUESDAY,
-                        Optional.empty(), Optional.of(lunch), Optional.of(dinner))));
+                        null, lunch, dinner)));
 
         var totals = plan.dailyNutritionTotals();
 
@@ -62,14 +61,25 @@ class WeeklyPlanTests {
         var plan = new WeeklyPlan(
                 List.of(
                         new WeeklyPlan.DailyPlan(DayOfWeek.MONDAY,
-                                Optional.of(meal), Optional.empty(), Optional.empty()),
+                                meal, null, null),
                         new WeeklyPlan.DailyPlan(DayOfWeek.WEDNESDAY,
-                                Optional.empty(), Optional.of(meal), Optional.empty())));
+                                null, meal, null)));
 
         var totals = plan.dailyNutritionTotals();
 
         assertEquals(2, totals.size());
         assertEquals(500, totals.get(DayOfWeek.MONDAY).calories());
         assertEquals(500, totals.get(DayOfWeek.WEDNESDAY).calories());
+    }
+
+    @Test
+    void duplicateDayCandidatesRetainAllNutritionForTheShapeAudit() {
+        var day = TestPlans.plan().days().getFirst();
+        var plan = new WeeklyPlan(List.of(day, day));
+
+        assertEquals(1200, plan.dailyNutritionTotals().get(DayOfWeek.MONDAY).calories());
+        assertEquals(1200, plan.nutritionTotalsForDay(DayOfWeek.MONDAY).calories());
+        assertEquals(2, plan.totalMealCount());
+        org.junit.jupiter.api.Assertions.assertFalse(TestPlans.request().shapeFeedback(plan).isEmpty());
     }
 }

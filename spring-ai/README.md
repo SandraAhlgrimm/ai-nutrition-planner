@@ -123,8 +123,9 @@ and no handler substitutes empty answers.
 ## Skills and observability migration
 
 `skills/current-month/SKILL.md` still loads through community `SkillsTool`.
-It now instructs the model to call the narrow native `currentMonth` tool, which
-uses an injectable UTC `Clock`. No shell/file tools or shell scripts are
+It now instructs the model to call the application-defined `currentMonth` tool,
+registered with Spring AI's native `@Tool` annotation and backed by an injectable
+UTC `Clock`. No shell/file tools or shell scripts are
 registered or required, including when running the executable JAR.
 
 Add `observability` to the chosen provider profile to enable OTLP metrics and

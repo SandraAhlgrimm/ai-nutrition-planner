@@ -64,20 +64,31 @@ this repository. **Community** denotes a separate Spring AI community library.
 
 | Pattern | LangChain4j | Spring AI | Embabel |
 | --- | --- | --- | --- |
-| **Parallel preparation** | Native `parallelBuilder()` with virtual-thread execution | Application `Workflow.parallel()` with typed results and virtual threads | Native concurrent process schedules independent typed actions |
+| **Parallel preparation** | Native `parallelBuilder()` with an application-supplied virtual-thread executor | Application `Workflow.parallel()` with typed results and virtual threads | Native concurrent process schedules independent typed actions |
 | **Orchestration and state** | Native typed `@Agent` interfaces, sequence/conditional/loop builders and per-invocation `AgenticScope` | Application orchestration around native `ChatClient`; not a native multi-agent planner | Native GOAP action graph, typed blackboard, `@State` and `@AchievesGoal` |
 | **Audit/revision loop** | Native loop, end-of-iteration audit check, application shape audit and final acceptance gate | Application `ValidationRetryAdvisor` outside native tool-calling loop | Native state transitions with application `RevisionBudget` and non-retryable rejection |
 | **Nutrition tools** | Native `@Tool`; current plan supplied through hidden, invocation-local `AgenticScope` | Native `@Tool` and `ToolCallingAdvisor` | Native `@LlmTool` via `withToolObject()` |
-| **Tool discovery** | Fixed nutrition tools; search not demonstrated | Native `ToolSearchToolCallingAdvisor` searches tool metadata using `LuceneToolIndex` | Native category-based `@UnfoldingTools` facade progressively reveals tools |
+| **Tool discovery** | Fixed nutrition tools; search not demonstrated | Native `ToolSearchToolCallingAdvisor` with lexical metadata search via `LuceneToolIndex` | Native category-based `@UnfoldingTools` facade progressively reveals tools |
 | **Human-in-the-loop** | Not demonstrated | Community `AskUserQuestionTool` in browser only; application owns SSE, answers, cancellation and timeouts | Not demonstrated in the nutrition graph |
-| **Agent skills** | Not demonstrated; application supplies the current month | Community `SkillsTool` plus a narrow native `currentMonth` tool; no shell tools | Native `Skills` references and process execution of the bundled Bash script |
+| **Agent skills** | Not demonstrated; application supplies the current month | Community `SkillsTool` plus the application-defined `currentMonth` tool registered with native `@Tool`; no shell tools | Native `Skills` references and process execution of the bundled Bash script |
 | **Persona** | Application role prompts via `@SystemMessage` | Application role prompts via `.system()` | Native `Persona` prompt contributors |
 | **MCP server** | Not demonstrated | Native `@McpTool`, Streamable HTTP `/mcp` | Native remote goal export, Streamable HTTP `/mcp` |
 
-Tool discovery is intentionally not collapsed into a single checkbox: Spring AI
-searches an index of tool metadata; Embabel exposes a known facade whose category
-selection reveals tools. Progressive disclosure is not semantic search.
+Tool discovery is intentionally not collapsed into a single checkbox: this Spring
+AI sample uses Lucene full-text (lexical) search over tool metadata; Embabel
+exposes a known facade whose category selection reveals tools. Neither sample
+demonstrates embedding-based semantic tool search.
 Likewise, exposing a REST endpoint is not an MCP implementation.
+
+### Framework capabilities beyond this demo
+
+The table describes these implementations, not the complete capability ceiling
+of each framework. The following distinctions were checked against the pinned
+versions, rather than unreleased `main` branches:
+
+- **LangChain4j 1.20.0** has native [human-input workflows](https://github.com/langchain4j/langchain4j/blob/1.20.0/langchain4j-agentic/src/main/java/dev/langchain4j/agentic/workflow/HumanInTheLoop.java), experimental [tool-search strategies](https://github.com/langchain4j/langchain4j/blob/1.20.0/langchain4j/src/main/java/dev/langchain4j/service/tool/search/ToolSearchStrategy.java) (including vector search), and an experimental [skills API](https://github.com/langchain4j/langchain4j/blob/1.20.0/langchain4j-skills/src/main/java/dev/langchain4j/skills/Skills.java). This sample does not wire those features. Its core MCP integration is a client; a separate [community MCP stdio server](https://github.com/langchain4j/langchain4j/blob/1.20.0/docs/docs/tutorials/mcp-stdio-server.md) is also available, but is not used here.
+- **Spring AI 2.0.1** provides native [tool-calling](https://github.com/spring-projects/spring-ai/blob/v2.0.1/spring-ai-client-chat/src/main/java/org/springframework/ai/chat/client/advisor/ToolCallingAdvisor.java), [tool-search](https://github.com/spring-projects/spring-ai/blob/v2.0.1/advisors/spring-ai-tool-search-advisor/src/main/java/org/springframework/ai/chat/client/advisor/toolsearch/ToolSearchToolCallingAdvisor.java), and [MCP annotations](https://github.com/spring-projects/spring-ai/blob/v2.0.1/mcp/mcp-annotations/src/main/java/org/springframework/ai/mcp/annotation/McpTool.java). The [community agent utilities 0.12.0](https://github.com/spring-ai-community/spring-ai-agent-utils/tree/v0.12.0) supply the skills and question tools used here, and also offer subagent `TaskTools` that this sample does not use. Our `Workflow`, retry policy, and clock tool are application code, not Spring AI APIs.
+- **Embabel 1.5.2** supports native [human-in-the-loop waits and confirmations](https://github.com/embabel/embabel-agent/blob/v1.5.2/embabel-agent-api/src/main/java/com/embabel/agent/core/hitl/WaitFor.java), although this nutrition graph contains none. Its [concurrent agent process](https://github.com/embabel/embabel-agent/blob/v1.5.2/embabel-agent-docs/src/main/asciidoc/reference/agent-process/page.adoc) and [category-based tool unfolding](https://github.com/embabel/embabel-agent/blob/v1.5.2/embabel-agent-api/src/main/kotlin/com/embabel/agent/api/annotation/UnfoldingTools.kt) are framework features actually enabled by this sample.
 
 ### What the differences mean
 

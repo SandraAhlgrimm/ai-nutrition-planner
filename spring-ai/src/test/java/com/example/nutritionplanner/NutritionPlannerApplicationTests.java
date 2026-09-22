@@ -124,6 +124,27 @@ class NutritionPlannerApplicationTests {
     }
 
     @Test
+    void duplicateDayCandidatesReachToolsAndCanBeRevised() {
+        script.duplicateCandidates = 1;
+        assertThat(agent.createNutritionPlan("alice", TestPlans.request())).isEqualTo(TestPlans.plan());
+        assertThat(script.candidates).hasValue(2);
+        assertThat(script.audits).hasValue(2);
+        assertThat(script.totals).hasValue(2);
+        assertThat(script.generationPrompts.getLast().getUserMessage().getText())
+                .contains("Each requested day must appear exactly once");
+    }
+
+    @Test
+    void duplicateDayCandidatesExhaustTheAuditBudgetInsteadOfThrowingInTools() {
+        script.duplicateCandidates = 4;
+        assertThatThrownBy(() -> agent.createNutritionPlan("alice", TestPlans.request()))
+                .isInstanceOf(NutritionPlanValidationException.class);
+        assertThat(script.candidates).hasValue(4);
+        assertThat(script.audits).hasValue(4);
+        assertThat(script.totals).hasValue(4);
+    }
+
+    @Test
     void restRequiresAuthenticationAndPreservesLogin() throws Exception {
         mvc.perform(post("/api/nutrition-plan").contentType(MediaType.APPLICATION_JSON).content(TestPlans.REST_REQUEST))
                 .andExpect(status().isUnauthorized());
@@ -157,6 +178,7 @@ class NutritionPlannerApplicationTests {
         for (var body : List.of(
                 "{\"days\":[],\"countryCode\":\"DE\"}",
                 "{\"days\":[{\"day\":\"MONDAY\",\"meals\":[]}],\"countryCode\":\"DE\"}",
+                "{\"days\":[{\"day\":\"MONDAY\",\"meals\":[\"LUNCH\",\"LUNCH\"]}],\"countryCode\":\"DE\"}",
                 TestPlans.REST_REQUEST.replace("\"DE\"", "\"ZZ\""),
                 "{\"days\":[{\"day\":\"MONDAY\",\"meals\":[\"LUNCH\"]},{\"day\":\"MONDAY\",\"meals\":[\"LUNCH\"]}],\"countryCode\":\"DE\"}",
                 TestPlans.REST_REQUEST.replace("\"LUNCH\"", "\"BRUNCH\""),
@@ -205,6 +227,45 @@ class NutritionPlannerApplicationTests {
                         .contains(TestPlans.QUESTION, TestPlans.ANSWER));
         mvc.perform(post("/interaction/" + id + "/answers").with(user("alice")))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void invalidBrowserSelectionsReturnAnHtmlErrorWithoutStartingGeneration() throws Exception {
+        for (var request : List.of(post("/plan").param("countryCode", "DE"),
+                post("/plan").param("meals[MONDAY]", "LUNCH").param("countryCode", "ZZ"),
+                post("/plan").param("meals[MONDAY]", "BRUNCH").param("countryCode", "DE"))) {
+            mvc.perform(request.with(user("alice")).header("HX-Request", "true"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
+                    .andExpect(header().string("HX-Retarget", "#request-errors"))
+                    .andExpect(header().string("HX-Reswap", "innerHTML"))
+                    .andExpect(content().string(org.hamcrest.Matchers.containsString("role=\"alert\"")));
+        }
+        verify(model, never()).call(any(Prompt.class));
+    }
+
+    @Test
+    void invalidHumanAnswerRendersHtmlAndLeavesTheQuestionAvailableForRetry() throws Exception {
+        script.interactive = true;
+        var id = startBrowserPlan();
+        var events = mvc.perform(get("/interactions/" + id + "/events").with(user("alice"))).andReturn();
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
+                assertThat(events.getResponse().getContentAsString()).contains(TestPlans.QUESTION));
+
+        mvc.perform(post("/interaction/" + id + "/answers").with(user("alice"))
+                        .header("HX-Request", "true").param("answers[0].question", TestPlans.QUESTION))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
+                .andExpect(header().string("HX-Retarget", "#request-errors"))
+                .andExpect(header().string("HX-Reswap", "innerHTML"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("non-blank answer")));
+        assertThat(script.candidates).hasValue(0);
+
+        answerBrowserQuestion(id, events);
+        events.getAsyncResult(5000);
+        mvc.perform(asyncDispatch(events)).andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Your Weekly Plan")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("event:done")));
     }
 
     @Test

@@ -23,8 +23,8 @@ public record WeeklyPlan(List<DailyPlan> days) {
 
     @Tool(description = "Returns the total calories, protein, carbs, fat, and sodium for each day of the weekly meal plan")
     public Map<DayOfWeek, NutritionInfo> dailyNutritionTotals() {
-        var dailyNutritionTotals = days.stream().collect(Collectors.toMap(
-                DailyPlan::day, day -> nutritionTotalsForDay(day.day())
+        var dailyNutritionTotals = days.stream().map(DailyPlan::day).distinct().collect(Collectors.toMap(
+                day -> day, this::nutritionTotalsForDay
         ));
         log.info("WeeklyPlan:dailyNutritionTotals tool method finished with {}", dailyNutritionTotals);
         return dailyNutritionTotals;
@@ -32,15 +32,13 @@ public record WeeklyPlan(List<DailyPlan> days) {
 
     @Tool(description = "Returns the total calories, protein, carbs, fat, and sodium for a specific day of the weekly meal plan")
     public NutritionInfo nutritionTotalsForDay(DayOfWeek day) {
-        var nutritionInfo = days.stream()
-                .filter(d -> d.day() == day)
-                .findFirst()
-                .map(d -> new NutritionInfo(
-                        Stream.of(d.breakfast(), d.lunch(), d.dinner())
-                                .filter(Objects::nonNull)
-                                .collect(Collectors.toList())
-                ))
-                .orElseThrow(() -> new IllegalArgumentException("No meals planned for " + day));
+        var matchingDays = days.stream().filter(d -> d.day() == day).toList();
+        if (matchingDays.isEmpty()) {
+            throw new IllegalArgumentException("No meals planned for " + day);
+        }
+        var nutritionInfo = new NutritionInfo(matchingDays.stream()
+                .flatMap(d -> Stream.of(d.breakfast(), d.lunch(), d.dinner()))
+                .filter(Objects::nonNull).toList());
         log.info("WeeklyPlan:nutritionTotalsForDay tool method finished with {} for {}", nutritionInfo, day);
         return nutritionInfo;
     }

@@ -20,6 +20,7 @@ final class NutritionModelScript {
     final List<Prompt> generationPrompts = new CopyOnWriteArrayList<>();
     final List<Prompt> allPrompts = new CopyOnWriteArrayList<>();
     int failedAudits;
+    int duplicateCandidates;
     boolean interactive;
     boolean wrongDay;
     boolean malformedPlan;
@@ -44,8 +45,12 @@ final class NutritionModelScript {
                 assertThat(results.getLast().responseData()).contains(TestPlans.QUESTION, TestPlans.ANSWER);
             }
             if (!interactive) assertThat(names).doesNotContain("AskUserQuestionTool");
-            candidates.incrementAndGet();
-            var json = TestPlans.JSON.writeValueAsString(TestPlans.plan());
+            int candidate = candidates.incrementAndGet();
+            var plan = TestPlans.plan();
+            if (candidate <= duplicateCandidates) {
+                plan = new WeeklyPlan(List.of(plan.days().getFirst(), plan.days().getFirst()));
+            }
+            var json = TestPlans.JSON.writeValueAsString(plan);
             return TestPlans.text(malformedPlan ? "not JSON" : wrongDay ? json.replace("MONDAY", "TUESDAY") : json);
         }
         if (system.contains("Nutrition Guard")) {
@@ -64,7 +69,10 @@ final class NutritionModelScript {
                 return TestPlans.tool("dailyNutritionTotals", "{}");
             }
             assertThat(results.getLast().name()).isEqualTo("dailyNutritionTotals");
-            assertThat(results.getLast().responseData()).contains("600", "30.0", "70.0", "15.0", "500");
+            int factor = candidates.get() <= duplicateCandidates ? 2 : 1;
+            assertThat(results.getLast().responseData()).contains(String.valueOf(600 * factor),
+                    String.valueOf(30.0 * factor), String.valueOf(70.0 * factor),
+                    String.valueOf(15.0 * factor), String.valueOf(500 * factor));
             totals.incrementAndGet();
             return TestPlans.text(audits.incrementAndGet() <= failedAudits
                     ? """

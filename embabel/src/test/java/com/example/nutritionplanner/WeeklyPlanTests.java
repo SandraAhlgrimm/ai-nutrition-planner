@@ -79,6 +79,18 @@ class WeeklyPlanTests {
     }
 
     @Test
+    void duplicateDayCandidatesRetainAllNutritionAndAreRejectedByTheAudit() {
+        var day = NutritionTestData.plan("Lentils").days().getFirst();
+        var plan = new WeeklyPlan(List.of(day, day));
+
+        assertEquals(2000, plan.dailyNutritionTotals().get(DayOfWeek.MONDAY).calories());
+        assertEquals(2000, plan.nutritionTotalsForDay(DayOfWeek.MONDAY).calories());
+        var audit = NutritionTestData.PASS.withRequiredMealChecks(plan, NutritionTestData.REQUEST);
+        assertFalse(audit.allPassed());
+        assertTrue(audit.violations().stream().anyMatch(violation -> violation.explanation().contains("Duplicate day")));
+    }
+
+    @Test
     void nativeOutputSchemaAndPublicJsonPreserveOptionalMealContract() {
         var mapper = JsonMapper.builder().build();
         var converter = new JacksonOutputConverter<>(WeeklyPlan.class, mapper, RequiredFieldNormalization.ENABLED);

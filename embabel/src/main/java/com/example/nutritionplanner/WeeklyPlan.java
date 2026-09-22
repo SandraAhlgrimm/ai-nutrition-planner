@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.DayOfWeek;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -28,15 +29,12 @@ public record WeeklyPlan(List<DailyPlan> days) {
 
     public WeeklyPlan {
         days = List.copyOf(days);
-        if (days.stream().map(DailyPlan::day).distinct().count() != days.size()) {
-            throw new IllegalArgumentException("A nutrition plan cannot contain duplicate days");
-        }
     }
 
     @LlmTool(category = "nutrition", description = "Returns the total calories, protein, carbs, fat, and sodium for each day of the weekly meal plan")
     public Map<DayOfWeek, NutritionInfo> dailyNutritionTotals() {
-        var dailyNutritionTotals = days.stream().collect(Collectors.toMap(
-                DailyPlan::day, day -> nutritionTotalsForDay(day.day())
+        var dailyNutritionTotals = days.stream().map(DailyPlan::day).distinct().collect(Collectors.toMap(
+                day -> day, this::nutritionTotalsForDay
         ));
         log.info("WeeklyPlan:dailyNutritionTotals tool method finished with {}", dailyNutritionTotals);
         return dailyNutritionTotals;
@@ -44,15 +42,13 @@ public record WeeklyPlan(List<DailyPlan> days) {
 
     @LlmTool(category = "nutrition", description = "Returns the total calories, protein, carbs, fat, and sodium for a specific day of the weekly meal plan")
     public NutritionInfo nutritionTotalsForDay(DayOfWeek day) {
-        var nutritionInfo = days.stream()
-                .filter(d -> d.day() == day)
-                .findFirst()
-                .map(d -> new NutritionInfo(
-                        Stream.of(d.breakfast(), d.lunch(), d.dinner())
-                                .flatMap(Optional::stream)
-                                .collect(Collectors.toList())
-                ))
-                .orElseThrow(() -> new IllegalArgumentException("Day is not present in the plan: " + day));
+        var matchingDays = days.stream().filter(d -> d.day() == day).toList();
+        if (matchingDays.isEmpty()) {
+            throw new IllegalArgumentException("Day is not present in the plan: " + day);
+        }
+        var nutritionInfo = new NutritionInfo(matchingDays.stream()
+                .flatMap(d -> Stream.of(d.breakfast(), d.lunch(), d.dinner()))
+                .flatMap(Optional::stream).toList());
         log.info("WeeklyPlan:nutritionTotalsForDay tool method finished with {} for {}", nutritionInfo, day);
         return nutritionInfo;
     }
@@ -72,15 +68,20 @@ public record WeeklyPlan(List<DailyPlan> days) {
         var requested = request.days().stream().collect(Collectors.toMap(
                 WeeklyPlanRequest.DayPlanRequest::day, WeeklyPlanRequest.DayPlanRequest::meals));
         for (var requestedDay : request.days()) {
-            var actual = days.stream().filter(day -> day.day() == requestedDay.day()).findFirst();
             for (var meal : requestedDay.meals()) {
-                if (actual.flatMap(day -> day.meal(meal)).isEmpty()) {
+                if (days.stream().filter(day -> day.day() == requestedDay.day())
+                        .noneMatch(day -> day.meal(meal).isPresent())) {
                     violations.add(new NutritionAuditValidationResult.NutritionAuditRecipeViolation(
                             requestedDay.day(), meal.name(), "Requested meal is missing", "Provide the requested recipe"));
                 }
             }
         }
+        var seenDays = EnumSet.noneOf(DayOfWeek.class);
         for (var day : days) {
+            if (!seenDays.add(day.day())) {
+                violations.add(new NutritionAuditValidationResult.NutritionAuditRecipeViolation(
+                        day.day(), "", "Duplicate day", "Return exactly one entry for each requested day"));
+            }
             if (!requested.containsKey(day.day())) {
                 violations.add(new NutritionAuditValidationResult.NutritionAuditRecipeViolation(
                         day.day(), "", "Unrequested day", "Remove this day"));

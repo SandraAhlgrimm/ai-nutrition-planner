@@ -38,7 +38,18 @@
         }
 
         document.addEventListener('htmx:afterSwap', function(evt) {
-            if (evt.detail.target?.id === 'plan-events-container') setGenerating(true);
+            if (evt.detail.target?.id === 'plan-events-container') {
+                setGenerating(Boolean(evt.detail.target.querySelector('[sse-connect]')));
+            }
+        });
+        document.addEventListener('htmx:beforeRequest', function() {
+            document.getElementById('request-errors').replaceChildren();
+        });
+        document.addEventListener('htmx:beforeSwap', function(evt) {
+            if (evt.detail.xhr.status === 400 && evt.detail.target?.id === 'request-errors') {
+                evt.detail.shouldSwap = true;
+                evt.detail.isError = false;
+            }
         });
         document.addEventListener('htmx:sseError', function() {
             setGenerating(false);
@@ -73,6 +84,8 @@
 <main class="max-w-5xl mx-auto py-8 px-4 space-y-6">
 
     <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+
+        <div id="request-errors" aria-live="polite"></div>
 
         <form hx-post="/plan" hx-target="#plan-events-container" hx-swap="innerHTML" class="space-y-6" modelAttribute="weeklyPlanRequest">
 

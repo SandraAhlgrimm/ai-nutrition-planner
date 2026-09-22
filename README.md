@@ -47,6 +47,11 @@ error. Missing/extra meals or duplicated/missing days cannot be accepted just
 because the model claims its audit passed. Model/tool/parse failures are not
 replaced with empty successful responses.
 
+Invalid requests are rejected before model execution. Duplicate days in a
+model-generated candidate remain available for the audit/revision loop: nutrition
+tools total all of that day's entries, while deterministic checks reject the
+duplicate shape rather than letting a map-key exception bypass the audit.
+
 This limit counts logical candidates and audits, not individual provider HTTP
 attempts or tool-calling turns. Embabel's rejection is explicitly `NonRetryable`
 so its action-retry machinery cannot turn exhaustion into a fifth audit.

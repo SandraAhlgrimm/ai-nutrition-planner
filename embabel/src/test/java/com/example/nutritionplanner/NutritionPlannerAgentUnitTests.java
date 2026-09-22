@@ -124,6 +124,27 @@ class NutritionPlannerAgentUnitTests {
     }
 
     @Test
+    void duplicateDayCandidateCanBeRevisedInsteadOfFailingDuringBindingOrToolUse() {
+        var fake = FakeOperationContext.create();
+        var valid = plan("Lentils");
+        var days = new java.util.ArrayList<>(valid.days());
+        days.add(valid.days().getFirst());
+        var duplicate = new WeeklyPlan(days);
+        assertEquals(2000, duplicate.dailyNutritionTotals().get(DayOfWeek.MONDAY).calories());
+        fake.expectResponse(PASS);
+        var audit = new NutritionPlannerAgent.NutritionAudit(duplicate,
+                new NutritionPlannerAgent.PlanningContext(REQUEST, SEASONAL, ALICE), new RevisionBudget(0));
+
+        var revision = assertInstanceOf(NutritionPlannerAgent.ReviseWeeklyPlan.class, audit.validate(fake.ai()));
+        assertTrue(revision.validationResult().consolidatedFeedback().contains("Duplicate day"));
+        fake.expectResponse(valid);
+        var revisedAudit = assertInstanceOf(NutritionPlannerAgent.NutritionAudit.class, revision.revise(fake.ai()));
+        fake.expectResponse(PASS);
+        assertInstanceOf(NutritionPlannerAgent.Done.class, revisedAudit.validate(fake.ai()));
+        assertEquals(1, revisedAudit.budget().revisionsUsed());
+    }
+
+    @Test
     void fourthFailedAuditThrowsInsteadOfCreatingAnUnauditedOrInvalidResult() {
         var fake = FakeOperationContext.create();
         fake.expectResponse(FAIL);

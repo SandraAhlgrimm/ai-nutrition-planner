@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.security.Principal;
 import java.time.DayOfWeek;
@@ -47,13 +48,13 @@ class NutritionPlannerUiController {
 
     @PostMapping("/plan")
     String createPlan(
-            @RequestParam(required = false) @Nullable List<String> monday,
-            @RequestParam(required = false) @Nullable List<String> tuesday,
-            @RequestParam(required = false) @Nullable List<String> wednesday,
-            @RequestParam(required = false) @Nullable List<String> thursday,
-            @RequestParam(required = false) @Nullable List<String> friday,
-            @RequestParam(required = false) @Nullable List<String> saturday,
-            @RequestParam(required = false) @Nullable List<String> sunday,
+            @RequestParam(required = false) @Nullable List<WeeklyPlanRequest.MealType> monday,
+            @RequestParam(required = false) @Nullable List<WeeklyPlanRequest.MealType> tuesday,
+            @RequestParam(required = false) @Nullable List<WeeklyPlanRequest.MealType> wednesday,
+            @RequestParam(required = false) @Nullable List<WeeklyPlanRequest.MealType> thursday,
+            @RequestParam(required = false) @Nullable List<WeeklyPlanRequest.MealType> friday,
+            @RequestParam(required = false) @Nullable List<WeeklyPlanRequest.MealType> saturday,
+            @RequestParam(required = false) @Nullable List<WeeklyPlanRequest.MealType> sunday,
             @RequestParam(defaultValue = "DE") String countryCode,
             @RequestParam(required = false, defaultValue = "") String additionalInstructions,
             Model model,
@@ -69,11 +70,22 @@ class NutritionPlannerUiController {
         addDay(days, DayOfWeek.SUNDAY, sunday);
 
         var request = new WeeklyPlanRequest(days, countryCode, additionalInstructions);
+        request.validate();
         var weeklyPlan = nutritionPlannerAgent.createNutritionPlan(principal.getName(), request);
 
         model.addAttribute("plan", weeklyPlan);
         model.addAttribute("aiModel", getAiModelName());
         return "fragments/plan :: plan";
+    }
+
+    @ExceptionHandler({InvalidPlanRequestException.class, MethodArgumentTypeMismatchException.class})
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    String invalidRequest(Exception exception, Model model) {
+        var message = exception instanceof InvalidPlanRequestException
+                ? exception.getMessage() : "Select only BREAKFAST, LUNCH or DINNER";
+        log.info("Invalid browser meal plan request: {}", message);
+        model.addAttribute("error", message);
+        return "fragments/plan :: error";
     }
 
     @ExceptionHandler(PlanValidationException.class)
@@ -93,10 +105,10 @@ class NutritionPlannerUiController {
         return "fragments/plan :: error";
     }
 
-    private void addDay(List<WeeklyPlanRequest.DayPlanRequest> days, DayOfWeek day, @Nullable List<String> meals) {
+    private void addDay(List<WeeklyPlanRequest.DayPlanRequest> days, DayOfWeek day,
+                        @Nullable List<WeeklyPlanRequest.MealType> meals) {
         if (meals != null && !meals.isEmpty()) {
-            days.add(new WeeklyPlanRequest.DayPlanRequest(day,
-                    meals.stream().map(WeeklyPlanRequest.MealType::valueOf).toList()));
+            days.add(new WeeklyPlanRequest.DayPlanRequest(day, meals));
         }
     }
 

@@ -12,7 +12,7 @@ Agentic Spring implementations comparing three AI frameworks: **LangChain4j**, *
 - **AI Frameworks**:
   - LangChain4j BOM 1.20.0, agentic and Spring Boot 4 starters 1.20.0-beta30 (`langchain4j-spring-boot4-starter` + `langchain4j-agentic`)
   - Spring AI 2.0.1 (`org.springframework.ai:spring-ai-starter-model-*`); community agent utilities 0.12.0 provide skills and human interaction.
-  - Embabel 1.5.2 (`com.embabel.agent:embabel-agent-starter-*`), built on Spring AI 2.0.1
+  - Embabel 1.5.2 MCP/observability starters and released skills; model providers use Spring AI 2.0.1 starters bridged through `SpringAiLlmService` with native provider-specific options converters.
 
 ## Build & Test Commands
 

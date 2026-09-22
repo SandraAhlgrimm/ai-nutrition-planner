@@ -77,8 +77,11 @@ The browser at `/` submits the existing `meals[MONDAY]=LUNCH` form to `/plan`.
 `GET /interactions/{id}/events` starts generation; only its authenticated owner
 may connect or answer via `POST /interaction/{id}/answers`. Single-choice,
 multi-select and free-text answers are supported. Answer submission returns 204
-so it cannot overwrite a concurrently delivered plan. Errors render an alert;
-a terminal `done` event closes the EventSource. Completion, disconnect, timeout
+so it cannot overwrite a concurrently delivered plan. Errors render an alert.
+Invalid selections and answers return an HTML 400 fragment in a separate error
+area, leaving any pending question available for correction. REST request-validation
+exceptions still produce JSON ProblemDetail responses.
+A terminal `done` event closes the EventSource. Completion, disconnect, timeout
 and application shutdown remove interactions and release waiting questions.
 Answers time out after five minutes; an interaction expires after ten minutes,
 including one whose browser never connects.

@@ -13,6 +13,14 @@ class NutritionPlannerExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(NutritionPlannerExceptionHandler.class);
 
+    @ExceptionHandler(InvalidPlanRequestException.class)
+    ProblemDetail invalidRequest(InvalidPlanRequestException exception) {
+        log.info("Invalid meal plan request: {}", exception.getMessage());
+        var problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
+        problem.setTitle("Invalid meal plan request");
+        return problem;
+    }
+
     @ExceptionHandler(PlanValidationException.class)
     ProblemDetail validationFailed(PlanValidationException exception) {
         log.warn("Meal plan validation exhausted");

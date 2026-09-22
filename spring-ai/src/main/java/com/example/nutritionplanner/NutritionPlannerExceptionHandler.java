@@ -7,7 +7,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice
+@RestControllerAdvice(assignableTypes = NutritionPlannerController.class)
 class NutritionPlannerExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(NutritionPlannerExceptionHandler.class);

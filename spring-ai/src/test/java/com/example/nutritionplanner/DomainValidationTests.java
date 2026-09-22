@@ -29,6 +29,15 @@ class DomainValidationTests {
     }
 
     @Test
+    void duplicateRequestedMealsAreRejectedRatherThanSilentlyRemoved() {
+        assertThatThrownBy(() -> WeeklyPlanRequest.fromDays(List.of(
+                new WeeklyPlanRequest.DayPlanRequest(DayOfWeek.MONDAY,
+                        List.of(WeeklyPlanRequest.MealType.LUNCH, WeeklyPlanRequest.MealType.LUNCH))),
+                "DE", "")).isInstanceOf(InvalidPlanRequestException.class)
+                .hasMessageContaining("unique");
+    }
+
+    @Test
     void missingOrInconsistentAuditsCannotBecomePassingDefaults() {
         var converter = new BeanOutputConverter<>(NutritionAuditValidationResult.class);
         for (var json : List.of("{\"violations\":[],\"consolidatedFeedback\":\"\"}",

@@ -59,7 +59,11 @@ record WeeklyPlanRequest(Map<DayOfWeek, Set<MealType>> meals, String countryCode
                     || day.meals().stream().anyMatch(java.util.Objects::isNull)) {
                 throw new InvalidPlanRequestException("Each day must include a day and meals");
             }
-            if (meals.put(day.day(), Set.copyOf(day.meals())) != null) {
+            var selected = Set.copyOf(day.meals());
+            if (selected.size() != day.meals().size()) {
+                throw new InvalidPlanRequestException("Requested meals must be unique per day");
+            }
+            if (meals.put(day.day(), selected) != null) {
                 throw new InvalidPlanRequestException("Requested days must be unique");
             }
         }

@@ -8,5 +8,5 @@ spring:
       base-url: ${AZURE_OPENAI_ENDPOINT}
       api-key: ${AZURE_OPENAI_API_KEY}
       microsoft-foundry: true
-      microsoft-deployment-name: ${AZURE_OPENAI_DEPLOYMENT_NAME}
-      chat.model: ${AZURE_OPENAI_DEPLOYMENT_NAME}
+      microsoft-deployment-name: ${AZURE_OPENAI_DEPLOYMENT_NAME:gpt-4o}
+      chat.model: ${AZURE_OPENAI_DEPLOYMENT_NAME:gpt-4o}

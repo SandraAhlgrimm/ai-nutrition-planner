@@ -65,6 +65,18 @@ class ProviderConfigurationTests {
     }
 
     @Test
+    void azureDeploymentDefaultsToTheDocumentedModel() throws IOException {
+        var environment = new MockEnvironment()
+                .withProperty("AZURE_OPENAI_API_KEY", "offline-test-key")
+                .withProperty("AZURE_OPENAI_ENDPOINT", "https://offline-example.openai.azure.com/");
+        new YamlPropertySourceLoader().load("azure", new ClassPathResource("application-azure.yaml"))
+                .forEach(environment.getPropertySources()::addLast);
+
+        assertThat(environment.getProperty("spring.ai.openai.chat.model")).isEqualTo("gpt-4o");
+        assertThat(environment.getProperty("spring.ai.openai.microsoft-deployment-name")).isEqualTo("gpt-4o");
+    }
+
+    @Test
     void observabilityProfileUsesBoot4TracingAndEnabledMetricsExportWithoutStartingExporters() throws IOException {
         var environment = new MockEnvironment()
                 .withProperty("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "http://localhost:4318/v1/traces")

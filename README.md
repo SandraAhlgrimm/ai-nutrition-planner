@@ -5,8 +5,13 @@ use case with **LangChain4j**, **Spring AI**, and **Embabel**. The comparison is
 about their programming models and the features actually exercised here, not a
 ranking of model quality or a performance benchmark.
 
-[Presentation slides](slides.pdf) describe the earlier iteration; the code and
-comparison below reflect the September 2026 refresh.
+[Browser conference talks](presentations/README.md) provide four standalone
+45-minute tracks: comparison, LangChain4j, Spring AI and Embabel. Open the
+self-contained [`presentations/index.html`](presentations/index.html) locally;
+slides, speaker notes and synthetic demos work offline.
+
+[Historical presentation slides](slides.pdf) describe the earlier iteration;
+the code, browser talks and comparison below reflect the September 2026 refresh.
 
 ## Versions and implementation entry points
 

@@ -3,15 +3,10 @@ package com.example.nutritionplanner;
 import com.embabel.agent.api.annotation.*;
 import com.embabel.agent.api.common.Ai;
 import com.embabel.agent.prompt.persona.Persona;
-import com.embabel.agent.skills.Skills;
 import com.embabel.common.ai.model.LlmOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
-import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.io.IOException;
 import java.util.Locale;
 
 @Agent(description = "Supports conscious meal planning and sustainable eating habits.")
@@ -19,66 +14,50 @@ class NutritionPlannerAgent {
 
     private static final Logger log = LoggerFactory.getLogger(NutritionPlannerAgent.class);
 
-    @Value("classpath:skills")
-    private Resource skillsResource;
-
     private final UserProfileProperties userProfileProperties;
+    private final BundledSkills bundledSkills;
 
-    NutritionPlannerAgent(UserProfileProperties userProfileProperties) {
+    NutritionPlannerAgent(UserProfileProperties userProfileProperties, BundledSkills bundledSkills) {
         this.userProfileProperties = userProfileProperties;
+        this.bundledSkills = bundledSkills;
     }
 
     @State
-    interface Stage {}
+    sealed interface Stage permits NutritionAudit, ReviseWeeklyPlan, Done {}
 
-    @Action
-    UserProfile fetchUserProfileForUser(String user) {
-        log.info("NutritionPlannerAgent:fetchUserProfile action called");
-        var userProfile = userProfileProperties.getUserProfile(user);
-        log.info("NutritionPlannerAgent:fetchUserProfile action ended with {}", userProfile);
-        return userProfile;
-    }
+    record PlanningContext(WeeklyPlanRequest request, SeasonalIngredients seasonalIngredients, UserProfile userProfile) {}
 
-    // Required for MCP Server support
     @Action
     UserProfile fetchUserProfile() {
-        var auth = SecurityContextHolder.getContext().getAuthentication();
-        return fetchUserProfileForUser(auth.getName());
+        return userProfileProperties.getUserProfile(PlannerIdentity.username());
     }
 
     @Action
-    SeasonalIngredients fetchSeasonalIngredients(WeeklyPlanRequest weeklyPlanRequest, Ai ai) throws IOException {
-        log.info("NutritionPlannerAgent:fetchSeasonalIngredients action called");
+    SeasonalIngredients fetchSeasonalIngredients(WeeklyPlanRequest weeklyPlanRequest, Ai ai) {
         var country = Locale.of("", weeklyPlanRequest.countryCode()).getDisplayCountry(Locale.ENGLISH);
-
-        var skills = new Skills("classpath-skills", "Skills available on the classpath")
-                .withLocalSkills(skillsResource.getFile().toPath().toString())
-                .withScriptExecutionEngine(ProcessSkillScriptExecutionEngineFactory.create()); // see ProcessSkillScriptExecutionEngineFactory.kt
-
-        var seasonalIngredients = ai
-                .withLlm(LlmOptions.withAutoLlm()) // PromptRunner
-                .withReference(skills)
+        return ai
+                .withLlm(LlmOptions.withAutoLlm())
+                .withReferences(bundledSkills.forRequest().asIndividualReferences())
                 .createObject("""
                         You are a nutrition expert with deep knowledge of seasonal produce.
 
-                        Use the available skill to determine the current month, then return a list of ingredients \
-                        in English that are currently in season for that month in {country}.
+                        Activate the current_month skill and execute its script tool to determine the current month.
+                        Do not guess the month. If the script fails, report the failure rather than inventing a month.
+                        Return a list of ingredients in English that are currently in season for that month in %s.
                         Focus on fish, meat, fruits, vegetables, and herbs that are at peak availability and quality.
                         """.formatted(country),
                         SeasonalIngredients.class);
-        log.info("NutritionPlannerAgent:fetchSeasonalIngredients action ended with {}", seasonalIngredients);
-        return seasonalIngredients;
     }
 
     @Action
     NutritionAudit createWeeklyPlan(WeeklyPlanRequest weeklyPlanRequest, SeasonalIngredients seasonalIngredients,
                                     UserProfile userProfile, Ai ai) {
-        log.info("NutritionPlannerAgent:createWeeklyPlan action called");
         var weeklyPlan = ai
                 .withLlm(LlmOptions.withAutoLlm())
                 .withPromptElements(Personas.RECIPE_CURATOR)
                 .createObject("""
-                        Create a weekly meal plan with recipes for EVERY requested meal below. Do not skip any meal.
+                        Create a weekly meal plan with recipes for EVERY requested meal below. Do not skip any meal
+                        or add unrequested days or meals. Use null for meals that were not requested.
                         Write all recipe names, instructions, ingredient names, quantities, and units in English.
 
                         # User requested meals and days
@@ -97,51 +76,64 @@ class NutritionPlannerAgent {
                         (calories, proteinGrams, carbGrams, fatGrams, sodiumMg) for every recipe.
                         """.formatted(weeklyPlanRequest.days(), seasonalIngredients, userProfile, weeklyPlanRequest.additionalInstructions()),
                         WeeklyPlan.class);
-        log.info("NutritionPlannerAgent:createWeeklyPlan action ended with {}", weeklyPlan);
-        return new NutritionAudit(weeklyPlan, seasonalIngredients, userProfile, weeklyPlanRequest.additionalInstructions());
+        return new NutritionAudit(weeklyPlan,
+                new PlanningContext(weeklyPlanRequest, seasonalIngredients, userProfile), new RevisionBudget(0));
     }
 
     @State
-    record NutritionAudit (WeeklyPlan weeklyPlan, SeasonalIngredients seasonalIngredients, UserProfile userProfile,
-                           String additionalInstructions) implements Stage {
+    record NutritionAudit(WeeklyPlan weeklyPlan, PlanningContext context, RevisionBudget budget) implements Stage {
 
-        @Action(canRerun = true)
+        @Action(canRerun = true, clearBlackboard = true)
         Stage validate(Ai ai) {
-            log.info("NutritionPlannerAgent:NutritionAudit:validate action called");
+            log.info("Auditing nutrition plan candidate {}", budget.auditNumber());
             var validationResult = ai
                     .withLlm(LlmOptions.withAutoLlm())
                     .withToolObject(weeklyPlan)
                     .withPromptElements(Personas.NUTRITION_GUARD)
                     .createObject("""
-                        Use available tools to calculate total calories, protein, carbs, fat, and sodium etc.
+                        Unfold weekly_meal_plan_tools with category nutrition and use its tools to calculate
+                        daily calories, protein, carbs, fat, and sodium. Check ALL requested days and meals.
                         
                         # Validate these recipes:
                         %s
 
                         # Against this user profile:
                         %s
-                        """.formatted(weeklyPlan, userProfile), NutritionAuditValidationResult.class);
-            log.info("NutritionPlannerAgent:NutritionAudit:validate action ended with {}", validationResult);
+
+                        # Requested days and meals:
+                        %s
+
+                        # Additional instructions:
+                        %s
+                        """.formatted(weeklyPlan, context.userProfile(), context.request().days(),
+                        context.request().additionalInstructions()), NutritionAuditValidationResult.class)
+                    .withRequiredMealChecks(weeklyPlan, context.request());
             if (validationResult.allPassed()) {
                 return new Done(weeklyPlan);
             }
-            return new ReviseWeeklyPlan(weeklyPlan, seasonalIngredients, userProfile, validationResult, additionalInstructions);
+            if (budget.exhausted()) {
+                throw new NutritionPlanRejectedException(budget, validationResult);
+            }
+            return new ReviseWeeklyPlan(weeklyPlan, context, budget, validationResult);
         }
 
     }
 
     @State
-    record ReviseWeeklyPlan(WeeklyPlan weeklyPlan, SeasonalIngredients seasonalIngredients, UserProfile userProfile,
-                            NutritionAuditValidationResult validationResult, String additionalInstructions) implements Stage {
+    record ReviseWeeklyPlan(WeeklyPlan weeklyPlan, PlanningContext context, RevisionBudget budget,
+                           NutritionAuditValidationResult validationResult) implements Stage {
 
-        @Action(canRerun = true)
+        @Action(canRerun = true, clearBlackboard = true)
         Stage revise(Ai ai) {
-            log.info("NutritionPlannerAgent:WeeklyPlan:revise action called");
+            var nextBudget = budget.nextRevision();
+            log.info("Revising nutrition plan, revision {} of {}", nextBudget.revisionsUsed(), RevisionBudget.MAX_REVISIONS);
             var revisedWeeklyPlan = ai
                     .withLlm(LlmOptions.withAutoLlm())
                     .withPromptElements(Personas.RECIPE_CURATOR)
                     .createObject("""
                         Revise the recipes based on the following feedback from a nutrition expert.
+                        Keep EVERY requested day and meal, do not add unrequested meals, and provide complete
+                        nutrition information. Write all recipe content in English.
 
                         # Recipes
                         %s
@@ -149,11 +141,20 @@ class NutritionPlannerAgent {
                         # Feedback from a nutrition expert
                         %s
 
+                        # Requested days and meals
+                        %s
+
+                        # User profile
+                        %s
+
+                        # Seasonal ingredients
+                        %s
+
                         # Additional instructions
                         %s
-                        """.formatted(weeklyPlan, validationResult, additionalInstructions), WeeklyPlan.class);
-            log.info("NutritionPlannerAgent:WeeklyPlan:revise action ended with {}", revisedWeeklyPlan);
-            return new NutritionAudit(revisedWeeklyPlan, seasonalIngredients, userProfile, additionalInstructions);
+                        """.formatted(weeklyPlan, validationResult, context.request().days(), context.userProfile(),
+                        context.seasonalIngredients(), context.request().additionalInstructions()), WeeklyPlan.class);
+            return new NutritionAudit(revisedWeeklyPlan, context, nextBudget);
         }
     }
 
@@ -164,13 +165,12 @@ class NutritionPlannerAgent {
                 export = @Export(remote = true, name = "createNutritionPlan", startingInputTypes = WeeklyPlanRequest.class))
         @Action
         WeeklyPlan createNutritionPlan() {
-            log.info("NutritionPlannerAgent:Done:createNutritionPlan action called with result: {}", weeklyPlan);
             return weeklyPlan;
         }
     }
 
     static class Personas {
-        static Persona RECIPE_CURATOR = new Persona("Recipe Curator",
+        static final Persona RECIPE_CURATOR = new Persona("Recipe Curator",
             """
             A culinary expert specializing in weekly meal planning.
             """,
@@ -183,7 +183,7 @@ class NutritionPlannerAgent {
             Use seasonal ingredients as much as possible and provide nutrition information for each recipe.
             """);
 
-        static Persona NUTRITION_GUARD = new Persona("Nutrition Guard",
+        static final Persona NUTRITION_GUARD = new Persona("Nutrition Guard",
             """
             A strict dietary compliance validator
             specialized in ensuring meal plans meet user health requirements and dietary restrictions.

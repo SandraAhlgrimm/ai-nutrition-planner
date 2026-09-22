@@ -1,3 +1,5 @@
+server.servlet.session.cookie.name: NUTRITION_SPRING_AI_SESSION
+
 spring:
   application.name: nutrition-planner
   profiles.default: openai

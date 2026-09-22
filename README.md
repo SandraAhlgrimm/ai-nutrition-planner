@@ -168,7 +168,9 @@ Module-local `./mvnw` wrappers are also available; there is no root wrapper.
 The default port is **8080**, the UI is [http://localhost:8080](http://localhost:8080),
 and demo form-login/HTTP Basic credentials are **`alice` / `123456`**.
 To run samples side by side, use separate terminals and distinct `SERVER_PORT`
-values, for example `8081`, `8082`, and `8083`.
+values, for example `8081`, `8082`, and `8083`. Each sample has a distinct session
+cookie name, so signing into one localhost port does not log out another sample
+in the same browser.
 
 ## REST, browser interaction and MCP
 

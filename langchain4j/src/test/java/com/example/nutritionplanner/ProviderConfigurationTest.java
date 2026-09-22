@@ -93,6 +93,8 @@ class ProviderConfigurationTest {
                                 .isEqualTo(PlanFixtures.ALICE);
                         assertThat(context.getEnvironment().getProperty("spring.threads.virtual.enabled", Boolean.class))
                                 .isTrue();
+                        assertThat(context.getEnvironment().getProperty("server.servlet.session.cookie.name"))
+                                .isEqualTo("NUTRITION_LANGCHAIN4J_SESSION");
                     });
         } finally {
             server.stop(0);

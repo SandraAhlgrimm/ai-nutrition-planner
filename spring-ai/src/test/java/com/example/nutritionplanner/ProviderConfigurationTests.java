@@ -46,6 +46,8 @@ class ProviderConfigurationTests {
                     assertThat(context.getEnvironment().getProperty("spring.ai.model.embedding")).isEqualTo("none");
                     assertThat(context.getEnvironment().getProperty("management.otlp.metrics.export.enabled")).isEqualTo("false");
                     assertThat(context.getEnvironment().getProperty("management.tracing.export.enabled")).isEqualTo("false");
+                    assertThat(context.getEnvironment().getProperty("server.servlet.session.cookie.name"))
+                            .isEqualTo("NUTRITION_SPRING_AI_SESSION");
                     if (profile.equals("ollama")) {
                         assertThat(model).isInstanceOf(OllamaChatModel.class);
                         assertThat(context).doesNotHaveBean(OpenAiChatModel.class);

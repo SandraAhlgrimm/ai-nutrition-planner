@@ -1,7 +1,6 @@
 package com.example.nutritionplanner;
 
-import com.embabel.agent.api.invocation.AgentInvocation;
-import com.embabel.agent.core.AgentPlatform;
+import com.embabel.common.ai.model.ModelSelectionCriteria;
 import com.embabel.common.ai.model.ModelProvider;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -13,19 +12,15 @@ import java.security.Principal;
 import java.time.DayOfWeek;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import org.apache.commons.lang3.reflect.FieldUtils;
-
-import static org.apache.commons.lang3.StringUtils.capitalize;
 
 @Controller
 class NutritionPlannerUiController {
 
-    private final AgentPlatform agentPlatform;
+    private final NutritionPlanner planner;
     private final ModelProvider modelProvider;
 
-    NutritionPlannerUiController(AgentPlatform agentPlatform, ModelProvider modelProvider) {
-        this.agentPlatform = agentPlatform;
+    NutritionPlannerUiController(NutritionPlanner planner, ModelProvider modelProvider) {
+        this.planner = planner;
         this.modelProvider = modelProvider;
     }
 
@@ -65,8 +60,7 @@ class NutritionPlannerUiController {
         addDay(days, DayOfWeek.SUNDAY, sunday);
 
         var request = new WeeklyPlanRequest(days, countryCode, additionalInstructions);
-        var weeklyPlan = AgentInvocation.create(agentPlatform, WeeklyPlan.class)
-                .invoke(Map.of("user", principal.getName(), "request", request));
+        var weeklyPlan = planner.plan(request, principal);
 
         model.addAttribute("plan", weeklyPlan);
         model.addAttribute("aiModel", getAiModelName());
@@ -81,13 +75,7 @@ class NutritionPlannerUiController {
     }
 
     private String getAiModelName() {
-        try {
-            var defaultLlm = FieldUtils.readField(modelProvider, "defaultLlm", true);
-            var name = (String) FieldUtils.readField(defaultLlm, "name", true);
-            var provider = (String) FieldUtils.readField(defaultLlm, "provider", true);
-            return "%s (%s)".formatted(provider, capitalize(name));
-        } catch (Exception e) {
-            return "";
-        }
+        var model = modelProvider.getLlm(ModelSelectionCriteria.getPlatformDefault());
+        return "%s (%s)".formatted(model.getProvider(), model.getName());
     }
 }

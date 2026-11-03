@@ -1,4 +1,7 @@
 management:
+  metrics.distribution.percentiles-histogram:
+    agent_duration: true
+    http.server.requests: true
   tracing:
     sampling.probability: 1.0
     export.otlp.enabled: true

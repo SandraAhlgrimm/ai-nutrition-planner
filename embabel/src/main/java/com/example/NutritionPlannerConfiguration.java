@@ -1,14 +1,23 @@
 package com.example;
 
+import com.example.nutritionplanner.PlannerIdentity;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.TaskDecorator;
+import org.springframework.core.task.support.ContextPropagatingTaskDecorator;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
-class NutritionPlannerConfiguration {
+public class NutritionPlannerConfiguration {
+
+    @Bean
+    TaskDecorator plannerTaskDecorator() {
+        var observations = new ContextPropagatingTaskDecorator();
+        return task -> observations.decorate(PlannerIdentity.propagate(task));
+    }
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {

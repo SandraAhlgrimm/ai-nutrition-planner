@@ -1,10 +1,12 @@
-embabel:
-  models:
-    default-llm: gpt-4o-mini
-  agent:
-    platform:
-      models:
-        openai:
-          api-key: ${AZURE_OPENAI_API_KEY}
-          base-url: ${AZURE_OPENAI_ENDPOINT}
-          completions: openai/deployments/${AZURE_OPENAI_DEPLOYMENT_NAME:gpt-4o}/chat/completions?api-version=2024-10-21
+spring:
+  ai:
+    model.chat: openai
+    openai:
+      api-key: ${AZURE_OPENAI_API_KEY}
+      base-url: ${AZURE_OPENAI_ENDPOINT}
+      microsoft-foundry: true
+      chat.model: ${AZURE_OPENAI_DEPLOYMENT_NAME:gpt-4o}
+
+nutrition-planner:
+  provider: Azure OpenAI
+  model: ${spring.ai.openai.chat.model}

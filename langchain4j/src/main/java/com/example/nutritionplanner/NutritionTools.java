@@ -14,17 +14,19 @@ public class NutritionTools {
 
     @Tool("Returns total calories, protein, carbs, fat and sodium for each day of the current candidate plan")
     public Map<DayOfWeek, NutritionInfo> dailyNutritionTotals(AgenticScope scope) {
-        return currentPlan(scope).days().stream()
-                .collect(Collectors.toMap(WeeklyPlan.DailyPlan::day, NutritionTools::totals));
+        return currentPlan(scope).days().stream().map(WeeklyPlan.DailyPlan::day).distinct()
+                .collect(Collectors.toMap(day -> day, day -> nutritionTotalsForDay(day, scope)));
     }
 
     @Tool("Returns nutrition totals for the specified day of the current candidate plan")
     public NutritionInfo nutritionTotalsForDay(DayOfWeek day, AgenticScope scope) {
-        return currentPlan(scope).days().stream()
+        var matchingDays = currentPlan(scope).days().stream()
                 .filter(dailyPlan -> dailyPlan.day() == day)
-                .findFirst()
-                .map(NutritionTools::totals)
-                .orElseThrow(() -> new IllegalArgumentException("No meals planned for " + day));
+                .toList();
+        if (matchingDays.isEmpty()) {
+            throw new IllegalArgumentException("No meals planned for " + day);
+        }
+        return totals(matchingDays, day);
     }
 
     @Tool("Returns the total number of meals in the current candidate plan")
@@ -41,10 +43,10 @@ public class NutritionTools {
         return Stream.of(day.breakfast(), day.lunch(), day.dinner()).filter(Objects::nonNull);
     }
 
-    private static NutritionInfo totals(WeeklyPlan.DailyPlan day) {
-        List<Recipe> recipes = meals(day).toList();
+    private static NutritionInfo totals(List<WeeklyPlan.DailyPlan> days, DayOfWeek day) {
+        List<Recipe> recipes = days.stream().flatMap(NutritionTools::meals).toList();
         if (recipes.stream().anyMatch(recipe -> recipe.nutrition() == null)) {
-            throw new IllegalStateException("Missing nutrition information for " + day.day());
+            throw new IllegalStateException("Missing nutrition information for " + day);
         }
         return new NutritionInfo(recipes);
     }

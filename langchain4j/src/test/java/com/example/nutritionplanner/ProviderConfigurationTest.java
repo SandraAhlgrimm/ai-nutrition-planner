@@ -93,6 +93,8 @@ class ProviderConfigurationTest {
                                 .isEqualTo(PlanFixtures.ALICE);
                         assertThat(context.getEnvironment().getProperty("spring.threads.virtual.enabled", Boolean.class))
                                 .isTrue();
+                        assertThat(context.getEnvironment().getProperty("server.servlet.session.cookie.name"))
+                                .isEqualTo("NUTRITION_LANGCHAIN4J_SESSION");
                     });
         } finally {
             server.stop(0);
@@ -148,6 +150,10 @@ class ProviderConfigurationTest {
                     var environment = context.getEnvironment();
                     assertThat(environment.getProperty("management.otlp.metrics.export.enabled", Boolean.class)).isTrue();
                     assertThat(environment.getProperty("management.tracing.export.otlp.enabled", Boolean.class)).isTrue();
+                    assertThat(environment.getProperty(
+                            "management.metrics.distribution.percentiles-histogram.agent_duration", Boolean.class)).isTrue();
+                    assertThat(environment.getProperty(
+                            "management.metrics.distribution.percentiles-histogram.http.server.requests", Boolean.class)).isTrue();
                     assertThat(environment.getProperty("management.opentelemetry.tracing.export.otlp.endpoint"))
                             .isEqualTo("http://localhost:4318/v1/traces");
                     assertThat(environment.getProperty("management.otlp.metrics.export.url"))

@@ -51,4 +51,20 @@ class NutritionToolsTest {
         assertThatThrownBy(() -> tools.dailyNutritionTotals(scope))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("Missing nutrition information");
     }
+
+    @Test
+    void duplicateDaysAreFullyCountedAndReachTheShapeAudit() {
+        var original = plan(1);
+        var duplicate = new WeeklyPlan(List.of(original.days().getFirst(),
+                original.days().getFirst(), original.days().getLast()));
+        var scope = DefaultAgenticScope.ephemeralAgenticScope();
+        scope.writeState(WeeklyPlan.class, duplicate);
+
+        assertThat(tools.dailyNutritionTotals(scope).get(DayOfWeek.MONDAY).calories()).isEqualTo(200);
+        assertThat(tools.nutritionTotalsForDay(DayOfWeek.MONDAY, scope).calories()).isEqualTo(200);
+        assertThat(tools.totalMealCount(scope)).isEqualTo(3);
+        var audit = new RequestShapeAudit().checkRequestShape(duplicate, PlanFixtures.REQUEST, PlanFixtures.PASSED);
+        assertThat(audit.allPassed()).isFalse();
+        assertThat(audit.consolidatedFeedback()).contains("Duplicate day");
+    }
 }

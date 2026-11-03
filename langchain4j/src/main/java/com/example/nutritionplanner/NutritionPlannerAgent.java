@@ -22,6 +22,7 @@ class NutritionPlannerAgent {
     }
 
     WeeklyPlan createNutritionPlan(String username, WeeklyPlanRequest request) {
+        request.validate();
         log.info("Starting meal plan creation for user: {}", username);
         var month = LocalDate.now(clock).getMonth().toString();
         var country = Locale.of("", request.countryCode()).getDisplayCountry(Locale.ENGLISH);

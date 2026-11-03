@@ -3,7 +3,7 @@ package com.example.nutritionplanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.time.DayOfWeek;
 import java.util.List;
@@ -14,12 +14,17 @@ import java.util.stream.Stream;
 
 public record WeeklyPlan(List<DailyPlan> days) {
 
+    public WeeklyPlan {
+        days = List.copyOf(days);
+        if (days.isEmpty()) throw new IllegalArgumentException("A weekly plan must contain days");
+    }
+
     private static final Logger log = LoggerFactory.getLogger(WeeklyPlan.class);
 
     @Tool(description = "Returns the total calories, protein, carbs, fat, and sodium for each day of the weekly meal plan")
     public Map<DayOfWeek, NutritionInfo> dailyNutritionTotals() {
-        var dailyNutritionTotals = days.stream().collect(Collectors.toMap(
-                DailyPlan::day, day -> nutritionTotalsForDay(day.day())
+        var dailyNutritionTotals = days.stream().map(DailyPlan::day).distinct().collect(Collectors.toMap(
+                day -> day, this::nutritionTotalsForDay
         ));
         log.info("WeeklyPlan:dailyNutritionTotals tool method finished with {}", dailyNutritionTotals);
         return dailyNutritionTotals;
@@ -27,15 +32,13 @@ public record WeeklyPlan(List<DailyPlan> days) {
 
     @Tool(description = "Returns the total calories, protein, carbs, fat, and sodium for a specific day of the weekly meal plan")
     public NutritionInfo nutritionTotalsForDay(DayOfWeek day) {
-        var nutritionInfo = days.stream()
-                .filter(d -> d.day() == day)
-                .findFirst()
-                .map(d -> new NutritionInfo(
-                        Stream.of(d.breakfast(), d.lunch(), d.dinner())
-                                .filter(Objects::nonNull)
-                                .collect(Collectors.toList())
-                ))
-                .orElse(new NutritionInfo(List.of()));
+        var matchingDays = days.stream().filter(d -> d.day() == day).toList();
+        if (matchingDays.isEmpty()) {
+            throw new IllegalArgumentException("No meals planned for " + day);
+        }
+        var nutritionInfo = new NutritionInfo(matchingDays.stream()
+                .flatMap(d -> Stream.of(d.breakfast(), d.lunch(), d.dinner()))
+                .filter(Objects::nonNull).toList());
         log.info("WeeklyPlan:nutritionTotalsForDay tool method finished with {} for {}", nutritionInfo, day);
         return nutritionInfo;
     }
@@ -50,5 +53,9 @@ public record WeeklyPlan(List<DailyPlan> days) {
         return count;
     }
 
-    public record DailyPlan(DayOfWeek day, @Nullable Recipe breakfast, @Nullable Recipe lunch, @Nullable Recipe dinner) {}
+    public record DailyPlan(DayOfWeek day, @Nullable Recipe breakfast, @Nullable Recipe lunch, @Nullable Recipe dinner) {
+        public DailyPlan {
+            Objects.requireNonNull(day, "Plan day is required");
+        }
+    }
 }

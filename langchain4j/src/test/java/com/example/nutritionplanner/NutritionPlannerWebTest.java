@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -101,6 +102,33 @@ class NutritionPlannerWebTest {
     }
 
     @Test
+    void invalidRestRequestsAreRejectedBeforeThePlanningService() throws Exception {
+        for (var request : RequestValidationTest.invalidRequests().toList()) {
+            mvc.perform(post("/api/nutrition-plan").with(user("alice"))
+                            .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
+        }
+        verifyNoInteractions(planner);
+    }
+
+    @Test
+    void invalidBrowserSelectionsRenderHtmlWithoutCallingThePlanningService() throws Exception {
+        for (var request : java.util.List.of(
+                post("/plan"),
+                post("/plan").param("monday", "LUNCH").param("countryCode", "ZZ"),
+                post("/plan").param("monday", "LUNCH", "LUNCH"),
+                post("/plan").param("monday", "SNACK"))) {
+            mvc.perform(request.with(user("alice")).header("HX-Request", "true"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
+                    .andExpect(view().name("fragments/plan :: error"))
+                    .andExpect(content().string(containsString("role=\"alert\"")));
+        }
+        verifyNoInteractions(planner);
+    }
+
+    @Test
     void formPreservesRequestedDaysMealsCountryInstructionsAndPrincipal() throws Exception {
         when(planner.createNutritionPlan("bob", REQUEST)).thenReturn(plan(1));
 
@@ -125,7 +153,7 @@ class NutritionPlannerWebTest {
                 .andExpect(content().string(containsString("Feedback for candidate-4")))
                 .andExpect(content().string(not(containsString("Your Weekly Plan"))));
         mvc.perform(get("/").with(user("alice"))).andExpect(status().isOk())
-                .andExpect(content().string(containsString("[422, 502].includes(event.detail.xhr.status)")))
+                .andExpect(content().string(containsString("[400, 422, 502].includes(event.detail.xhr.status)")))
                 .andExpect(content().string(containsString("event.detail.shouldSwap = true")));
     }
 

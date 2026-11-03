@@ -24,6 +24,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -34,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntFunction;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import static com.example.nutritionplanner.PlanFixtures.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -147,6 +149,24 @@ class NutritionWorkflowTest {
         assertThat(model.generationPrompts.subList(1, repairedCandidate)).allSatisfy(prompt ->
                 assertThat(prompt).contains("Missing requested day: THURSDAY", ALICE.toString(), REQUEST.toString()));
         assertThat(monitor.successfulExecutions()).hasSize(1);
+        assertIdle();
+    }
+
+    @Test
+    void duplicateDaysCanBeRevisedWithRealNutritionToolExecution() {
+        var model = new ScriptedChatModel(1);
+        model.planCandidates = candidate -> {
+            var valid = plan(candidate);
+            return candidate == 1 ? new WeeklyPlan(List.of(valid.days().getFirst(),
+                    valid.days().getFirst(), valid.days().getLast())) : valid;
+        };
+
+        assertThat(invoke(planner(model), "alice")).isEqualTo(plan(2));
+        assertThat(model.initials).hasValue(1);
+        assertThat(model.revisions).hasValue(1);
+        assertThat(model.audits).hasValue(2);
+        assertThat(model.verifiedToolResults).hasValue(6);
+        assertThat(model.generationPrompts.getLast()).contains("Duplicate day");
         assertIdle();
     }
 
@@ -362,15 +382,22 @@ class NutritionWorkflowTest {
             var matcher = CANDIDATE.matcher(prompt);
             assertThat(matcher.find()).isTrue();
             int candidate = Integer.parseInt(matcher.group(1));
+            var currentPlan = planCandidates.apply(candidate);
+            int mondayCalories = currentPlan.days().stream().filter(day -> day.day() == java.time.DayOfWeek.MONDAY)
+                    .flatMap(day -> Stream.of(day.breakfast(), day.lunch(), day.dinner()))
+                    .filter(Objects::nonNull).mapToInt(recipe -> recipe.nutrition().calories()).sum();
+            long mealCount = currentPlan.days().stream()
+                    .flatMap(day -> Stream.of(day.breakfast(), day.lunch(), day.dinner()))
+                    .filter(Objects::nonNull).count();
             request.messages().stream().filter(ToolExecutionResultMessage.class::isInstance)
                     .map(ToolExecutionResultMessage.class::cast).forEach(result -> {
                         var json = JSON.readTree(result.text());
                         switch (result.toolName()) {
                             case "dailyNutritionTotals" -> assertThat(json.get("MONDAY").get("calories").asInt())
-                                    .isEqualTo(candidate * 100);
+                                    .isEqualTo(mondayCalories);
                             case "nutritionTotalsForDay" -> assertThat(json.get("calories").asInt())
-                                    .isEqualTo(candidate * 100);
-                            case "totalMealCount" -> assertThat(json.asInt()).isEqualTo(2);
+                                    .isEqualTo(mondayCalories);
+                            case "totalMealCount" -> assertThat(json.asLong()).isEqualTo(mealCount);
                             default -> throw new AssertionError("Unexpected tool: " + result.toolName());
                         }
                         verifiedToolResults.incrementAndGet();

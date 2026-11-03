@@ -1,18 +1,19 @@
 package com.example.nutritionplanner;
 
-import org.apache.commons.lang3.reflect.FieldUtils;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import org.thymeleaf.TemplateEngine;
 
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import static org.apache.commons.lang3.StringUtils.capitalize;
 
 @Controller
 class NutritionPlannerUiController extends SseInteractionController {
@@ -25,6 +26,11 @@ class NutritionPlannerUiController extends SseInteractionController {
         super(templateEngine);
         this.chatModel = chatModel;
         this.nutritionPlannerAgent = nutritionPlannerAgent;
+    }
+
+    @InitBinder
+    void bindRecordsByConstructor(WebDataBinder binder) {
+        binder.setDeclarativeBinding(true);
     }
 
     @GetMapping("/login")
@@ -43,43 +49,54 @@ class NutritionPlannerUiController extends SseInteractionController {
     @PostMapping("/plan")
     String createPlan(@ModelAttribute WeeklyPlanRequest request, Principal principal, Model model) {
         var username = principal.getName();
+        request.validate();
 
-        return eventStream(model, interactionId -> {
+        return eventStream(model, username, interactionId -> {
             var askUserQuestionHandler = new AskUserQuestionHandler(questions -> 
                     sendEvent(interactionId, "fragments/hitl", Map.of("questions", questions)));
             questionHandlers.put(interactionId, askUserQuestionHandler);
 
             var plan = nutritionPlannerAgent.createNutritionPlan(username, request, askUserQuestionHandler);
 
-            questionHandlers.remove(interactionId);
             sendEvent(interactionId, "fragments/plan", Map.of("plan", plan));
-            completeInteraction(interactionId);
+        }, interactionId -> {
+            var handler = questionHandlers.remove(interactionId);
+            if (handler != null) handler.close();
         });
     }
 
     @PostMapping("/interaction/{interactionId}/answers")
     @ResponseBody
-    String provideAnswers(@PathVariable String interactionId, @ModelAttribute AnswersForm answersForm) {
+    ResponseEntity<Void> provideAnswers(@PathVariable String interactionId, @ModelAttribute AnswersForm answersForm,
+                                       Principal principal) {
+        requireOwner(interactionId, principal);
         var handler = questionHandlers.get(interactionId);
-        if (handler != null) handler.provideAnswers(answersForm.answers());
-        return "";
+        if (handler == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "No pending questions");
+        try {
+            handler.provideAnswers(answersForm.toAnswers());
+        } catch (IllegalStateException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage(), e);
+        }
+        return ResponseEntity.noContent().build();
     }
 
     private String getAiModelName() {
-        var chatModelDefaultOptions = chatModel.getDefaultOptions();
         var provider = chatModel.getClass().getSimpleName().replace("ChatModel", "");
-        try {
-            var name = (String) FieldUtils.readField(chatModelDefaultOptions, "model", true);
-            return "%s (%s)".formatted(provider, capitalize(name));
-        } catch (Exception e) {
-            try {
-                var name = (String) FieldUtils.readField(chatModelDefaultOptions, "deploymentName", true);
-                return "%s (%s)".formatted(provider, capitalize(name));
-            } catch (Exception e2) {
-                return provider;
+        var name = chatModel.getOptions().getModel();
+        return name == null ? provider : "%s (%s)".formatted(provider, name);
+    }
+
+    record AnswersForm(List<AnswerForm> answers) {
+        List<AskUserQuestionHandler.Answer> toAnswers() {
+            if (answers == null || answers.stream().anyMatch(java.util.Objects::isNull)) {
+                throw new InvalidPlanRequestException("Answers are required for every question");
             }
+            return answers.stream().map(answer -> new AskUserQuestionHandler.Answer(answer.question(),
+                    answer.customAnswer() != null && !answer.customAnswer().isBlank()
+                            ? answer.customAnswer() : answer.answer() == null ? "" : String.join(", ", answer.answer())))
+                    .toList();
         }
     }
 
-    record AnswersForm(List<AskUserQuestionHandler.Answer> answers) {}
+    record AnswerForm(String question, List<String> answer, String customAnswer) {}
 }

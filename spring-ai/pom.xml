@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.1.1</version>
+        <version>4.2.0-RC1</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.example</groupId>
@@ -14,8 +14,8 @@
 
     <properties>
         <java.version>25</java.version>
-        <spring-ai.version>2.0.1</spring-ai.version>
-        <spring-ai-agent-utils.version>0.12.0</spring-ai-agent-utils.version>
+        <spring-ai.version>2.1.0-RC1</spring-ai.version>
+        <spring-ai-agent-utils.version>0.13.0</spring-ai-agent-utils.version>
     </properties>
 
     <dependencies>
@@ -38,6 +38,10 @@
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-tool-search-advisor</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-session-advisor</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.lucene</groupId>

@@ -1,8 +1,9 @@
 # Spring AI nutrition planner
 
-Independent Java 25 / Maven sample using Spring Boot **4.1.1**, Spring AI **2.0.1**,
-and community **spring-ai-agent-utils 0.12.0**. Boot manages Spring Framework
-7.0.9, Jackson 3.1.5, and JUnit Jupiter 6.0.3. Spring AI manages MCP Java SDK 2.0.0.
+Independent Java 25 / Maven sample using Spring Boot **4.2.0-RC1** and Spring AI
+**2.1.0-RC1** (both **release candidates**), and community
+**spring-ai-agent-utils 0.13.0**. Boot manages Spring Framework 7.1.0-RC1,
+Jackson 3.1.7 / 2.21.7, and JUnit Jupiter 6.1.3. Spring AI manages MCP Java SDK 2.1.0.
 JUnit 6 is required by this Spring Test generation; the tests retain Jupiter
 annotations and use `@MockitoBean`.
 
@@ -51,7 +52,10 @@ SPRING_PROFILES_ACTIVE=ollama mvn -f spring-ai/pom.xml spring-boot:run
 ```
 
 Tests use deterministic fake chat responses, real native advisor/tool execution,
-and local HTTP MCP requests. They do not call external model APIs, Docker,
+and local HTTP MCP requests. Provider regression tests also drive the actual
+OpenAI SDK (including Azure configuration) and Ollama HTTP client through the
+complete skill, structured-plan, tool-search and audit loop against loopback
+fixtures. They do not call external model APIs, Docker,
 Ollama, or telemetry collectors. Resource tests load the skill from both a loose
 classpath and a JAR with a `BOOT-INF/classes` prefix.
 

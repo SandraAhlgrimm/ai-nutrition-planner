@@ -6,8 +6,8 @@ import org.jspecify.annotations.Nullable;
 import org.springaicommunity.agent.tools.AskUserQuestionTool;
 import org.springaicommunity.agent.tools.SkillsTool;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.api.MemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.toolsearch.ToolSearchToolCallingAdvisor;
-import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.ai.mcp.annotation.context.McpSyncRequestContext;
 import org.springframework.ai.model.tool.ToolCallingManager;
@@ -181,7 +181,7 @@ class NutritionPlannerAgent {
                         .param("userAnswers", userAnswers.toString())
                 )
                 .advisors(toolSearchAdvisor)
-                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, auditId))
+                .advisors(a -> a.param(MemoryAdvisor.CONVERSATION_ID, auditId))
                 .tools(weeklyPlan)
                 .call()
                 .entity(NutritionAuditValidationResult.class), "Model returned no nutrition audit");

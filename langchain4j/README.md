@@ -134,6 +134,22 @@ shape audit checks requested days/meals before loop exit and final acceptance.
 The nutrition tools use the current invocation's hidden `AgenticScope`, not
 model-supplied plan data.
 
+For Ollama, draft and revision calls also receive a request-specific JSON schema
+through native `ChatRequestParameters`: the selected days are an exact tuple,
+selected meals require complete recipe objects, and unrequested meals are null.
+The same schema is retained across revisions. It constrains generation rather
+than filling in missing recipes after the fact. Tool-enabled audits deliberately
+do not receive this schema, because Ollama applies its output grammar to the
+entire response and must remain free to emit tool calls. Other providers retain
+their existing output handling. All providers still use the deterministic shape
+check and model audit; JSON validity alone is never treated as a passing audit.
+
+Draft/revision prompts spell out every selected meal slot, even when instructions
+ask for one dish that can be reused across meals. Nutrition values are per
+serving, and audit prompts require evidence from the current candidate and
+per-day tool totals rather than invented ingredients or comparisons against a
+per-meal minimum.
+
 The tests use deterministic chat responses and local/in-memory transport
 fixtures. They cover real MCP HTTP discovery and execution, authenticated-user
 isolation, all four permitted audits, shape repair/exhaustion, model/parse

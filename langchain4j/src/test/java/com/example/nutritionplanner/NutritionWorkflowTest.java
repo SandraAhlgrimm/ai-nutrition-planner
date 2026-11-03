@@ -300,7 +300,7 @@ class NutritionWorkflowTest {
         for (var extra : extraListeners) {
             listener.addListener(extra);
         }
-        return new AgentConfiguration().nutritionPlanner(model, PROFILES, executor, listener);
+        return new AgentConfiguration().nutritionPlanner(model, PROFILES, executor, listener, JsonMapper.builder().build());
     }
 
     private WeeklyPlan invoke(Agents.NutritionPlanner planner, String username) {

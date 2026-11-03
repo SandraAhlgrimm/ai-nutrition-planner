@@ -40,6 +40,27 @@ class OllamaToolLoopTest {
         }
     }
 
+    @Test
+    void revisionsKeepTheOriginalOutputSchemaWhileAuditsRemainFreeToCallTools() throws Exception {
+        try (var ollama = new OllamaFixture(auditResponse(JSON.writeValueAsString(failed(1))), true)) {
+            ollama.responses.add(auditResponse(JSON.writeValueAsString(plan(2))));
+            ollama.responses.add(ollama.responses.get(2));
+            ollama.responses.add(auditResponse(JSON.writeValueAsString(PASSED)));
+            ollama.application().run(context -> {
+                assertThat(context.getBean(NutritionPlannerAgent.class).createNutritionPlan("alice", REQUEST))
+                        .isEqualTo(plan(2));
+                assertThat(ollama.requests).hasSize(7);
+                var draftFormat = ollama.requests.get(1).get("format");
+                OllamaFixture.assertRequestedFormat(draftFormat);
+                assertThat(ollama.requests.get(4).get("format")).isEqualTo(draftFormat);
+                for (int index : List.of(2, 3, 5, 6)) {
+                    assertThat(ollama.requests.get(index).hasNonNull("format")).isFalse();
+                    assertThat(ollama.requests.get(index).get("tools")).hasSize(3);
+                }
+            });
+        }
+    }
+
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void emptyFinalOllamaContentReproducesNullOutputParsingFailureNotImmediateToolReturn(
@@ -120,6 +141,9 @@ class OllamaToolLoopTest {
             assertThat(requests).hasSize(4);
             var firstAudit = requests.get(2);
             var continuation = requests.get(3);
+            assertRequestedFormat(requests.get(1).get("format"));
+            assertThat(firstAudit.hasNonNull("format")).isFalse();
+            assertThat(continuation.hasNonNull("format")).isFalse();
             assertThat(firstAudit.get("tools")).hasSize(3);
             assertThat(continuation.get("tools")).isEqualTo(firstAudit.get("tools"));
             assertThat(continuation.get("messages").get(0)).isEqualTo(firstAudit.get("messages").get(0));
@@ -137,6 +161,20 @@ class OllamaToolLoopTest {
         @Override
         public void close() {
             server.stop(0);
+        }
+
+        private static void assertRequestedFormat(JsonNode schema) {
+            assertThat(schema).isNotNull();
+            var days = schema.get("properties").get("days");
+            assertThat(days.get("minItems").asInt()).isEqualTo(2);
+            assertThat(days.get("maxItems").asInt()).isEqualTo(2);
+            var monday = days.get("prefixItems").get(0).get("properties");
+            assertThat(monday.get("day").get("const").asString()).isEqualTo("MONDAY");
+            assertThat(monday.get("breakfast").get("type").asString()).isEqualTo("null");
+            assertThat(monday.get("dinner").get("$ref").asString()).isEqualTo("#/$defs/recipe");
+            var thursday = days.get("prefixItems").get(1).get("properties");
+            assertThat(thursday.get("day").get("const").asString()).isEqualTo("THURSDAY");
+            assertThat(thursday.get("lunch").get("$ref").asString()).isEqualTo("#/$defs/recipe");
         }
     }
 }

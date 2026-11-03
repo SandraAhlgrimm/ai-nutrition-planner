@@ -6,12 +6,15 @@ import dev.langchain4j.agentic.observability.AgentMonitor;
 import dev.langchain4j.agentic.observability.ComposedAgentListener;
 import dev.langchain4j.agentic.scope.AgenticScope;
 import dev.langchain4j.micrometer.metrics.listeners.MicrometerMetricsChatModelListener;
+import dev.langchain4j.model.ModelProvider;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.support.ContextPropagatingTaskDecorator;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Clock;
 import java.util.Objects;
@@ -47,7 +50,7 @@ class AgentConfiguration {
     @Bean
     Agents.NutritionPlanner nutritionPlanner(ChatModel model, UserProfileProperties profiles,
                                             ExecutorService agentExecutor,
-                                            @Qualifier("agentListener") AgentListener listener) {
+                                            @Qualifier("agentListener") AgentListener listener, JsonMapper mapper) {
         var seasonalIngredients = AgenticServices.agentBuilder(Agents.SeasonalIngredientAgent.class)
                 .chatModel(model).build();
         var contextPropagation = new ContextPropagatingTaskDecorator();
@@ -74,6 +77,13 @@ class AgentConfiguration {
                 .build();
 
         return AgenticServices.sequenceBuilder(Agents.NutritionPlanner.class)
+                .beforeCall(scope -> {
+                    var request = Objects.requireNonNull(scope.readState(WeeklyPlanRequest.class));
+                    scope.writeState("requiredMeals", RequestedPlanFormat.requiredMeals(request));
+                    // Ollama applies JSON grammar to the entire response, so never apply it to tool-enabled audits.
+                    scope.writeState("planParameters", model.provider() == ModelProvider.OLLAMA
+                            ? RequestedPlanFormat.parameters(request, mapper) : DefaultChatRequestParameters.EMPTY);
+                })
                 .subAgents(preparation, creator, nutritionGuard(model, "auditInitialPlan"),
                         new RequestShapeAudit(), reviseIfNeeded)
                 .output(AgentConfiguration::validatedPlan)

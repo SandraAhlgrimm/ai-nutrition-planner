@@ -278,7 +278,7 @@ class NutritionPlannerApplicationTests {
     }
 
     @Test
-    void browserExhaustionDisplaysErrorRatherThanAnInvalidPlan() throws Exception {
+    void browserExhaustionDisplaysFinalAuditedCandidateWithWarningAndManualRetry() throws Exception {
         script.interactive = true;
         script.failedAudits = 4;
         var id = startBrowserPlan();
@@ -287,11 +287,30 @@ class NutritionPlannerApplicationTests {
         answerBrowserQuestion(id, events);
         events.getAsyncResult(5000);
         mvc.perform(asyncDispatch(events)).andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("No valid nutrition plan after 4")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Requirements not met")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("not a validated plan")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Use less sodium")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("event:done")))
-                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Your Weekly Plan"))));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Your Weekly Plan")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Vegetable soup")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("form=\"nutrition-plan-form\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Try again")));
         assertThat(script.audits).hasValue(4);
+        assertThat(script.candidates).hasValue(4);
+        mvc.perform(get("/interactions/" + id + "/events").with(user("alice"))).andExpect(status().isNotFound());
+
+        var retryId = startBrowserPlan();
+        assertThat(retryId).isNotEqualTo(id);
+        var retry = mvc.perform(get("/interactions/" + retryId + "/events").with(user("alice")))
+                .andExpect(request().asyncStarted()).andReturn();
+        answerBrowserQuestion(retryId, retry);
+        retry.getAsyncResult(5000);
+        mvc.perform(asyncDispatch(retry)).andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Vegetable soup")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("event:done")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("Requirements not met"))));
+        assertThat(script.audits).hasValue(5);
     }
 
     @Test

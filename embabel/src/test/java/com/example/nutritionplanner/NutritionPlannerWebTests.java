@@ -77,7 +77,8 @@ class NutritionPlannerWebTests {
 
     @Test
     void exhaustionIsAProblemDetailWithTheExactBudget() throws Exception {
-        when(planner.plan(any(), any())).thenThrow(new NutritionPlanRejectedException(new RevisionBudget(3), FAIL));
+        when(planner.plan(any(), any())).thenThrow(new NutritionPlanRejectedException(new RevisionBudget(3), FAIL,
+                plan("Final candidate")));
 
         mvc.perform(post("/api/nutrition-plan").with(user("alice")).contentType("application/json")
                         .content(mapper.writeValueAsString(REQUEST)))
@@ -114,14 +115,25 @@ class NutritionPlannerWebTests {
     }
 
     @Test
-    void uiExhaustionReturnsEscapedErrorFragmentInsteadOfInvalidPlan() throws Exception {
+    void uiExhaustionShowsFinalCandidateWithEscapedWarningAndManualRetry() throws Exception {
         when(planner.plan(any(), any())).thenThrow(new NutritionPlanRejectedException(new RevisionBudget(3),
-                new NutritionAuditValidationResult(false, FAIL.violations(), "<script>untrusted feedback</script>")));
+                new NutritionAuditValidationResult(false, FAIL.violations(), "<script>untrusted feedback</script>"),
+                plan("Final candidate")));
         mvc.perform(post("/plan").with(user("alice")).param("monday", "LUNCH").param("countryCode", "DE"))
-                .andExpect(status().isUnprocessableEntity())
+                .andExpect(status().isOk())
                 .andExpect(content().string(containsString("role=\"alert\"")))
-                .andExpect(content().string(containsString("4 audits and 3 revisions")))
+                .andExpect(content().string(containsString("Requirements not met")))
+                .andExpect(content().string(containsString("not a validated plan")))
+                .andExpect(content().string(containsString("Final candidate")))
+                .andExpect(content().string(containsString("form=\"nutrition-plan-form\"")))
+                .andExpect(content().string(containsString("Try again")))
                 .andExpect(content().string(containsString("&lt;script&gt;")));
+        verify(planner, times(1)).plan(any(), any());
+        doReturn(plan("New validated candidate")).when(planner).plan(any(), any());
+        mvc.perform(post("/plan").with(user("alice")).param("monday", "LUNCH").param("countryCode", "DE"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("New validated candidate")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("Requirements not met"))));
     }
 
     @Test

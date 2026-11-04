@@ -96,6 +96,7 @@ class NutritionPlannerAgentIntegrationTests extends EmbabelMockitoIntegrationTes
         assertEquals(4, failure.audits());
         assertEquals(3, failure.revisions());
         assertEquals(FAIL, failure.validationResult());
+        assertEquals(plan("Candidate 3"), failure.candidate());
         verifyWorkflowCounts(4, 3);
     }
 

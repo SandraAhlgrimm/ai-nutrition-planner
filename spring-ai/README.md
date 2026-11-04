@@ -29,8 +29,12 @@ is not exposed as an MCP tool.
 
 The first candidate and every revision are audited. A passing candidate returns
 immediately. At most **three revisions** follow the initial plan, so exhaustion
-means **four failed audits**, an explicit `NutritionPlanValidationException`, and
-no returned plan. Original requested days, meals, country, profile, instructions,
+means **four failed audits** and an explicit `NutritionPlanValidationException`.
+REST and MCP return an error without a plan. The browser alone shows the final
+audited candidate with a requirements-not-met warning, escaped audit feedback,
+and a **Try again** button. It is not a validated or allergy-safe plan. Rerunning
+is a user decision and uses the current form selections and instructions.
+Original requested days, meals, country, profile, instructions,
 seasonal ingredients, and collected browser answers survive revisions. A
 deterministic shape check also rejects missing/extra meals and duplicate days.
 Every audit also receives the recorded questions and answers, so it can apply

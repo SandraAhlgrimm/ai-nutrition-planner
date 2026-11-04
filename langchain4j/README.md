@@ -47,6 +47,13 @@ error to the auditor, not a fabricated zero total. Missing requested days still
 fail deterministic validation and enter the bounded revision loop; unexpected
 tool failures abort the workflow.
 
+After exhausted validation, the browser alone displays the final audited
+candidate with escaped feedback and a **requirements not met** warning. It is
+not a validated or allergy-safe plan. **Try again** starts a fresh workflow
+using the current form selections and instructions, only when clicked.
+REST and MCP continue rejecting noncompliant plans without returning a plan.
+Provider, parsing and audit failures still display an error without a plan.
+
 | Profile | Environment variables |
 | --- | --- |
 | `openai` | `OPENAI_API_KEY`; `OPENAI_MODEL_NAME` defaults to `gpt-4o` |

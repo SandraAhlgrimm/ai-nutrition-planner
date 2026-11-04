@@ -46,8 +46,11 @@ For a custom profile, the inclusive limits are 90% rounded up and 110% rounded d
 to whole kcal. This is demo policy, not personalized medical guidance.
 
 Failures feed the existing revision cycle: one initial plan plus at most three
-revisions, with every candidate audited. Exhaustion returns HTTP **422**, never an
-invalid successful plan. REST, UI, and the exported MCP goal share this validation.
+revisions, with every candidate audited. Exhaustion returns HTTP **422** for REST,
+and the exported MCP goal also rejects the candidate. The browser alone displays
+the final audited candidate with a requirements-not-met warning and audit feedback;
+this is not a validated or allergy-safe plan. **Try again** reruns the workflow only
+when the user chooses, using the current form selections and instructions.
 
 Choose exactly one model profile; add `observability` separately, for example
 `SPRING_PROFILES_ACTIVE=azure,observability`. Without an explicit profile, `openai` is the default.
@@ -217,8 +220,9 @@ The initial candidate plus **at most three revisions** are audited, including th
 last revision: **at most four audits**. A passing audit exits immediately. A final
 failed audit raises `NutritionPlanRejectedException`, which implements Embabel's
 `NonRetryable`; the framework must not retry this domain decision as a fifth audit.
-The REST response is HTTP **422 ProblemDetail**, and the UI displays an escaped
-error fragment. Model/configuration/parsing errors are not converted into plans.
+The REST response is HTTP **422 ProblemDetail**, and the UI displays the final
+audited candidate with escaped feedback and an explicit warning. Model/configuration/
+parsing errors are not converted into plans.
 Provider-level transient retries are distinct from candidate revisions.
 
 The typed `PlanningContext` carries the full days/meals request, instructions,

@@ -45,8 +45,11 @@ interface Agents {
             # Seasonal ingredients
             {{SeasonalIngredients}}
 
-            The daily calorie target is in the user profile. For every requested day, keep that day's
-            summed calories between 90% and 110% of the target, inclusive; check days independently.
+            The daily calorie target is in the user profile. Each meal slot covers a share of it:
+            breakfast 25%, lunch 35%, dinner 40%. For every requested day, sum the shares of that day's
+            requested meals and keep the day's summed calories between 90% and 110% of that amount,
+            inclusive. A day with all three meals therefore uses the full target; a dinner-only day
+            uses 40% of it. Check days independently.
 
             # User profile (dietary restrictions, allergies, preferences)
             {{UserProfile}}
@@ -89,8 +92,9 @@ interface Agents {
             # User profile (all dietary restrictions, allergies, goals and preferences still apply)
             {{UserProfile}}
 
-            Keep each requested day's summed calories between 90% and 110% of the daily target in the
-            user profile, inclusive. Check each day independently.
+            Each meal slot covers a share of the daily calorie target in the user profile: breakfast 25%,
+            lunch 35%, dinner 40%. Keep each requested day's summed calories between 90% and 110% of the
+            combined share of that day's requested meals, inclusive. Check each day independently.
 
             # Original additional instructions (still apply)
             {{additionalInstructions}}
@@ -131,8 +135,10 @@ interface Agents {
             Prefer dailyNutritionTotals for the candidate's actual days. If a day is absent, do not
             repeatedly request its totals: report a violation only if that day was requested.
             Audit only ingredients and nutrition actually present in this candidate, not earlier candidates.
-            Nutrition values are per serving. For every requested day, its tool-calculated calorie total
-            must be between 90% and 110% of dailyCalorieTarget, inclusive. Check each day independently;
+            Nutrition values are per serving. Each meal slot covers a share of dailyCalorieTarget:
+            breakfast 25%, lunch 35%, dinner 40%. For every requested day, its tool-calculated calorie
+            total must be between 90% and 110% of the combined share of that day's requested meals,
+            inclusive. Check each day independently;
             neither a different day's calories nor a per-meal total can offset or satisfy this range.
             For each violation identify the actual recipe ingredient, missing field, or numeric comparison.
             Do not invent allergies, disliked ingredients, missing nutrition, or unlisted ingredients.
@@ -183,7 +189,9 @@ interface Agents {
                 Apply these rejection criteria only when their condition is true:
                 1. NUTRITION_INFO: a recipe's nutrition object is missing. Present numeric fields are per serving.
                 2. DAILY_CALORIE_RANGE: a requested day's tool-calculated total is below 90% or above 110%
-                   of dailyCalorieTarget. The bounds are inclusive and each day is checked independently.
+                   of the combined share of that day's requested meals, where breakfast covers 25%, lunch
+                   35% and dinner 40% of dailyCalorieTarget. The bounds are inclusive and each day is
+                   checked independently.
                 3. ALLERGEN_PRESENT: an actual recipe ingredient matches an allergy in the profile.
                    Do not treat allergy names in the profile or "no nuts" in instructions as recipe ingredients.
                 4. RESTRICTION_VIOLATION: an actual recipe ingredient violates a stated restriction, such as meat

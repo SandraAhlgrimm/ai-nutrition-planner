@@ -1,6 +1,7 @@
 package com.example.nutritionplanner;
 
 import java.time.DayOfWeek;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -34,8 +35,26 @@ public record WeeklyPlanRequest(List<DayPlanRequest> days, String countryCode, S
     }
 
     public enum MealType {
-        BREAKFAST,
-        LUNCH,
-        DINNER
+        BREAKFAST(25),
+        LUNCH(35),
+        DINNER(40);
+
+        private final int caloriePercent;
+
+        MealType(int caloriePercent) {
+            this.caloriePercent = caloriePercent;
+        }
+
+        public int caloriePercent() {
+            return caloriePercent;
+        }
+
+        /**
+         * Share of the daily calorie target that the given meal slots together should cover.
+         * A day with all three slots sums to 100, so full days keep the original target.
+         */
+        public static int caloriePercentOf(Collection<MealType> meals) {
+            return meals.stream().mapToInt(MealType::caloriePercent).sum();
+        }
     }
 }

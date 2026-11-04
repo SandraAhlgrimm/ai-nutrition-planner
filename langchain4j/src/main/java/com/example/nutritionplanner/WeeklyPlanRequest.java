@@ -4,6 +4,7 @@ import dev.langchain4j.agentic.declarative.TypedKey;
 
 import java.time.DayOfWeek;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
@@ -54,8 +55,26 @@ public record WeeklyPlanRequest(List<DayPlanRequest> days, String countryCode, S
     }
 
     enum MealType {
-        BREAKFAST,
-        LUNCH,
-        DINNER
+        BREAKFAST(25),
+        LUNCH(35),
+        DINNER(40);
+
+        private final int caloriePercent;
+
+        MealType(int caloriePercent) {
+            this.caloriePercent = caloriePercent;
+        }
+
+        int caloriePercent() {
+            return caloriePercent;
+        }
+
+        /**
+         * Share of the daily calorie target that the given meal slots together should cover.
+         * A day with all three slots sums to 100, so full days keep the original target.
+         */
+        static int caloriePercentOf(Collection<MealType> meals) {
+            return meals.stream().mapToInt(MealType::caloriePercent).sum();
+        }
     }
 }

@@ -73,9 +73,10 @@ public class RequestShapeAudit {
         var calorieViolations = new ArrayList<NutritionAuditRecipeViolation>();
         if (shapeViolations.isEmpty()) {
             long target = userProfile.dailyCalorieTarget();
-            long minimum = (target * 90 + 99) / 100;
-            long maximum = target * 110 / 100;
             for (var requestedDay : request.days()) {
+                long dayTarget = target * MealType.caloriePercentOf(requestedDay.meals()) / 100;
+                long minimum = (dayTarget * 90 + 99) / 100;
+                long maximum = dayTarget * 110 / 100;
                 var matchingDays = plan.days().stream()
                         .filter(day -> day.day() == requestedDay.day())
                         .toList();
@@ -90,8 +91,10 @@ public class RequestShapeAudit {
                 long calories = recipes.stream().mapToLong(recipe -> recipe.nutrition().calories()).sum();
                 if (calories < minimum || calories > maximum) {
                     calorieViolations.add(new NutritionAuditRecipeViolation(requestedDay.day(), "Daily calories",
-                            requestedDay.day() + " has " + calories + " kcal; the daily target is " + target
-                                    + " kcal, so the accepted range is " + minimum + "–" + maximum + " kcal.",
+                            requestedDay.day() + " has " + calories + " kcal; its requested meals cover "
+                                    + MealType.caloriePercentOf(requestedDay.meals()) + "% of the " + target
+                                    + " kcal daily target, so the accepted range is " + minimum + "–" + maximum
+                                    + " kcal.",
                             "Revise " + requestedDay.day() + " to total between " + minimum + " and " + maximum
                                     + " kcal without changing another day's total."));
                 }

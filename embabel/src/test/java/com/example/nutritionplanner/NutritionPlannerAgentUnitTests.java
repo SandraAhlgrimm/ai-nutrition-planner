@@ -163,15 +163,15 @@ class NutritionPlannerAgentUnitTests {
     }
 
     @ParameterizedTest
-    @CsvSource({"2250,2750", "2500,2500", "2750,2250"})
+    @CsvSource({"1688,687", "1875,625", "2062,563"})
     void acceptsEachDayWithinInclusiveCalorieBounds(int monday, int wednesday) {
         var checked = PASS.withDeterministicChecks(plan("In range", monday, wednesday), REQUEST, ALICE);
         assertEquals(PASS, checked);
     }
 
     @ParameterizedTest
-    @CsvSource({"2249,2500,1", "2500,2751,1", "190,2500,1", "2500,190,1",
-            "2249,2751,2", "0,5000,2", "2147483647,2500,1"})
+    @CsvSource({"1687,625,1", "1875,688,1", "190,625,1", "1875,190,1",
+            "1687,688,2", "0,5000,2", "2147483647,625,1"})
     void passingModelAuditCannotHideOutOfRangeDaysOrOffsetThem(int monday, int wednesday, int violations) {
         var fake = FakeOperationContext.create();
         fake.expectResponse(PASS);
@@ -179,18 +179,21 @@ class NutritionPlannerAgentUnitTests {
                 new NutritionPlannerAgent.PlanningContext(REQUEST, SEASONAL, ALICE), new RevisionBudget(0));
         var revision = assertInstanceOf(NutritionPlannerAgent.ReviseWeeklyPlan.class, audit.validate(fake.ai()));
         assertEquals(violations, revision.validationResult().violations().size());
-        assertTrue(revision.validationResult().consolidatedFeedback().contains("2250-2750 kcal inclusive"));
+        assertTrue(revision.validationResult().violations().stream()
+                .allMatch(violation -> violation.explanation().contains(
+                        violation.dayOfWeek() == DayOfWeek.MONDAY
+                                ? "1688-2062 kcal inclusive" : "563-687 kcal inclusive")));
         assertEquals(1, fake.getLlmInvocations().size(), "The model audit still runs for every candidate");
     }
 
     @Test
     void calorieLimitsUseTheAuthenticatedProfileAndRoundInward() {
         var profile = new UserProfile("custom", List.of(), List.of(), 1001, List.of(), List.of());
-        assertEquals(PASS, PASS.withDeterministicChecks(plan("Bounds", 901, 1101), REQUEST, profile));
-        var checked = PASS.withDeterministicChecks(plan("Outside", 900, 1102), REQUEST, profile);
+        assertEquals(PASS, PASS.withDeterministicChecks(plan("Bounds", 675, 275), REQUEST, profile));
+        var checked = PASS.withDeterministicChecks(plan("Outside", 674, 276), REQUEST, profile);
         assertFalse(checked.allPassed());
         assertEquals(2, checked.violations().size());
-        assertTrue(checked.consolidatedFeedback().contains("901-1101 kcal inclusive"));
+        assertTrue(checked.consolidatedFeedback().contains("675-825 kcal inclusive"));
     }
 
     @Test

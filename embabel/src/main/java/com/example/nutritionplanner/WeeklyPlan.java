@@ -106,9 +106,11 @@ public record WeeklyPlan(List<DailyPlan> days) {
             WeeklyPlanRequest request, UserProfile profile) {
         var violations = new ArrayList<NutritionAuditValidationResult.NutritionAuditRecipeViolation>();
         long target = profile.dailyCalorieTarget();
-        long minimum = (target * 90 + 99) / 100;
-        long maximum = target * 110 / 100;
         for (var requestedDay : request.days()) {
+            int percent = WeeklyPlanRequest.MealType.caloriePercentOf(requestedDay.meals());
+            long dayTarget = target * percent / 100;
+            long minimum = (dayTarget * 90 + 99) / 100;
+            long maximum = dayTarget * 110 / 100;
             long calories = days.stream().filter(day -> day.day() == requestedDay.day())
                     .flatMap(day -> Stream.of(day.breakfast(), day.lunch(), day.dinner()))
                     .flatMap(Optional::stream)
@@ -116,8 +118,9 @@ public record WeeklyPlan(List<DailyPlan> days) {
             if (calories < minimum || calories > maximum) {
                 violations.add(new NutritionAuditValidationResult.NutritionAuditRecipeViolation(
                         requestedDay.day(), "Daily calories",
-                        requestedDay.day() + " has " + calories + " kcal; target " + target
-                                + " kcal requires " + minimum + "-" + maximum + " kcal inclusive.",
+                        requestedDay.day() + " has " + calories + " kcal; its requested meals cover "
+                                + percent + "% of the " + target + " kcal daily target, which requires "
+                                + minimum + "-" + maximum + " kcal inclusive.",
                         "Adjust the requested meals on " + requestedDay.day() + " to total between "
                                 + minimum + " and " + maximum + " kcal. Do not offset with another day."));
             }

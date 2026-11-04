@@ -99,7 +99,7 @@ class NutritionPlannerAgent {
                                         UserProfile userProfile,
                                         AskUserQuestionTool.@Nullable QuestionHandler questionHandler) {
         var answers = new LinkedHashMap<String, String>();
-        var calorieRange = calorieRangeInstructions(userProfile.dailyCalorieTarget());
+        var calorieRange = calorieRangeInstructions(weeklyPlanRequest, userProfile.dailyCalorieTarget());
         var validationRetryAdvisor = new ValidationRetryAdvisor<>(WeeklyPlan.class,
                 plan -> this.validateWeeklyPlan(plan, userProfile, weeklyPlanRequest, Map.copyOf(answers)),
                 3, answers::toString);
@@ -187,7 +187,7 @@ class NutritionPlannerAgent {
                         do not require the plan to repeat that conversation.
                         """).param("weeklyPlan", weeklyPlan).param("userProfile", userProfile).param("request", request)
                         .param("userAnswers", userAnswers.toString())
-                        .param("calorieRange", calorieRangeInstructions(userProfile.dailyCalorieTarget()))
+                        .param("calorieRange", calorieRangeInstructions(request, userProfile.dailyCalorieTarget()))
                 )
                 .advisors(toolSearchAdvisor)
                 .advisors(a -> a.param(MemoryAdvisor.CONVERSATION_ID, auditId))
@@ -200,11 +200,16 @@ class NutritionPlannerAgent {
         }
     }
 
-    private static String calorieRangeInstructions(int target) {
-        long minimum = (target * 90L + 99) / 100;
-        long maximum = target * 110L / 100;
-        return "Each requested day must total %d-%d kcal inclusive (90%%-110%% of the %d kcal target)."
-                .formatted(minimum, maximum, target);
+    private static String calorieRangeInstructions(WeeklyPlanRequest request, int target) {
+        var perDay = request.meals().entrySet().stream().map(entry -> {
+            int percent = WeeklyPlanRequest.MealType.caloriePercentOf(entry.getValue());
+            long dayTarget = (long) target * percent / 100;
+            return "%s must total %d-%d kcal inclusive (90%%-110%% of %d kcal, the %d%% of the %d kcal daily target covered by its requested meals)."
+                    .formatted(entry.getKey(), (dayTarget * 90 + 99) / 100, dayTarget * 110 / 100,
+                            dayTarget, percent, target);
+        }).collect(java.util.stream.Collectors.joining("\n"));
+        return "Each meal slot covers a share of the daily calorie target: breakfast 25%, lunch 35%, dinner 40%.\n"
+                + perDay;
     }
 
     static class Personas {
@@ -226,8 +231,9 @@ class NutritionPlannerAgent {
                 Your objective is to validate a list of recipes against a user profile and flag any violations.
                 Check each recipe for:
                 1. NUTRITION_INFO: Nutrition information is available for each recipe
-                2. CALORIE_RANGE: each requested day's summed calories are within 90%-110% of its target, inclusive;
-                   check days independently and never offset one day against another
+                2. CALORIE_RANGE: each requested day's summed calories are within 90%-110% of the combined
+                   share of that day's requested meals, where breakfast covers 25%, lunch 35% and dinner
+                   40% of the daily target; check days independently and never offset one day against another
                 3. ALLERGEN_PRESENT: recipe contains an ingredient matching user's allergies
                 4. RESTRICTION_VIOLATION: recipe violates dietary restrictions (e.g., meat for vegetarian)
                 5. DISLIKED_INGREDIENTS_PRESENT: recipe contains disliked ingredients

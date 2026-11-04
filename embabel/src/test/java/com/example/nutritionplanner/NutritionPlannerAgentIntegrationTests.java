@@ -121,12 +121,12 @@ class NutritionPlannerAgentIntegrationTests extends EmbabelMockitoIntegrationTes
         stubWorkflow(0);
         var revisions = new AtomicInteger();
         whenCreateObject(prompt -> prompt.contains("Create a weekly meal plan"), WeeklyPlan.class)
-                .thenReturn(plan("Under target", 190, 2500));
+                .thenReturn(plan("Under target", 190, WEDNESDAY_BUDGET));
         whenCreateObject(prompt -> prompt.contains("Revise the recipes"), WeeklyPlan.class)
                 .thenAnswer(invocation -> revisions.incrementAndGet() < successfulRevision
-                        ? plan("Offsetting days", 2249, 2751) : plan("Accepted", 2250, 2750));
+                        ? plan("Offsetting days", 1687, 688) : plan("Accepted", 1688, 687));
 
-        assertEquals(plan("Accepted", 2250, 2750), planner.plan(REQUEST, () -> "alice"));
+        assertEquals(plan("Accepted", 1688, 687), planner.plan(REQUEST, () -> "alice"));
         verifyWorkflowCounts(successfulRevision + 1, successfulRevision);
     }
 
@@ -134,9 +134,9 @@ class NutritionPlannerAgentIntegrationTests extends EmbabelMockitoIntegrationTes
     void passingModelAuditsStillExhaustCalorieFailuresWithHttp422() throws Exception {
         stubWorkflow(0);
         whenCreateObject(prompt -> prompt.contains("Create a weekly meal plan"), WeeklyPlan.class)
-                .thenReturn(plan("Under target", 190, 2500));
+                .thenReturn(plan("Under target", 190, WEDNESDAY_BUDGET));
         whenCreateObject(prompt -> prompt.contains("Revise the recipes"), WeeklyPlan.class)
-                .thenReturn(plan("Offsetting days", 2249, 2751));
+                .thenReturn(plan("Offsetting days", 1687, 688));
 
         mvc.perform(post("/api/nutrition-plan").with(httpBasic("alice", "123456"))
                         .contentType("application/json").content(mapper.writeValueAsString(REQUEST)))
@@ -205,7 +205,7 @@ class NutritionPlannerAgentIntegrationTests extends EmbabelMockitoIntegrationTes
         if (username.equals("bob")) {
             doReturn(profile).when(profiles).getUserProfile("bob");
             whenCreateObject(prompt -> prompt.contains("Create a weekly meal plan"), WeeklyPlan.class)
-                    .thenReturn(plan("Candidate 0", 2200, 2200));
+                    .thenReturn(plan("Candidate 0", 1650, 550));
         }
         try (var client = mcpClient(username)) {
             client.initialize();

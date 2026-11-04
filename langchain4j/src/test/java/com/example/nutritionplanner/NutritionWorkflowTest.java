@@ -104,8 +104,10 @@ class NutritionWorkflowTest {
         var planner = planner(model);
 
         assertThatThrownBy(() -> invoke(planner, "alice"))
-                .isInstanceOfSatisfying(PlanValidationException.class, exception ->
-                        assertThat(exception.audit()).isEqualTo(failed(4)));
+                .isInstanceOfSatisfying(PlanValidationException.class, exception -> {
+                    assertThat(exception.audit()).isEqualTo(failed(4));
+                    assertThat(exception.candidate()).isEqualTo(plan(4));
+                });
         assertThat(model.initials.get()).isEqualTo(1);
         assertThat(model.revisions.get()).isEqualTo(3);
         assertThat(model.audits.get()).isEqualTo(4);

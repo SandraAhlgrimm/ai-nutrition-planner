@@ -18,6 +18,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Controller
 class NutritionPlannerUiController extends SseInteractionController {
 
+    private static final org.slf4j.Logger log =
+            org.slf4j.LoggerFactory.getLogger(NutritionPlannerUiController.class);
     private final ChatModel chatModel;
     private final NutritionPlannerAgent nutritionPlannerAgent;
     private final ConcurrentHashMap<String, AskUserQuestionHandler> questionHandlers = new ConcurrentHashMap<>();
@@ -56,9 +58,17 @@ class NutritionPlannerUiController extends SseInteractionController {
                     sendEvent(interactionId, "fragments/hitl", Map.of("questions", questions)));
             questionHandlers.put(interactionId, askUserQuestionHandler);
 
-            var plan = nutritionPlannerAgent.createNutritionPlan(username, request, askUserQuestionHandler);
-
-            sendEvent(interactionId, "fragments/plan", Map.of("plan", plan));
+            try {
+                var plan = nutritionPlannerAgent.createNutritionPlan(username, request, askUserQuestionHandler);
+                sendEvent(interactionId, "fragments/plan", Map.of("plan", plan));
+            } catch (NutritionPlanValidationException rejected) {
+                if (!(rejected.candidate() instanceof WeeklyPlan candidate)) {
+                    throw rejected;
+                }
+                log.warn("Showing noncompliant browser candidate after {} audits", rejected.audits());
+                sendEvent(interactionId, "fragments/plan",
+                        Map.of("plan", candidate, "feedback", rejected.feedback()));
+            }
         }, interactionId -> {
             var handler = questionHandlers.remove(interactionId);
             if (handler != null) handler.close();

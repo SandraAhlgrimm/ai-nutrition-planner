@@ -325,8 +325,18 @@ curl --silent --show-error --fail-with-body \
 ```
 
 The result contains `days` with nullable `breakfast`, `lunch`, and `dinner`
-recipes. Unrequested meals stay null. HTTP 422 denotes exhausted audits;
-other execution failures are errors rather than plans.
+recipes. Unrequested meals stay null. For REST, HTTP 422 denotes exhausted
+audits; MCP also rejects noncompliant plans. Other execution failures are errors
+rather than plans.
+
+In all three **browser UIs only**, exhausted validation displays the final
+audited candidate with a prominent **requirements not met** warning and the
+audit feedback, rather than hiding the recipes. This is not a validated plan
+and may violate dietary restrictions or allergies; it must not be treated as
+safe or compliant. **Try again** starts a fresh bounded workflow using the
+current form selections and instructions, which can be edited first. No rerun
+starts automatically. Missing, malformed or unaudited results and provider
+failures still produce errors without a plan.
 
 Only the **Spring AI browser flow** asks follow-up cooking-preference questions.
 It owns the authenticated SSE interaction and releases pending questions on

@@ -57,7 +57,7 @@ class ValidationRetryAdvisor<T> implements CallAdvisor {
 
             if (attempt == maxRetries) {
                 log.warn("Nutrition validation failed after {} audited candidates", attempt + 1);
-                throw new NutritionPlanValidationException(attempt + 1, validationResult.feedback());
+                throw new NutritionPlanValidationException(attempt + 1, validationResult.feedback(), entity);
             }
             log.info("Validation failed; creating revision {}/{}", attempt + 1, maxRetries);
             response = chain.copy(this).nextCall(withValidationFeedback(request, entity, validationResult));

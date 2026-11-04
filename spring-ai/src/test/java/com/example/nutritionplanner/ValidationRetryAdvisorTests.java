@@ -67,6 +67,7 @@ class ValidationRetryAdvisorTests {
                 .isInstanceOfSatisfying(NutritionPlanValidationException.class, exception -> {
                     assertThat(exception.audits()).isEqualTo(4);
                     assertThat(exception.feedback()).contains("Fix sodium");
+                    assertThat(exception.candidate()).isEqualTo(new Candidate("candidate"));
                 });
         assertThat(audits).hasValue(4);
         verify(chain, times(4)).nextCall(any());

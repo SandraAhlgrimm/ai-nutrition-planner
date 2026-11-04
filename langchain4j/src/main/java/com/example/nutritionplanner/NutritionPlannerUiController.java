@@ -89,12 +89,13 @@ class NutritionPlannerUiController {
     }
 
     @ExceptionHandler(PlanValidationException.class)
-    @ResponseStatus(HttpStatus.UNPROCESSABLE_CONTENT)
+    @ResponseStatus(HttpStatus.OK)
     String validationFailed(PlanValidationException exception, Model model) {
         log.warn("Meal plan validation exhausted");
-        model.addAttribute("error", exception.getMessage());
+        model.addAttribute("plan", exception.candidate());
         model.addAttribute("feedback", exception.audit().consolidatedFeedback());
-        return "fragments/plan :: error";
+        model.addAttribute("violations", exception.audit().violations());
+        return "fragments/plan :: plan";
     }
 
     @ExceptionHandler(AgentInvocationException.class)

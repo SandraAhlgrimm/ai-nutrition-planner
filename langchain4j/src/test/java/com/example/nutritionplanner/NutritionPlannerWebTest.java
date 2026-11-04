@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
@@ -66,7 +67,7 @@ class NutritionPlannerWebTest {
 
     @Test
     void exhaustionIs422ProblemDetailWithFinalAuditNotAnInvalidPlan() throws Exception {
-        when(planner.createNutritionPlan(any(), any())).thenThrow(new PlanValidationException(failed(4)));
+        when(planner.createNutritionPlan(any(), any())).thenThrow(new PlanValidationException(failed(4), plan(4)));
 
         mvc.perform(post("/api/nutrition-plan").with(user("alice"))
                         .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(REQUEST)))
@@ -143,18 +144,40 @@ class NutritionPlannerWebTest {
     }
 
     @Test
-    void formExhaustionRendersErrorAndNeverRendersPlan() throws Exception {
-        when(planner.createNutritionPlan(eq("alice"), any())).thenThrow(new PlanValidationException(failed(4)));
+    void formExhaustionShowsFinalAuditedCandidateWithWarningAndManualRetry() throws Exception {
+        when(planner.createNutritionPlan(eq("alice"), any())).thenThrow(new PlanValidationException(failed(4), plan(4)));
 
         mvc.perform(post("/plan").with(user("alice")).header("HX-Request", "true").param("monday", "DINNER"))
-                .andExpect(status().is(422))
-                .andExpect(view().name("fragments/plan :: error"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("fragments/plan :: plan"))
                 .andExpect(content().string(containsString("role=\"alert\"")))
                 .andExpect(content().string(containsString("Feedback for candidate-4")))
-                .andExpect(content().string(not(containsString("Your Weekly Plan"))));
+                .andExpect(content().string(containsString("Requirements not met")))
+                .andExpect(content().string(containsString("not a validated plan")))
+                .andExpect(content().string(containsString("candidate-4")))
+                .andExpect(content().string(containsString("form=\"nutrition-plan-form\"")))
+                .andExpect(content().string(containsString("Try again")));
+        verify(planner, times(1)).createNutritionPlan(eq("alice"), any());
         mvc.perform(get("/").with(user("alice"))).andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"nutrition-plan-form\"")))
                 .andExpect(content().string(containsString("[400, 422, 502].includes(event.detail.xhr.status)")))
                 .andExpect(content().string(containsString("event.detail.shouldSwap = true")));
+    }
+
+    @Test
+    void browserFailureFeedbackIsEscapedAndRetryCanReturnAValidatedPlan() throws Exception {
+        var audit = new NutritionAuditValidationResult(false, failed(4).violations(), "<script>unsafe</script>");
+        when(planner.createNutritionPlan(eq("alice"), any()))
+                .thenThrow(new PlanValidationException(audit, plan(4))).thenReturn(plan(1));
+        mvc.perform(post("/plan").with(user("alice")).param("monday", "DINNER"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("&lt;script&gt;unsafe&lt;/script&gt;")))
+                .andExpect(content().string(not(containsString("<script>unsafe</script>"))));
+        mvc.perform(post("/plan").with(user("alice")).param("monday", "DINNER"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("candidate-1")))
+                .andExpect(content().string(not(containsString("Requirements not met"))));
+        verify(planner, times(2)).createNutritionPlan(eq("alice"), any());
     }
 
     @Test

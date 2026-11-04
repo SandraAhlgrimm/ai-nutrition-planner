@@ -87,7 +87,7 @@
 
         <div id="request-errors" aria-live="polite"></div>
 
-        <form hx-post="/plan" hx-target="#plan-events-container" hx-swap="innerHTML" class="space-y-6" modelAttribute="weeklyPlanRequest">
+        <form id="nutrition-plan-form" hx-post="/plan" hx-target="#plan-events-container" hx-swap="innerHTML" class="space-y-6" modelAttribute="weeklyPlanRequest">
 
             <!-- Days & Meals -->
             <div>

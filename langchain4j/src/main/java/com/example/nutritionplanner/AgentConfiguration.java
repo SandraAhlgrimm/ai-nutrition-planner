@@ -125,7 +125,8 @@ class AgentConfiguration {
         var audit = Objects.requireNonNull(scope.readState(NutritionAuditValidationResult.class),
                 "The nutrition audit did not return a result");
         if (!audit.allPassed()) {
-            throw new PlanValidationException(audit);
+            throw new PlanValidationException(audit,
+                    Objects.requireNonNull(scope.readState(WeeklyPlan.class), "The planner did not return a plan"));
         }
         return Objects.requireNonNull(scope.readState(WeeklyPlan.class), "The planner did not return a plan");
     }

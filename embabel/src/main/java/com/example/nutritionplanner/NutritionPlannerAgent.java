@@ -119,7 +119,7 @@ class NutritionPlannerAgent {
                 return new Done(weeklyPlan);
             }
             if (budget.exhausted()) {
-                throw new NutritionPlanRejectedException(budget, validationResult);
+                throw new NutritionPlanRejectedException(budget, validationResult, weeklyPlan);
             }
             return new ReviseWeeklyPlan(weeklyPlan, context, budget, validationResult);
         }

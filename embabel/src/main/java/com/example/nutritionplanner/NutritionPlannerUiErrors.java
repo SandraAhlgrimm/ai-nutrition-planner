@@ -17,7 +17,10 @@ class NutritionPlannerUiErrors {
     @ExceptionHandler(NutritionPlanRejectedException.class)
     ModelAndView rejected(NutritionPlanRejectedException failure) {
         log.warn("Nutrition plan rejected after {} audits", failure.audits());
-        return error(failure.getMessage(), HttpStatus.UNPROCESSABLE_CONTENT);
+        return new ModelAndView("fragments/plan :: plan",
+                Map.of("plan", failure.candidate(), "feedback", failure.validationResult().consolidatedFeedback(),
+                        "violations", failure.validationResult().violations()),
+                HttpStatus.OK);
     }
 
     @ExceptionHandler(NutritionPlanningException.class)

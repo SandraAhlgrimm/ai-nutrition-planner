@@ -16,15 +16,18 @@ record NutritionAuditValidationResult(boolean allPassed, List<NutritionAuditReci
         }
     }
 
-    NutritionAuditValidationResult withRequiredMealChecks(WeeklyPlan plan, WeeklyPlanRequest request) {
+    NutritionAuditValidationResult withDeterministicChecks(WeeklyPlan plan, WeeklyPlanRequest request,
+                                                          UserProfile profile) {
         var requiredMealViolations = plan.requiredMealViolations(request);
-        if (requiredMealViolations.isEmpty()) {
+        var deterministicViolations = requiredMealViolations.isEmpty()
+                ? plan.dailyCalorieViolations(request, profile) : requiredMealViolations;
+        if (deterministicViolations.isEmpty()) {
             return this;
         }
         var combined = new ArrayList<>(violations);
-        combined.addAll(requiredMealViolations);
+        combined.addAll(deterministicViolations);
         return new NutritionAuditValidationResult(false, combined,
-                consolidatedFeedback + "\nRequired meal checks: " + requiredMealViolations);
+                consolidatedFeedback + "\nDeterministic plan checks: " + deterministicViolations);
     }
 
     record NutritionAuditRecipeViolation(DayOfWeek dayOfWeek, String recipeName, String explanation, String suggestedFix) {}

@@ -33,6 +33,22 @@ The UI is at `http://localhost:8080`; the demo login remains `alice` / `123456`.
 The JSON endpoint remains authenticated `POST /api/nutrition-plan`.
 These credentials and the permissive demo CSRF policy are not production authentication.
 
+### Daily calorie acceptance
+
+The demo profile (`alice`) targets **2,500 kcal/day**. Every requested day's recipes
+must total **2,250-2,750 kcal, inclusive** (+/-10% of the profile's daily target).
+This is a deterministic check **in addition to** the model's dietary audit:
+2,249 or 2,751 kcal fails, as does an obviously insufficient 190 kcal day.
+One day's excess cannot offset another day's deficit; weekly averages are not used.
+The same per-day rule applies when only one or two meals are requested: those
+requested meals together must meet the range; no unrequested meals may be added.
+For a custom profile, the inclusive limits are 90% rounded up and 110% rounded down
+to whole kcal. This is demo policy, not personalized medical guidance.
+
+Failures feed the existing revision cycle: one initial plan plus at most three
+revisions, with every candidate audited. Exhaustion returns HTTP **422**, never an
+invalid successful plan. REST, UI, and the exported MCP goal share this validation.
+
 Choose exactly one model profile; add `observability` separately, for example
 `SPRING_PROFILES_ACTIVE=azure,observability`. Without an explicit profile, `openai` is the default.
 

@@ -114,6 +114,38 @@ class NutritionPlannerAgentIntegrationTests extends EmbabelMockitoIntegrationTes
         verifyWorkflowCounts(4, 3);
     }
 
+    @ParameterizedTest
+    @ValueSource(ints = {1, 3})
+    void calorieFailuresAreRevisedUntilEveryRequestedDayPasses(int successfulRevision) {
+        stubWorkflow(0);
+        var revisions = new AtomicInteger();
+        whenCreateObject(prompt -> prompt.contains("Create a weekly meal plan"), WeeklyPlan.class)
+                .thenReturn(plan("Under target", 190, 2500));
+        whenCreateObject(prompt -> prompt.contains("Revise the recipes"), WeeklyPlan.class)
+                .thenAnswer(invocation -> revisions.incrementAndGet() < successfulRevision
+                        ? plan("Offsetting days", 2249, 2751) : plan("Accepted", 2250, 2750));
+
+        assertEquals(plan("Accepted", 2250, 2750), planner.plan(REQUEST, () -> "alice"));
+        verifyWorkflowCounts(successfulRevision + 1, successfulRevision);
+    }
+
+    @Test
+    void passingModelAuditsStillExhaustCalorieFailuresWithHttp422() throws Exception {
+        stubWorkflow(0);
+        whenCreateObject(prompt -> prompt.contains("Create a weekly meal plan"), WeeklyPlan.class)
+                .thenReturn(plan("Under target", 190, 2500));
+        whenCreateObject(prompt -> prompt.contains("Revise the recipes"), WeeklyPlan.class)
+                .thenReturn(plan("Offsetting days", 2249, 2751));
+
+        mvc.perform(post("/api/nutrition-plan").with(httpBasic("alice", "123456"))
+                        .contentType("application/json").content(mapper.writeValueAsString(REQUEST)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.audits").value(4))
+                .andExpect(jsonPath("$.revisions").value(3))
+                .andExpect(jsonPath("$.days").doesNotExist());
+        verifyWorkflowCounts(4, 3);
+    }
+
     @Test
     void modelFailureIsExplicitAndNeverTriggersRevisions() {
         whenCreateObject(prompt -> prompt.contains("seasonal produce"), SeasonalIngredients.class)
@@ -171,6 +203,8 @@ class NutritionPlannerAgentIntegrationTests extends EmbabelMockitoIntegrationTes
                 2200, List.of("sesame"), List.of("mushrooms"));
         if (username.equals("bob")) {
             doReturn(profile).when(profiles).getUserProfile("bob");
+            whenCreateObject(prompt -> prompt.contains("Create a weekly meal plan"), WeeklyPlan.class)
+                    .thenReturn(plan("Candidate 0", 2200, 2200));
         }
         try (var client = mcpClient(username)) {
             client.initialize();

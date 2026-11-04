@@ -52,7 +52,7 @@ class NutritionPlannerWebTests {
                 .andExpect(jsonPath("$.days[0].day").value("MONDAY"))
                 .andExpect(jsonPath("$.days[0].breakfast").value(nullValue()))
                 .andExpect(jsonPath("$.days[0].lunch.name").value("Lentils"))
-                .andExpect(jsonPath("$.days[0].lunch.nutrition.calories").value(500))
+                .andExpect(jsonPath("$.days[0].lunch.nutrition.calories").value(1250))
                 .andExpect(jsonPath("$.days[1].breakfast.name").value("Lentils"));
         verify(planner).plan(eq(REQUEST), argThat(principal -> principal.getName().equals("alice")));
     }

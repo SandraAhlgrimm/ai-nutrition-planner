@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.1.1</version>
+		<version>4.1.2</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.example</groupId>
@@ -13,8 +13,8 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<properties>
 		<java.version>25</java.version>
-		<embabel-agent.version>1.5.2</embabel-agent.version>
-		<spring-ai.version>2.0.1</spring-ai.version>
+		<embabel-agent.version>1.5.4</embabel-agent.version>
+		<spring-ai.version>2.0.2</spring-ai.version>
 	</properties>
 	<dependencies>
 		<dependency>

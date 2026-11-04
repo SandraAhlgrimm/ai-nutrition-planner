@@ -41,7 +41,8 @@ class NutritionPlannerAgent {
                 .createObject("""
                         You are a nutrition expert with deep knowledge of seasonal produce.
 
-                        Activate the current_month skill and execute its script tool to determine the current month.
+                        Activate the current-month skill using its advertised activation tool, then execute its script
+                        tool to determine the current month. Use the tool names in the supplied tool catalog.
                         Do not guess the month. If the script fails, report the failure rather than inventing a month.
                         Return a list of ingredients in English that are currently in season for that month in %s.
                         Focus on fish, meat, fruits, vegetables, and herbs that are at peak availability and quality.
@@ -59,6 +60,9 @@ class NutritionPlannerAgent {
                         Create a weekly meal plan with recipes for EVERY requested meal below. Do not skip any meal
                         or add unrequested days or meals. Omit properties for meals that were not requested.
                         Write all recipe names, instructions, ingredient names, quantities, and units in English.
+                        For EACH requested day, the requested meals together must total within +/-10%% of the
+                        user's daily calorie target, inclusive. For a 2500 kcal target, accept 2250-2750 kcal.
+                        This applies even when only one meal is requested. Never offset one day with another.
 
                         # User requested meals and days
                         %s
@@ -93,6 +97,9 @@ class NutritionPlannerAgent {
                     .createObject("""
                         Unfold weekly_meal_plan_tools with category nutrition and use its tools to calculate
                         daily calories, protein, carbs, fat, and sodium. Check ALL requested days and meals.
+                        Each requested day's total must be within +/-10%% of the user's daily calorie target,
+                        inclusive (2250-2750 kcal for a 2500 kcal target), even for a single requested meal.
+                        Reject both under-target and over-target days; never average or offset across days.
                         
                         # Validate these recipes:
                         %s
@@ -107,7 +114,7 @@ class NutritionPlannerAgent {
                         %s
                         """.formatted(weeklyPlan, context.userProfile(), context.request().days(),
                         context.request().additionalInstructions()), NutritionAuditValidationResult.class)
-                    .withRequiredMealChecks(weeklyPlan, context.request());
+                    .withDeterministicChecks(weeklyPlan, context.request(), context.userProfile());
             if (validationResult.allPassed()) {
                 return new Done(weeklyPlan);
             }
@@ -134,6 +141,9 @@ class NutritionPlannerAgent {
                         Revise the recipes based on the following feedback from a nutrition expert.
                         Keep EVERY requested day and meal, omit unrequested meal properties, and provide complete
                         nutrition information. Write all recipe content in English.
+                        Each requested day's meals together must total within +/-10%% of the user's daily
+                        calorie target, inclusive (2250-2750 kcal for a 2500 kcal target).
+                        This applies even to a single requested meal. Never offset one day with another.
 
                         # Recipes
                         %s
@@ -196,7 +206,8 @@ class NutritionPlannerAgent {
             Validate a list of recipes against a user profile and flag any violations.
             Check each recipe for:
             1. NUTRITION_INFO: Nutrition information is available for each recipe
-            2. CALORIE_OVERFLOW: calories exceed daily calorie target
+            2. CALORIE_OUT_OF_RANGE: any requested day's total is below 90% or above 110% of the daily
+               calorie target (inclusive bounds); never offset a deficit or excess with another day
             3. ALLERGEN_PRESENT: recipe contains an ingredient matching user's allergies
             4. RESTRICTION_VIOLATION: recipe violates dietary restrictions (e.g., meat for vegetarian)
             5. DISLIKED_INGREDIENTS_PRESENT: recipe contains disliked ingredients

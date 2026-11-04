@@ -16,7 +16,7 @@ The other tracks retain their general-purpose openings.
 
 | Track | Opening deep link (append to `index.html`) | Story |
 | --- | --- | --- |
-| Framework comparison | `#/comparison/opening` | Øredev intro; topic inspiration from Timo Salm's AI Recipe Finder; speaker intro; one contract; native graphs, application orchestration and typed planning; feature-ownership table, tools, humans, skills, MCP and opt-in labs. |
+| Framework comparison | `#/comparison/opening` | Øredev 2026 session, **“Comparing Agentic AI Frameworks for Java”**; topic inspiration from Timo Salm's AI Recipe Finder; speaker intro; one contract; native graphs, application orchestration and typed planning; feature-ownership table, tools, humans, skills, MCP and opt-in labs. |
 | LangChain4j | `#/langchain4j/opening` | Typed native workflows and invocation-local tools; deterministic acceptance; official Java SDK MCP bridge; experimental decision/cascade/mapper labs. |
 | Spring AI | `#/spring-ai/opening` | ChatClient and native tool advisors; application refinement/routing/workers; community skills/questions; native RC sessions, compaction and tool confirmation. |
 | Embabel | `#/embabel/opening` | Baseline GOAP and audit states; trusted skills, unfolding tools and scoped identity; separate experimental decisions, native Supervisor and Hybrid labs. |
@@ -144,7 +144,7 @@ The talks distinguish **framework**, **application** and **community** ownership
 testimonial, deployment or publishing service is implied. The historical
 [`slides.pdf`](../slides.pdf) is unchanged.
 
-The comparison talk uses the event name **Øredev** without implying a year,
+The comparison talk uses the event name **Øredev 2026** without implying a
 schedule slot or separate event-branded title. Its speaker slide includes
 Sandra Ahlgrimm's role, Java/AI/JetBrains focus and GitHub profile. The portrait
 is embedded in the HTML for offline use and comes from
@@ -161,6 +161,13 @@ The verified README snapshot is
 [`9a7558f`](https://github.com/timosalm/ai-recipe-finder/commit/9a7558fe82b111f3b3983ec0ec3fa7df3e83d7fc).
 The added one-minute slide is balanced by reducing the comparison's
 observability slide to one minute, keeping the 45-minute talk duration intact.
+
+The opening slide now uses the official Øredev 2026 session title,
+**“Comparing Agentic AI Frameworks for Java.”** It was verified against the
+official website's JavaScript-linked Sessionize `Sessions` feed:
+[`https://sessionize.com/api/v2/y2gp6i8d/view/Sessions`](https://sessionize.com/api/v2/y2gp6i8d/view/Sessions).
+Sandra supplied the session abstract, which is reproduced verbatim in the
+opening slide's speaker notes.
 
 ## Editing and verification
 

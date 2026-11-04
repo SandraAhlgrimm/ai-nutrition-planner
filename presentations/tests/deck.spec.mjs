@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { readFile, mkdir, writeFile } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -9,8 +10,18 @@ const presentation = pathToFileURL(resolve(here, "../index.html")).href;
 const artifacts = resolve(process.env.QA_DIR || resolve(here, "../test-results/visual"));
 const trackIds = ["comparison", "langchain4j", "spring-ai", "embabel"];
 const normalize = text => text.trim().split("\n").map(line => line.trim()).join("\n");
+const oredevAbstract = "Agentic AI marks a shift from passive, prompt-driven interactions to autonomous systems that can reason, plan, and execute work. On the JVM, several frameworks are emerging to support this new paradigm, but they take very different approaches. In this session, I compare frameworks such as Spring AI, LangChain4j, and Embabel on how they implement core agent capabilities such as reasoning loops, tool invocation, memory, and orchestration. I also look at how the Model Context Protocol (MCP) helps standardize access to data and tools across agents. Through practical examples, attendees will gain a clear understanding of the trade-offs between these frameworks and guidance on choosing the right one to evolve JVM applications from simple LLM integrations into truly autonomous, agentic systems.";
 let errors;
 let networkRequests;
+const sourceCache = new Map();
+
+function readPinnedSource(revision, filePath) {
+  const key = `${revision}:${filePath}`;
+  if (!sourceCache.has(key)) {
+    sourceCache.set(key, execFileSync("git", ["show", key], { cwd: root, encoding: "utf8" }));
+  }
+  return sourceCache.get(key);
+}
 
 test.beforeEach(async ({ page, context }) => {
   errors = [];
@@ -142,7 +153,15 @@ test("merged facts remain consistent across talks, notes and source pins", async
 
 test("comparison opens at Øredev and introduces Sandra with an embedded portrait", async ({ page }) => {
   await navigate(page, "comparison", "opening");
-  await expect(page.locator("#stage .slide:not([hidden])")).toContainText("Øredev");
+  const opening = page.locator("#stage .slide:not([hidden])");
+  await expect(opening).toContainText("Øredev 2026");
+  expect((await opening.locator(".hero-title").evaluate(element => element.innerText)).replace(/\s+/g, " ").trim())
+    .toBe("Comparing Agentic AI Frameworks for Java");
+  await expect(opening).toContainText("Who owns the next step?");
+  await expect(page.locator('#notes-content a[href="https://sessionize.com/api/v2/y2gp6i8d/view/Sessions"]')).toHaveCount(1);
+  const abstract = await page.locator("#notes-content [data-session-description] p").evaluateAll(paragraphs =>
+    paragraphs.map(paragraph => paragraph.textContent).join(" "));
+  expect(abstract.replace(/\s+/g, " ").trim()).toBe(oredevAbstract);
   await navigate(page, "comparison", "origin-story");
   const originSlide = page.locator("#stage .slide:not([hidden])");
   await expect(originSlide).toContainText("Function Calling and RAG");
@@ -191,7 +210,7 @@ for (const trackId of trackIds) {
         const id = await code.getAttribute("data-snippet");
         if (!checkedSnippets.has(id)) {
           expect(path).toMatch(/^(langchain4j|spring-ai|embabel)\/src\/(main|test)\/java\//);
-          const source = await readFile(resolve(root, path), "utf8");
+          const source = readPinnedSource(track.revision, path);
           expect.soft(normalize(source), `${trackId}/${slide.slug}: verbatim excerpt ${id}`).toContain(normalize(await code.textContent()));
           checkedSnippets.add(id);
         }

@@ -71,6 +71,15 @@ class NutritionPlannerApplicationTests {
     }
 
     @Test
+    void patternLabIsNotExposedByDefault() throws Exception {
+        mvc.perform(get("/api/patterns").with(user("alice"))).andExpect(status().isNotFound());
+        mvc.perform(post("/api/patterns/routing").with(user("alice"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"prompt\":\"Quick cooking\"}"))
+                .andExpect(status().isNotFound());
+        verify(model, never()).call(any(Prompt.class));
+    }
+
+    @Test
     void realWorkflowExecutesSkillsClockNativeToolSearchAndNutritionTools() {
         assertThat(agent.createNutritionPlan("alice", TestPlans.request())).isEqualTo(TestPlans.plan());
         assertThat(script.candidates).hasValue(1);

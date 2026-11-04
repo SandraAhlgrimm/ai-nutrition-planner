@@ -153,8 +153,8 @@ class OllamaToolLoopTest {
             assertThat(messages.get(2).get("tool_calls")).hasSize(3);
             assertThat(messages.get(3).get("role").asString()).isEqualTo("tool");
             assertThat(JSON.readTree(messages.get(3).get("content").asString()).get("MONDAY").get("calories").asInt())
-                    .isEqualTo(100);
-            assertThat(JSON.readTree(messages.get(4).get("content").asString()).get("calories").asInt()).isEqualTo(100);
+                    .isEqualTo(2425);
+            assertThat(JSON.readTree(messages.get(4).get("content").asString()).get("calories").asInt()).isEqualTo(2425);
             assertThat(messages.get(5).get("content").asString()).isEqualTo("2");
         }
 

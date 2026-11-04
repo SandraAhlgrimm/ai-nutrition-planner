@@ -7,12 +7,15 @@ Agentic Spring implementations comparing three AI frameworks: **LangChain4j**, *
 ## Tech Stack
 
 - **Java 25** — prefer standard language features, records, and scoped values; preview features require explicit compiler and runtime configuration.
-- **Spring Boot 4.1.1** / Spring Framework 7
-- **Build**: Maven — each module independently inherits `spring-boot-starter-parent` 4.1.1. Use system Maven at the root; wrappers are also available inside each module.
+- **Spring Boot**: LangChain4j and Embabel use **4.1.2** / Spring Framework **7.0.10** (GA); the Spring AI sample uses **4.2.0-RC1** / Framework **7.1.0-RC1** (approved release candidates for the native Spring AI 2.1 examples).
+- **Build**: Maven — each module independently inherits its own `spring-boot-starter-parent`. Use system Maven at the root; wrappers are also available inside each module. Verify `mvn -version` uses Java 25; set `JAVA_HOME` and prepend its `bin` to `PATH` when needed.
 - **AI Frameworks**:
-  - LangChain4j BOM 1.20.0, agentic and Spring Boot 4 starters 1.20.0-beta30 (`langchain4j-spring-boot4-starter` + `langchain4j-agentic`)
-  - Spring AI 2.0.1 (`org.springframework.ai:spring-ai-starter-model-*`); community agent utilities 0.12.0 provide skills and human interaction.
-  - Embabel 1.5.2 MCP/observability starters and released skills; model providers use Spring AI 2.0.1 starters bridged through `SpringAiLlmService` with native provider-specific options converters.
+  - LangChain4j BOM/core **1.23.0**; agentic, `langchain4j-agentic-patterns`, Jackson 3 integration, Micrometer integration and dedicated Boot 4 starters **1.23.0-beta33**. Agentic and decision APIs remain experimental. Preserve the Jackson BOM overrides **3.2.4 / 2.22.4**.
+  - LangChain4j's HTTP MCP server uses **`io.modelcontextprotocol.sdk:mcp:2.1.0`**, not a LangChain4j-native HTTP server or a sibling sample.
+  - Spring AI **2.1.0-RC1** model/MCP starters, `spring-ai-tool-search-advisor`, and **`spring-ai-session-advisor`**. Community **`org.springaicommunity:spring-ai-agent-utils:0.13.0`** provides skills and browser questions; it is not Spring AI core orchestration. Existing lexical tool search uses **Lucene 9.12.3**.
+  - Embabel **1.5.4** MCP/observability starters, released skills, test support and native OpenAI/Ollama option converters. Model providers use Spring AI **2.0.2** starters bridged through `SpringAiLlmService`. Its new decision APIs are experimental; no extra specialized decision-provider dependency is needed for the LLM-backed lab.
+
+Do not force version parity across modules. The root is an aggregator, not their parent. Do not copy Spring AI's RC dependencies into Embabel or LangChain4j without an independently verified compatibility need.
 
 ## Build & Test Commands
 
@@ -62,9 +65,19 @@ ai-nutrition-planner/
 ### AI Framework Patterns
 
 - **LangChain4j**: define agents with `@Agent`-annotated interfaces. Compose with native `AgenticServices.sequenceBuilder()`, `parallelBuilder()`, and `loopBuilder()`. Use the dedicated `*-spring-boot4-starter` artifacts and configure models under `langchain4j.*`.
-- **Spring AI**: use the autoconfigured `ChatClient.Builder` fluent API and current native tool-calling/search advisors. Configure under `spring.ai.*`. Application-managed concurrency and retry policy are not a native multi-agent orchestration framework.
-- **Embabel**: define typed actions and goals using `@Agent`, `@Action`, and `@AchievesGoal`, with `@State` for the audit/revision lifecycle. Let the GOAP planner compose action chains rather than hardwiring their execution order.
-- **Shared retry contract**: generate an initial plan and allow at most three revisions. Audit every candidate, including the final revision. Stop on success; expose exhaustion as an explicit error (HTTP 422 for REST), never as a successful invalid or unaudited plan.
+- **Spring AI**: use the autoconfigured `ChatClient.Builder` fluent API and native tool-calling/search advisors. Configure under `spring.ai.*`. Application-managed concurrency, routing, worker composition and retry policy are not a native multi-agent orchestration framework. In 2.1, prefer native `SessionAdvisors`/session APIs over deprecated `ChatMemory`. Preserve provider-specific option builders with `mutate()`; do not replace them with generic options that fail inside real provider clients.
+- **Embabel**: define typed actions and goals using `@Agent`, `@Action`, and `@AchievesGoal`, with `@State` for the audit/revision lifecycle. Let GOAP compose the baseline action chains. Utility, Hybrid and Supervisor are distinct native planner choices, not synonyms for GOAP. Preserve the native provider-specific converters when using `SpringAiLlmService`.
+- **Shared retry contract**: generate an initial plan and allow at most three revisions. Audit every candidate, including the final revision. Each requested day must independently total 90%-110% of its calorie target, inclusive; enforce this deterministically in addition to the model audit. Stop on success; expose exhaustion as an explicit error (HTTP 422 for REST), never as a successful invalid or unaudited plan.
+
+### Opt-in Pattern Labs
+
+- Require the **`patterns`** profile alongside exactly one provider. Protect `GET /api/patterns` and explicit POST routes with the existing authentication. With the profile off, authenticated lab requests return 404. Startup/catalog reads must not call providers or download models.
+- Preserve `/api/nutrition-plan`, browser/HITL, and MCP as the audited baseline. Lab outputs are illustrative culinary results, not `WeeklyPlan`, allergy certification, medical advice, or fabricated approval/confidence.
+- LangChain4j demonstrates native `DecisionRouterPlanner`, `ConfidenceCascadePlanner`, and parallel mapper/sequence composition. The native cascade leaves its final tier ungraded, so preserve the application final-tier judgment. Decision-based labs require explicit `PATTERNS_DECISION_MODEL_NAME` and a compatible OpenAI/Ollama decision endpoint; Azure is mapper-only. Never substitute chat-generated probabilities for an unavailable `DecisionModel`.
+- Spring AI demonstrates application typed routing/bounded workers and native 2.1 session memory/turn-aware compaction/tool confirmation. Session ownership, capacity/turn/message bounds, expiry, failure state and approval replay protection remain application responsibilities. Approve/deny only the immutable server-stored native tool call; no client-supplied replacement arguments or automatic approval.
+- Embabel's typed-routing example uses native experimental classification/decision contracts and does not execute a specialist. Preserve explicit selected/no-match/inconclusive/failure outcomes. Supervisor/Hybrid use request-local scopes, not globally registered agents or MCP exports. Bound Supervisor's inner work at the native tool-loop boundary; outer `maxActions` alone is insufficient. Baseline calls without a pattern budget must retain their original behavior.
+- Bound tasks, model sends and retained state; propagate failure/cancellation rather than returning partial success. Call counts are not transport-attempt, token, billing, or medical guarantees. Do not add filesystem/shell/purchase/cloud-side-effect tools to the labs.
+- Keep comparison tables tied to code and pinned upstream tags. Distinguish native, community and application composition; newly released versus newly demonstrated; available-but-not-demonstrated versus unsupported. Lexical Lucene/category unfolding is not semantic vector search.
 
 ### Testing
 
@@ -72,14 +85,16 @@ ai-nutrition-planner/
 - Use **`@SpringBootTest`** for integration tests, **`@WebMvcTest`** for controller slices.
 - Use **`@MockitoBean`** (from `org.springframework.test.context.bean.override.mockito`) instead of `@MockBean`.
 - Mock AI model responses in unit tests — never call live APIs in CI.
+- On framework/provider upgrades, also drive real SDK/HTTP adapters, native advisors/tool loops and provider-specific options against isolated loopback/in-memory fixtures. A mocked top-level service or model cannot detect native option casts or wire-format regressions.
 - Each module should have tests validating its agentic workflow independently.
 - Cover first-pass success, revision success, success on the final permitted revision, and exhaustion with exact generation/audit counts.
 - Embabel workflow integration tests use the `offline` profile; the framework disables automatic agent registration under the literal `test` profile.
+- Cover pattern selection, actual model/action counts, caps, failure/cancellation, owner/request isolation, profile-off 404s and catalog authentication. Spring session tests must retain complete tool turns through compaction; confirmation tests must prove no pre-approval execution, denial, ownership, expiry and replay protection.
 
 ### Configuration
 
 - Externalize all API keys and model endpoints via environment variables or Spring config profiles.
 - Never hardcode API keys — use `${ENV_VAR}` placeholders in `application.yml`.
-- Select exactly one provider profile: `openai`, `azure`, or `ollama`. Add `observability` independently when exporting telemetry.
+- Select exactly one provider profile: `openai`, `azure`, or `ollama`. Add `observability` independently when exporting telemetry and `patterns` only when intentionally enabling the lab.
 - Preserve the environment variable names documented in `.env.example`; Spring Boot does not automatically import that file.
 - Skills and other bundled resources must work from a packaged JAR, not only from an exploded source-tree classpath.

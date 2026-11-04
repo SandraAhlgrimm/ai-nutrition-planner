@@ -27,7 +27,7 @@ final class TestPlans {
     static WeeklyPlan plan() {
         return new WeeklyPlan(List.of(new WeeklyPlan.DailyPlan(DayOfWeek.MONDAY, null,
                 new Recipe("Vegetable soup", List.of(new Recipe.Ingredient("carrots", "200", "g")),
-                        new NutritionInfo(600, 30.0, 70.0, 15.0, 500), "Cook and serve.", 20), null)));
+                        new NutritionInfo(2500, 30.0, 70.0, 15.0, 500), "Cook and serve.", 20), null)));
     }
 
     static WeeklyPlanRequest request() {

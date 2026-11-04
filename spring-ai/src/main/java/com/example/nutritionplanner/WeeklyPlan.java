@@ -6,6 +6,7 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.jspecify.annotations.Nullable;
 
 import java.time.DayOfWeek;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -13,6 +14,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public record WeeklyPlan(List<DailyPlan> days) {
+    private static final long DAILY_CALORIE_MIN_PERCENT = 90;
+    private static final long DAILY_CALORIE_MAX_PERCENT = 110;
 
     public WeeklyPlan {
         days = List.copyOf(days);
@@ -41,6 +44,29 @@ public record WeeklyPlan(List<DailyPlan> days) {
                 .filter(Objects::nonNull).toList());
         log.info("WeeklyPlan:nutritionTotalsForDay tool method finished with {} for {}", nutritionInfo, day);
         return nutritionInfo;
+    }
+
+    List<NutritionAuditValidationResult.NutritionAuditRecipeViolation> dailyCalorieViolations(
+            WeeklyPlanRequest request, UserProfile profile) {
+        var violations = new ArrayList<NutritionAuditValidationResult.NutritionAuditRecipeViolation>();
+        long target = profile.dailyCalorieTarget();
+        long minimum = (target * DAILY_CALORIE_MIN_PERCENT + 99) / 100;
+        long maximum = target * DAILY_CALORIE_MAX_PERCENT / 100;
+        for (var requestedDay : request.meals().keySet()) {
+            long calories = days.stream().filter(day -> day.day() == requestedDay)
+                    .flatMap(day -> Stream.of(day.breakfast(), day.lunch(), day.dinner()))
+                    .filter(Objects::nonNull)
+                    .mapToLong(recipe -> recipe.nutrition().calories()).sum();
+            if (calories < minimum || calories > maximum) {
+                violations.add(new NutritionAuditValidationResult.NutritionAuditRecipeViolation(requestedDay,
+                        "Daily calories",
+                        requestedDay + " has " + calories + " kcal; target " + target + " kcal requires "
+                                + minimum + "-" + maximum + " kcal inclusive.",
+                        "Revise " + requestedDay + " to total between " + minimum + " and " + maximum
+                                + " kcal. Do not offset with another day's total."));
+            }
+        }
+        return List.copyOf(violations);
     }
 
     @Tool(description = "Returns the total number of meals across all days of the weekly meal plan")

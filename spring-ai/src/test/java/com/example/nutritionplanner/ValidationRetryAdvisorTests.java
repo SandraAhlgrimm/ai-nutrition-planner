@@ -19,7 +19,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 class ValidationRetryAdvisorTests {
-    private static final String ORIGINAL = "MONDAY LUNCH; TUESDAY DINNER; profile vegetarian nuts 1800; quick recipes";
+    private static final String ORIGINAL = "MONDAY LUNCH; TUESDAY DINNER; profile vegetarian nuts 2500; quick recipes";
     private final CallAdvisorChain chain = mock(CallAdvisorChain.class);
     private final ChatClientRequest request = ChatClientRequest.builder()
             .prompt(new Prompt(List.of(new SystemMessage("Recipe Curator"), new UserMessage(ORIGINAL)))).build();

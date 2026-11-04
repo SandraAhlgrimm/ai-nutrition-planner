@@ -1,8 +1,9 @@
 # Spring AI nutrition planner
 
-Independent Java 25 / Maven sample using Spring Boot **4.1.1**, Spring AI **2.0.1**,
-and community **spring-ai-agent-utils 0.12.0**. Boot manages Spring Framework
-7.0.9, Jackson 3.1.5, and JUnit Jupiter 6.0.3. Spring AI manages MCP Java SDK 2.0.0.
+Independent Java 25 / Maven sample using Spring Boot **4.2.0-RC1** and Spring AI
+**2.1.0-RC1** (both **release candidates**), and community
+**spring-ai-agent-utils 0.13.0**. Boot manages Spring Framework 7.1.0-RC1,
+Jackson 3.1.7 / 2.21.7, and JUnit Jupiter 6.1.3. Spring AI manages MCP Java SDK 2.1.0.
 JUnit 6 is required by this Spring Test generation; the tests retain Jupiter
 annotations and use `@MockitoBean`.
 
@@ -20,6 +21,7 @@ annotations and use `@MockitoBean`.
 | Personas | Application system prompts, not framework agent types |
 | Parallel profile/seasonal lookup | Application `Workflow.parallel`, with typed results, virtual threads and Micrometer context propagation |
 | Nutrition audit/revision policy | Application `ValidationRetryAdvisor`, outside the native tool-calling loop |
+| Opt-in pattern lab | Application typed routing and bounded workers; native 2.1 RC session advisors and tool-call confirmation |
 
 This is not a native Spring AI multi-agent planner, GOAP workflow, or durable
 workflow engine. MCP elicitation and sampling are not used. Browser interaction
@@ -39,6 +41,17 @@ errors rather than empty successful responses.
 
 Nutrition estimates and dietary compliance still depend on model quality;
 this is a framework demonstration, not independently verified medical advice.
+The demo profile targets **2,500 kcal per day**. In addition to the model's
+nutrition audit, deterministic acceptance requires every requested day to total
+**2,250–2,750 kcal inclusive**; totals are checked per day and cannot offset one
+another. The bound is an example acceptance policy, not personalized nutrition
+guidance.
+
+Spring AI **2.1.0-RC1** and Boot **4.2.0-RC1** are deliberate pre-GA choices
+for demonstrating the matching native session and tool-confirmation APIs. This
+enables comparisons against APIs not available in the prior GA line, with the
+tradeoff that dependencies and integration details may change before GA; recheck
+the native session/confirmation behavior when upgrading.
 
 ## Run and test
 
@@ -51,7 +64,10 @@ SPRING_PROFILES_ACTIVE=ollama mvn -f spring-ai/pom.xml spring-boot:run
 ```
 
 Tests use deterministic fake chat responses, real native advisor/tool execution,
-and local HTTP MCP requests. They do not call external model APIs, Docker,
+and local HTTP MCP requests. Provider regression tests also drive the actual
+OpenAI SDK (including Azure configuration) and Ollama HTTP client through the
+complete skill, structured-plan, tool-search and audit loop against loopback
+fixtures. They do not call external model APIs, Docker,
 Ollama, or telemetry collectors. Resource tests load the skill from both a loose
 classpath and a JAR with a `BOOT-INF/classes` prefix.
 
@@ -70,6 +86,109 @@ disabled; selecting Ollama does not create an OpenAI model.
 
 Port remains `8080`; demo login/HTTP Basic credentials remain `alice` / `123456`.
 Use appropriate credentials, access controls and TLS before deployment.
+
+## Opt-in pattern lab
+
+The validated `/api/nutrition-plan`, browser, and MCP workflows remain the
+baseline. The lab is **off by default**: authenticated requests to its routes
+return 404 unless `patterns` is selected **alongside exactly one provider**.
+It returns illustrative cooking advice, never a `WeeklyPlan` or a claim that the
+nutrition audit passed.
+
+```bash
+SPRING_PROFILES_ACTIVE=ollama,patterns mvn -pl spring-ai spring-boot:run
+# Or use openai,patterns / azure,patterns with the environment variables above.
+curl -fsS -u alice:123456 http://localhost:8080/api/patterns
+```
+
+| Runnable pattern | Mechanism and code | Invocation | Bound / tradeoff |
+| --- | --- | --- | --- |
+| Typed routing | **Application** classification into a closed specialist enum, then one native `ChatClient` call; [PatternLabService](src/main/java/com/example/nutritionplanner/patterns/PatternLabService.java) | `POST /api/patterns/routing` with `{"prompt":"Quick plant-based cooking ideas"}` | Two model invocations. `UNSUPPORTED` is 422; unknown/malformed classifications fail, not a fallback specialist. This is not a native router engine. |
+| Orchestrator/workers | **Application** model-produced task list, virtual-thread workers, ordered synthesis; [PatternLabService](src/main/java/com/example/nutritionplanner/patterns/PatternLabService.java) | `POST /api/patterns/orchestrator-workers` with `{"prompt":"Suggest economical quick lentil dishes"}` | One planner + 1-3 concurrent workers + one synthesis: 3-5 calls. Workers have a 30-second deadline; failure cancels peers and skips synthesis. |
+| Session memory / compaction | **Native** `SessionAdvisors`, append-only session events, `TurnCountTrigger`, `WindowCompactionStrategy`; [PatternMemoryService](src/main/java/com/example/nutritionplanner/patterns/PatternMemoryService.java) | Create with `POST /api/patterns/memory/sessions`; send `{"prompt":"What could I cook from the demo pantry?"}` to `POST /api/patterns/memory/sessions/{id}/turns` | At most eight turns, two model calls and one read-only tool per turn. More than three active turns triggers a window retaining the newest two complete turns, including tool call/result pairs. |
+| Tool-call confirmation | **Native** `requiresConfirmation` metadata, paused `ToolCallingAdvisor`, `ToolCallDecisions` and `ToolCallingManager`; [PatternConfirmationService](src/main/java/com/example/nutritionplanner/patterns/PatternConfirmationService.java) | `POST /api/patterns/confirmations` with `{"prompt":"Remember to rinse lentils"}`; inspect the proposal, then `POST /api/patterns/confirmations/{id}/decision` with `{"decision":"APPROVE"}` or `{"decision":"DENY"}` | One initial model call + one resume call. Approval can save only the displayed, server-stored note in this temporary demo. Denial never executes it. No external operation or real account data changes. |
+
+Routing and orchestrator/workers are **existing design patterns newly
+demonstrated here**. Session memory/turn-aware compaction and native tool-call
+confirmation are **new APIs in the 2.1 release candidate**. Ordered message parts
+are also new upstream; native provider messages are retained across confirmation
+resume, not reconstructed from text. The existing parallel preparation and
+audit/revision examples are retained rather than duplicated.
+
+All lab prompts are 1-1000 characters. Worker instructions, model output and tool
+arguments are bounded, including a 32 KiB serialized assistant-message ceiling
+covering reasoning and opaque provider parts before session storage.
+[PatternModels](src/main/java/com/example/nutritionplanner/patterns/PatternModels.java)
+counts calls **inside** the native tool loop and admits at most eight in-flight
+model invocations across the lab. Counts describe `ChatModel` invocations, not
+SDK transport retries, tokens or cost. Provider-specific options are mutated,
+not replaced with an incompatible generic options object.
+
+### Try the stateful examples
+
+The commands below use `jq` only to extract the returned opaque ID:
+
+```bash
+SESSION=$(curl -fsS -u alice:123456 -X POST \
+  http://localhost:8080/api/patterns/memory/sessions | jq -r .id)
+curl -fsS -u alice:123456 -H 'Content-Type: application/json' \
+  "http://localhost:8080/api/patterns/memory/sessions/$SESSION/turns" \
+  -d '{"prompt":"I prefer quick cooking. What is in the demo pantry?"}'
+# Repeat with distinct cooking requests. The fourth successful turn demonstrates compaction.
+curl -fsS -u alice:123456 "http://localhost:8080/api/patterns/memory/sessions/$SESSION"
+
+curl -fsS -u alice:123456 -H 'Content-Type: application/json' \
+  http://localhost:8080/api/patterns/confirmations \
+  -d '{"prompt":"Remember to rinse the lentils before cooking"}'
+# Read the returned id and proposed.text before deciding. Replace CONFIRMATION_ID:
+curl -fsS -u alice:123456 -H 'Content-Type: application/json' \
+  http://localhost:8080/api/patterns/confirmations/CONFIRMATION_ID/decision \
+  -d '{"decision":"DENY"}'
+```
+
+Memory responses expose `loggedEvents`, `activeMessages`, `activeTurns`,
+`compactions`, `activeToolCalls` and `activeToolResults`, so a window change is
+observable. Compaction changes the **active prompt view**, not the event log:
+covered events remain until the session expires. This example does not summarize
+or persist conversations across application restarts.
+
+Both kinds of state are server-generated and bound to the authenticated
+principal, with four states per user and 32 total **per stateful pattern**.
+Memory expires after ten minutes; confirmation records and saved demo notes
+after five. Expiry is enforced on access and cleaned once a minute (an in-flight
+operation holds its own state lock). In-memory storage is bounded by these
+limits and the per-session turn/output bounds; it is not distributed or durable.
+Use a new session after a failed memory turn.
+
+Confirmation returns `PENDING` only when the native loop really paused.
+`GET /api/patterns/confirmations/{id}` exposes the actual proposal, decision,
+saved note, terminal status and call count. Decisions accept no replacement tool
+arguments. Concurrent decisions and replay return 409; a different user or an
+expired ID sees 404. Resume exposes no tools, so an approval cannot authorize a
+second model-requested action. If the note was saved but the subsequent model
+call fails, the record says `FAILED` with `saved` still present; it cannot be
+replayed. A denial is also terminal.
+
+Invalid JSON/input is 400, unsupported culinary routing is 422, capacity/call
+limits are 429, and malformed or failed model responses are explicit errors,
+not successful advice. These guards bound the demo; model-selected routing and
+advice are still probabilistic. No filesystem, shell, purchase, email, or cloud
+mutation tools are registered in this lab.
+
+### Scope of the upgrade
+
+Community 0.13.0 still supplies `SkillsTool` and `AskUserQuestionTool`; its
+published POM targets Spring AI 2.0.1. The retained skill/HITL workflow and real
+provider tool loops are regression-covered on 2.1.0-RC1. Community `TaskTools`
+is **not** registered: this small worker example needs no nested filesystem or
+shell agents. It must not be described as a new Spring AI core workflow engine.
+
+The native memory and confirmation tests run through real advisors, including
+tool-turn retention, compaction, denial, ownership, replay and failure branches.
+Loopback OpenAI, Azure and Ollama HTTP fixtures exercise all four patterns
+through the actual provider implementations, not a mocked top-level service.
+This proves the wiring, not that every deployed model follows the requested
+schema or makes good culinary decisions.
 
 ## Browser, REST and MCP
 
@@ -146,11 +265,15 @@ labels. Prompt/tool content logging is not enabled by default.
 
 ## Verified upstream references
 
-- [Spring AI 2.0.1 compatibility and features](https://github.com/spring-projects/spring-ai/blob/v2.0.1/README.md)
-- [Pinned Spring AI 2.x migration notes](https://github.com/spring-projects/spring-ai/blob/v2.0.1/spring-ai-docs/src/main/antora/modules/ROOT/pages/upgrade-notes.adoc)
-- [Native tool execution](https://github.com/spring-projects/spring-ai/blob/v2.0.1/spring-ai-client-chat/src/main/java/org/springframework/ai/chat/client/advisor/ToolCallingAdvisor.java)
-- [Native tool search](https://github.com/spring-projects/spring-ai/blob/v2.0.1/advisors/spring-ai-tool-search-advisor/src/main/java/org/springframework/ai/chat/client/advisor/toolsearch/ToolSearchToolCallingAdvisor.java)
-- [Current OpenAI/Azure provider properties](https://github.com/spring-projects/spring-ai/blob/v2.0.1/auto-configurations/models/spring-ai-autoconfigure-model-openai/src/main/java/org/springframework/ai/model/openai/autoconfigure/AbstractOpenAiProperties.java)
-- [Community 0.12.0 JAR skill loader](https://github.com/spring-ai-community/spring-ai-agent-utils/blob/v0.12.0/spring-ai-agent-utils/src/main/java/org/springaicommunity/agent/utils/Skills.java)
-- [Community human-question tool](https://github.com/spring-ai-community/spring-ai-agent-utils/blob/v0.12.0/spring-ai-agent-utils/src/main/java/org/springaicommunity/agent/tools/AskUserQuestionTool.java)
-- [Boot 4.1.1 OTLP tracing properties](https://github.com/spring-projects/spring-boot/blob/v4.1.1/module/spring-boot-micrometer-tracing-opentelemetry/src/main/java/org/springframework/boot/micrometer/tracing/opentelemetry/autoconfigure/otlp/OtlpTracingProperties.java)
+- [Spring AI 2.1.0-RC1 release](https://github.com/spring-projects/spring-ai/releases/tag/v2.1.0-RC1)
+- [Pinned 2.1 migration notes and ordered message parts](https://github.com/spring-projects/spring-ai/blob/v2.1.0-RC1/spring-ai-docs/src/main/antora/modules/ROOT/pages/upgrade-notes.adoc)
+- [Effective agents: five application-composed workflow examples](https://github.com/spring-projects/spring-ai/blob/v2.1.0-RC1/spring-ai-docs/src/main/antora/modules/ROOT/pages/api/effective-agents.adoc)
+- [Session advisors and tool-loop integrity](https://github.com/spring-projects/spring-ai/blob/v2.1.0-RC1/spring-ai-docs/src/main/antora/modules/ROOT/pages/api/session/chat-client.adoc)
+- [Turn-aware compaction](https://github.com/spring-projects/spring-ai/blob/v2.1.0-RC1/spring-ai-docs/src/main/antora/modules/ROOT/pages/api/session/compaction.adoc)
+- [Native tool execution and confirmation](https://github.com/spring-projects/spring-ai/blob/v2.1.0-RC1/spring-ai-client-chat/src/main/java/org/springframework/ai/chat/client/advisor/ToolCallingAdvisor.java)
+- [Native confirmation decisions](https://github.com/spring-projects/spring-ai/blob/v2.1.0-RC1/spring-ai-model/src/main/java/org/springframework/ai/model/tool/ToolCallDecisions.java)
+- [Native lexical tool search](https://github.com/spring-projects/spring-ai/blob/v2.1.0-RC1/advisors/spring-ai-tool-search-advisor/src/main/java/org/springframework/ai/chat/client/advisor/toolsearch/ToolSearchToolCallingAdvisor.java)
+- [Current OpenAI/Azure provider properties](https://github.com/spring-projects/spring-ai/blob/v2.1.0-RC1/auto-configurations/models/spring-ai-autoconfigure-model-openai/src/main/java/org/springframework/ai/model/openai/autoconfigure/AbstractOpenAiProperties.java)
+- [Community 0.13.0 skill loader](https://github.com/spring-ai-community/spring-ai-agent-utils/blob/v0.13.0/spring-ai-agent-utils/src/main/java/org/springaicommunity/agent/utils/Skills.java)
+- [Community human-question tool](https://github.com/spring-ai-community/spring-ai-agent-utils/blob/v0.13.0/spring-ai-agent-utils/src/main/java/org/springaicommunity/agent/tools/AskUserQuestionTool.java)
+- [Community TaskTools (not wired here)](https://github.com/spring-ai-community/spring-ai-agent-utils/blob/v0.13.0/docs/tools/TaskTools.md)

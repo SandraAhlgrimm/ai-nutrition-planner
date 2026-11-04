@@ -103,7 +103,7 @@ class NutritionPlannerApplicationTests {
         assertThat(script.generationPrompts).filteredOn(p -> p.getUserMessage().getText().contains("# Revision"))
                 .hasSize(3).allSatisfy(prompt -> assertThat(prompt.getUserMessage().getText())
                         .contains(TestPlans.QUESTION, TestPlans.ANSWER, "MONDAY", "LUNCH", "vegetarian", "nuts",
-                                "1800", "Under 30 minutes"));
+                                "2500", "2250-2750", "Under 30 minutes"));
     }
 
     @Test
@@ -177,7 +177,7 @@ class NutritionPlannerApplicationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.days[0].day").value("MONDAY"))
                 .andExpect(jsonPath("$.days[0].lunch.name").value("Vegetable soup"))
-                .andExpect(jsonPath("$.days[0].lunch.nutrition.calories").value(600))
+                .andExpect(jsonPath("$.days[0].lunch.nutrition.calories").value(2500))
                 .andExpect(jsonPath("$.days[0].breakfast").doesNotExist());
         assertThat(script.audits).hasValue(1);
     }

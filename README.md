@@ -32,8 +32,11 @@ Spring AI intentionally takes the approved RC line to demonstrate its new
 session and confirmation APIs on the matching upstream Boot generation.
 LangChain4j and Embabel stay on verified GA Boot versions; no version-parity
 upgrade forces them onto RCs. LangChain4j preserves its newer Jackson BOMs rather
-than letting Boot downgrade them. Spring 7's `SpringExtension` requires Jupiter
-6; do not force JUnit 5 into any module.
+than letting Boot downgrade them. This is a deliberate pre-GA stability tradeoff:
+the Spring AI sample can exercise APIs unavailable in the GA line, but those APIs
+and their Boot integration may still change before release and must be revalidated
+when moving to GA. Spring 7's `SpringExtension` requires Jupiter 6; do not force
+JUnit 5 into any module.
 
 The root POM is a **reactor aggregator**, not the modules' inherited parent.
 Each module owns its dependencies, domain DTOs, application, and tests; none
@@ -45,7 +48,8 @@ depends on another sample at runtime.
 2. Generate recipes for exactly the requested days and meals, retaining dietary
    restrictions, allergies, preferences, and additional instructions.
 3. Audit the candidate using nutrition tools and check that its days/meals match
-   the request.
+   the request. Each requested day must independently total between 90% and 110%
+   of the user's daily calorie target, inclusive; days cannot offset one another.
 4. If needed, revise with the feedback and audit again. Return immediately on
    success; allow **at most three revisions after the initial candidate**.
 
@@ -66,9 +70,9 @@ attempts or tool-calling turns. Embabel's rejection is explicitly `NonRetryable`
 so its action-retry machinery cannot turn exhaustion into a fifth audit.
 
 Nutrition totals sum **model-generated estimates**. Structural checks are
-deterministic; judgments about ingredients, allergens and dietary suitability
-still rely on the model. This is a framework demonstration, not a clinically
-validated nutrition service.
+deterministic, as is the per-requested-day calorie range; judgments about
+ingredients, allergens and dietary suitability still rely on the model. This is
+a framework demonstration, not a clinically validated nutrition service.
 
 ## Baseline implementation comparison
 

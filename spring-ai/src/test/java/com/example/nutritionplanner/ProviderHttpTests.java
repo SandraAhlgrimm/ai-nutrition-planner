@@ -46,8 +46,8 @@ class ProviderHttpTests {
                         assertThat(server.requests().get(1).body().toString()).contains("currentMonth", "UTC", "packaged");
                         assertThat(server.requests().get(2).body().toString()).contains("currentMonth");
                         assertThat(server.requests().get(3).body().toString())
-                                .contains("MONDAY", "LUNCH", "vegetarian", "nuts", "Under 30 minutes");
-                        assertThat(server.requests().get(6).body().toString()).contains("dailyNutritionTotals", "600");
+                                .contains("MONDAY", "LUNCH", "vegetarian", "nuts", "2250-2750", "Under 30 minutes");
+                        assertThat(server.requests().get(6).body().toString()).contains("dailyNutritionTotals", "2500");
                         assertThat(server.requests()).allSatisfy(request -> {
                             assertThat(request.body().path("model").asText()).isEqualTo("offline-model");
                             assertThat(request.path()).contains(profile.equals("ollama") ? "/api/chat" : "/chat/completions");

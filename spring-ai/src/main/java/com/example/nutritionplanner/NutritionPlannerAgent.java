@@ -99,6 +99,7 @@ class NutritionPlannerAgent {
                                         UserProfile userProfile,
                                         AskUserQuestionTool.@Nullable QuestionHandler questionHandler) {
         var answers = new LinkedHashMap<String, String>();
+        var calorieRange = calorieRangeInstructions(userProfile.dailyCalorieTarget());
         var validationRetryAdvisor = new ValidationRetryAdvisor<>(WeeklyPlan.class,
                 plan -> this.validateWeeklyPlan(plan, userProfile, weeklyPlanRequest, Map.copyOf(answers)),
                 3, answers::toString);
@@ -114,6 +115,9 @@ class NutritionPlannerAgent {
                         # User dietary profile (mandatory)
                         {profile}
 
+                        # Daily calorie requirement
+                        {calorieRange}
+
                         # Seasonal ingredients
                         {ingredients}
 
@@ -124,6 +128,7 @@ class NutritionPlannerAgent {
                         {interaction}
                         """).param("mealsAndDays", weeklyPlanRequest.meals().toString()).param("ingredients", seasonalIngredients)
                         .param("country", weeklyPlanRequest.countryCode())
+                        .param("calorieRange", calorieRange)
                         .param("instructions", weeklyPlanRequest.additionalInstructions())
                         .param("profile", userProfile)
                         .param("interaction", questionHandler == null
@@ -161,6 +166,9 @@ class NutritionPlannerAgent {
                 .system(Personas.NUTRITION_GUARD)
                 .user(u -> u.text("""
                         You have to use available tools to calculate total calories, protein, carbs, fat, and sodium etc.
+                        Check every requested day independently against this daily calorie requirement:
+                        {calorieRange}
+                        A different day's total cannot offset a day outside the range.
                         
                         # Validate these recipes:
                         {weeklyPlan}
@@ -179,21 +187,24 @@ class NutritionPlannerAgent {
                         do not require the plan to repeat that conversation.
                         """).param("weeklyPlan", weeklyPlan).param("userProfile", userProfile).param("request", request)
                         .param("userAnswers", userAnswers.toString())
+                        .param("calorieRange", calorieRangeInstructions(userProfile.dailyCalorieTarget()))
                 )
                 .advisors(toolSearchAdvisor)
                 .advisors(a -> a.param(MemoryAdvisor.CONVERSATION_ID, auditId))
                 .tools(weeklyPlan)
                 .call()
                 .entity(NutritionAuditValidationResult.class), "Model returned no nutrition audit");
-            var shapeFeedback = request.shapeFeedback(weeklyPlan);
-            if (!shapeFeedback.isEmpty()) {
-                return new NutritionAuditValidationResult(false, validationResult.violations(),
-                        shapeFeedback + "\n" + validationResult.consolidatedFeedback());
-            }
-            return validationResult;
+            return validationResult.withDeterministicChecks(weeklyPlan, request, userProfile);
         } finally {
             toolSearchAdvisor.evictSession(auditId);
         }
+    }
+
+    private static String calorieRangeInstructions(int target) {
+        long minimum = (target * 90L + 99) / 100;
+        long maximum = target * 110L / 100;
+        return "Each requested day must total %d-%d kcal inclusive (90%%-110%% of the %d kcal target)."
+                .formatted(minimum, maximum, target);
     }
 
     static class Personas {
@@ -215,7 +226,8 @@ class NutritionPlannerAgent {
                 Your objective is to validate a list of recipes against a user profile and flag any violations.
                 Check each recipe for:
                 1. NUTRITION_INFO: Nutrition information is available for each recipe
-                2. CALORIE_OVERFLOW: calories exceed daily calorie target
+                2. CALORIE_RANGE: each requested day's summed calories are within 90%-110% of its target, inclusive;
+                   check days independently and never offset one day against another
                 3. ALLERGEN_PRESENT: recipe contains an ingredient matching user's allergies
                 4. RESTRICTION_VIOLATION: recipe violates dietary restrictions (e.g., meat for vegetarian)
                 5. DISLIKED_INGREDIENTS_PRESENT: recipe contains disliked ingredients

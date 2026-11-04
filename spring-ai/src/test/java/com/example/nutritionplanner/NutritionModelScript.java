@@ -36,7 +36,7 @@ final class NutritionModelScript {
         if (system.contains("Recipe Curator")) {
             generationPrompts.add(prompt);
             assertThat(prompt.getUserMessage().getText()).contains("MONDAY", "LUNCH", "vegetarian", "nuts",
-                    "1800", "cilantro", "Under 30 minutes");
+                    "2500", "2250-2750", "cilantro", "Under 30 minutes");
             if (interactive && results.isEmpty() && !prompt.getUserMessage().getText().contains("# Revision")) {
                 assertThat(names).containsExactly("AskUserQuestionTool");
                 return TestPlans.tool("AskUserQuestionTool", TestPlans.QUESTION_CALL);
@@ -70,7 +70,7 @@ final class NutritionModelScript {
             }
             assertThat(results.getLast().name()).isEqualTo("dailyNutritionTotals");
             int factor = candidates.get() <= duplicateCandidates ? 2 : 1;
-            assertThat(results.getLast().responseData()).contains(String.valueOf(600 * factor),
+            assertThat(results.getLast().responseData()).contains(String.valueOf(2500 * factor),
                     String.valueOf(30.0 * factor), String.valueOf(70.0 * factor),
                     String.valueOf(15.0 * factor), String.valueOf(500 * factor));
             totals.incrementAndGet();

@@ -41,6 +41,17 @@ errors rather than empty successful responses.
 
 Nutrition estimates and dietary compliance still depend on model quality;
 this is a framework demonstration, not independently verified medical advice.
+The demo profile targets **2,500 kcal per day**. In addition to the model's
+nutrition audit, deterministic acceptance requires every requested day to total
+**2,250–2,750 kcal inclusive**; totals are checked per day and cannot offset one
+another. The bound is an example acceptance policy, not personalized nutrition
+guidance.
+
+Spring AI **2.1.0-RC1** and Boot **4.2.0-RC1** are deliberate pre-GA choices
+for demonstrating the matching native session and tool-confirmation APIs. This
+enables comparisons against APIs not available in the prior GA line, with the
+tradeoff that dependencies and integration details may change before GA; recheck
+the native session/confirmation behavior when upgrading.
 
 ## Run and test
 

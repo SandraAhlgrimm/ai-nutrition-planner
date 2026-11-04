@@ -135,6 +135,41 @@ class ValidationRetryAdvisorTests {
         }).adviseCall(request, chain)).hasMessage("Auditor unavailable");
     }
 
+    @Test
+    void unparseableRevisionKeepsThePreviousCandidateAndStillUsesItsRemainingBudget() {
+        var audits = new AtomicInteger();
+        var advisor = new ValidationRetryAdvisor<>(Candidate.class, _ -> {
+            audits.incrementAndGet();
+            return verdict(false);
+        });
+        var unusable = ChatClientResponse.builder().chatResponse(TestPlans.text("")).build();
+        when(chain.copy(advisor)).thenReturn(chain);
+        // Initial candidate parses and fails its audit; every revision then comes back unusable.
+        when(chain.nextCall(any())).thenReturn(response, unusable, unusable, unusable);
+
+        assertThatThrownBy(() -> advisor.adviseCall(request, chain))
+                .isInstanceOfSatisfying(NutritionPlanValidationException.class, exception -> {
+                    assertThat(exception.candidate()).isEqualTo(new Candidate("candidate"));
+                    assertThat(exception.feedback()).contains("Fix sodium");
+                    assertThat(exception.audits()).isEqualTo(4);
+                });
+        assertThat(audits).hasValue(1);
+        verify(chain, times(4)).nextCall(any());
+    }
+
+    @Test
+    void anUnparseableInitialCandidateStillFailsBecauseThereIsNothingToKeep() {
+        var advisor = new ValidationRetryAdvisor<>(Candidate.class, _ -> verdict(true));
+        when(chain.copy(advisor)).thenReturn(chain);
+        when(chain.nextCall(any())).thenReturn(ChatClientResponse.builder()
+                .chatResponse(TestPlans.text("")).build());
+
+        assertThatThrownBy(() -> advisor.adviseCall(request, chain))
+                .isNotInstanceOf(NutritionPlanValidationException.class)
+                .isInstanceOf(RuntimeException.class);
+        verify(chain, times(1)).nextCall(any());
+    }
+
     private ValidationRetryAdvisor.ValidationResult verdict(boolean pass) {
         return new NutritionAuditValidationResult(pass, List.of(), pass ? "" : "Fix sodium");
     }

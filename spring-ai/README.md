@@ -105,7 +105,9 @@ resume, not reconstructed from text. The existing parallel preparation and
 audit/revision examples are retained rather than duplicated.
 
 All lab prompts are 1-1000 characters. Worker instructions, model output and tool
-arguments are bounded; [PatternModels](src/main/java/com/example/nutritionplanner/patterns/PatternModels.java)
+arguments are bounded, including a 32 KiB serialized assistant-message ceiling
+covering reasoning and opaque provider parts before session storage.
+[PatternModels](src/main/java/com/example/nutritionplanner/patterns/PatternModels.java)
 counts calls **inside** the native tool loop and admits at most eight in-flight
 model invocations across the lab. Counts describe `ChatModel` invocations, not
 SDK transport retries, tokens or cost. Provider-specific options are mutated,

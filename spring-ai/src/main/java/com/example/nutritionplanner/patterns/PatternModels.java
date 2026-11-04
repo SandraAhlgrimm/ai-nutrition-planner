@@ -21,6 +21,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
 import java.util.concurrent.Semaphore;
@@ -30,6 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Component
 @Profile("patterns")
 final class PatternModels {
+    private static final JsonMapper JSON = JsonMapper.builder().build();
     static final String ADVISORY = """
             This is a culinary pattern demonstration, not a validated nutrition plan or medical advice.
             Discuss cooking ideas only. Do not diagnose, prescribe, or claim dietary or medical compliance.
@@ -127,7 +129,8 @@ final class PatternModels {
                 var result = chat.getResult();
                 var message = result.getOutput();
                 var text = message.getText();
-                if (text != null && text.length() > 8000 || !message.getMedia().isEmpty()
+                if (text != null && text.length() > 8000 || JSON.writeValueAsBytes(message).length > 32_768
+                        || !message.getMedia().isEmpty()
                         || message.getToolCalls().size() > 1
                         || "length".equals(result.getMetadata().getFinishReason())
                         || "max_tokens".equals(result.getMetadata().getFinishReason())

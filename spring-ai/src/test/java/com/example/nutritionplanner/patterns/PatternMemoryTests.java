@@ -2,10 +2,15 @@ package com.example.nutritionplanner.patterns;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.ToolResponseMessage;
+import org.springframework.ai.chat.messages.part.ReasoningPart;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
 import org.springframework.http.HttpStatus;
 
 import java.time.Duration;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -90,6 +95,19 @@ class PatternMemoryTests {
                 .isInstanceOfSatisfying(PatternFailure.class,
                         error -> assertThat(error.status()).isEqualTo(HttpStatus.CONFLICT));
         assertThat(model.prompts).hasSize(2);
+    }
+
+    @Test
+    void oversizedNonTextPartsAreRejectedBeforeTheyEnterTheSessionLog() {
+        var session = memory.create("alice");
+        model.respond(_ -> new ChatResponse(List.of(new Generation(AssistantMessage.builder()
+                .content("A short answer").part(ReasoningPart.of("x".repeat(40_000))).build()))));
+        assertThatThrownBy(() -> memory.turn("alice", session.id(), new PatternRequest("Cook")))
+                .isInstanceOfSatisfying(PatternFailure.class,
+                        error -> assertThat(error.status()).isEqualTo(HttpStatus.BAD_GATEWAY));
+        var failed = memory.get("alice", session.id());
+        assertThat(failed.failed()).isTrue();
+        assertThat(failed.loggedEvents()).isEqualTo(1);
     }
 
     @Test

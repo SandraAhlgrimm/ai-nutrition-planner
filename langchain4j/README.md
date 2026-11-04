@@ -42,6 +42,11 @@ Select exactly one provider profile. With no explicit profile, `openai` is used.
 The default port is 8080, the UI is `/`, and the demo credentials are
 `alice` / `123456`.
 
+During auditing, a nutrition-tool request for an absent day returns an explicit
+error to the auditor, not a fabricated zero total. Missing requested days still
+fail deterministic validation and enter the bounded revision loop; unexpected
+tool failures abort the workflow.
+
 | Profile | Environment variables |
 | --- | --- |
 | `openai` | `OPENAI_API_KEY`; `OPENAI_MODEL_NAME` defaults to `gpt-4o` |

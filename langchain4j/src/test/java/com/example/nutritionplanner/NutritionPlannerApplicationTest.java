@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -44,6 +45,16 @@ class NutritionPlannerApplicationTest {
     ChatModel chatModel;
     @MockitoBean
     Clock clock;
+
+    @Test
+    void browserHeaderAndTitleIdentifyLangChain4j() throws Exception {
+        mvc.perform(get("/").with(httpBasic("alice", "123456")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "<title>AI Nutrition Planner - LangChain4j</title>")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "text-white\">AI Nutrition Planner - LangChain4j</span>")));
+    }
 
     @Test
     void realAuthenticationProfileBindingAndComposedBeansReachTheApi() throws Exception {

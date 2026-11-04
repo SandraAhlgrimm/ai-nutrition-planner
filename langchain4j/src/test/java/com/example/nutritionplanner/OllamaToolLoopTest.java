@@ -41,6 +41,22 @@ class OllamaToolLoopTest {
     }
 
     @Test
+    void realOllamaClientReceivesExplicitMissingDayErrorAndContinuesAuditing() throws Exception {
+        try (var ollama = new OllamaFixture(auditResponse(JSON.writeValueAsString(PASSED)), true)) {
+            ollama.responses.set(2, ollama.responses.get(2).replace("MONDAY", "SUNDAY"));
+            ollama.application().run(context -> {
+                assertThat(context.getBean(NutritionPlannerAgent.class).createNutritionPlan("alice", REQUEST))
+                        .isEqualTo(plan(1));
+                assertThat(ollama.requests).hasSize(4);
+                var messages = ollama.requests.get(3).get("messages");
+                assertThat(messages.get(4).get("role").asString()).isEqualTo("tool");
+                assertThat(messages.get(4).get("content").asString())
+                        .contains("ERROR: No meals planned for SUNDAY", "No nutrition total is available");
+            });
+        }
+    }
+
+    @Test
     void revisionsKeepTheOriginalOutputSchemaWhileAuditsRemainFreeToCallTools() throws Exception {
         try (var ollama = new OllamaFixture(auditResponse(JSON.writeValueAsString(failed(1))), true)) {
             ollama.responses.add(auditResponse(JSON.writeValueAsString(plan(2))));

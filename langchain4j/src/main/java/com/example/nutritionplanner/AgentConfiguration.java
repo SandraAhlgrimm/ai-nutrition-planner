@@ -9,7 +9,10 @@ import dev.langchain4j.micrometer.metrics.listeners.MicrometerMetricsChatModelLi
 import dev.langchain4j.model.ModelProvider;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
+import dev.langchain4j.service.tool.ToolErrorHandlerResult;
 import io.micrometer.core.instrument.MeterRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,6 +27,7 @@ import java.util.concurrent.Executors;
 @Configuration(proxyBeanMethods = false)
 class AgentConfiguration {
 
+    private static final Logger log = LoggerFactory.getLogger(AgentConfiguration.class);
     static final int MAX_REVISIONS = 3;
 
     @Bean
@@ -100,6 +104,13 @@ class AgentConfiguration {
                     throw new IllegalStateException("Invalid nutrition tool arguments", error);
                 })
                 .toolExecutionErrorHandler((error, context) -> {
+                    if (error instanceof NutritionTools.UnplannedDayException) {
+                        log.warn("Nutrition audit requested an absent day: {}", error.getMessage());
+                        return ToolErrorHandlerResult.text("ERROR: " + error.getMessage()
+                                + ". No nutrition total is available for that day. Use dailyNutritionTotals to"
+                                + " inspect the candidate's actual days. If the absent day was requested,"
+                                + " report it as a violation; otherwise do not require it.");
+                    }
                     throw new IllegalStateException("Nutrition tool execution failed", error);
                 })
                 .build();

@@ -24,7 +24,7 @@ public class NutritionTools {
                 .filter(dailyPlan -> dailyPlan.day() == day)
                 .toList();
         if (matchingDays.isEmpty()) {
-            throw new IllegalArgumentException("No meals planned for " + day);
+            throw new UnplannedDayException(day);
         }
         return totals(matchingDays, day);
     }
@@ -49,5 +49,11 @@ public class NutritionTools {
             throw new IllegalStateException("Missing nutrition information for " + day);
         }
         return new NutritionInfo(recipes);
+    }
+
+    static final class UnplannedDayException extends IllegalArgumentException {
+        UnplannedDayException(DayOfWeek day) {
+            super("No meals planned for " + day);
+        }
     }
 }

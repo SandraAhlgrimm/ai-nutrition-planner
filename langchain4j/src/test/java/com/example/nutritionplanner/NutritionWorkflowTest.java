@@ -174,6 +174,65 @@ class NutritionWorkflowTest {
         assertIdle();
     }
 
+    @ParameterizedTest
+    @ValueSource(ints = {2, 4})
+    void missingRequestedDayCanBeRevisedAfterRealNutritionToolError(int repairedCandidate) {
+        var model = new ScriptedChatModel(1);
+        model.planCandidates = candidate -> candidate < repairedCandidate
+                ? new WeeklyPlan(List.of(plan(candidate).days().getLast())) : plan(candidate);
+
+        assertThat(invoke(planner(model), "alice")).isEqualTo(plan(repairedCandidate));
+        assertThat(model.initials).hasValue(1);
+        assertThat(model.revisions).hasValue(repairedCandidate - 1);
+        assertThat(model.audits).hasValue(repairedCandidate);
+        assertThat(model.verifiedToolResults).hasValue(repairedCandidate * 3);
+        assertThat(model.generationPrompts.getLast()).contains("Missing requested day: MONDAY");
+        assertIdle();
+    }
+
+    @Test
+    void persistentMissingDayToolErrorsStillExhaustAfterThreeRevisions() {
+        var model = new ScriptedChatModel(1);
+        model.planCandidates = candidate -> new WeeklyPlan(List.of(plan(candidate).days().getLast()));
+
+        assertThatThrownBy(() -> invoke(planner(model), "alice"))
+                .isInstanceOfSatisfying(PlanValidationException.class, exception ->
+                        assertThat(exception.audit().consolidatedFeedback()).contains("Missing requested day: MONDAY"));
+        assertThat(model.initials).hasValue(1);
+        assertThat(model.revisions).hasValue(3);
+        assertThat(model.audits).hasValue(4);
+        assertThat(model.verifiedToolResults).hasValue(12);
+        assertIdle();
+    }
+
+    @Test
+    void unrequestedDayToolErrorDoesNotRejectAnOtherwiseValidPlan() {
+        var model = new ScriptedChatModel(1);
+        model.toolDay = java.time.DayOfWeek.SUNDAY;
+
+        assertThat(invoke(planner(model), "alice")).isEqualTo(plan(1));
+        assertThat(model.revisions).hasValue(0);
+        assertThat(model.audits).hasValue(1);
+        assertThat(model.verifiedToolResults).hasValue(3);
+        assertIdle();
+    }
+
+    @Test
+    void missingNutritionRemainsAnExplicitToolFailure() {
+        var model = new ScriptedChatModel(1);
+        model.planCandidates = candidate -> new WeeklyPlan(List.of(new WeeklyPlan.DailyPlan(
+                java.time.DayOfWeek.MONDAY,
+                new Recipe("candidate-" + candidate, List.of(), null, "", 0), null, null)));
+
+        assertThatThrownBy(() -> invoke(planner(model), "alice"))
+                .isInstanceOf(AgentInvocationException.class)
+                .hasStackTraceContaining("Nutrition tool execution failed")
+                .hasRootCauseMessage("Missing nutrition information for MONDAY");
+        assertThat(model.revisions).hasValue(0);
+        assertThat(model.verifiedToolResults).hasValue(0);
+        assertIdle();
+    }
+
     @Test
     void duplicateDaysCanBeRevisedWithRealNutritionToolExecution() {
         var model = new ScriptedChatModel(1);
@@ -351,6 +410,7 @@ class NutritionWorkflowTest {
         private String auditResponseOverride;
         private boolean invalidToolRequest;
         private boolean useTools = true;
+        private java.time.DayOfWeek toolDay = java.time.DayOfWeek.MONDAY;
         private IntFunction<WeeklyPlan> planCandidates = PlanFixtures::plan;
 
         ScriptedChatModel(int passingAudit) {
@@ -399,7 +459,7 @@ class NutritionWorkflowTest {
                     return response(AiMessage.from(tool("nutritionTotalsForDay", "{\"day\":\"NOT_A_DAY\"}")));
                 }
                 return response(AiMessage.from(tool("dailyNutritionTotals", "{}"),
-                        tool("nutritionTotalsForDay", "{\"day\":\"MONDAY\"}"), tool("totalMealCount", "{}")));
+                        tool("nutritionTotalsForDay", "{\"day\":\"" + toolDay + "\"}"), tool("totalMealCount", "{}")));
             }
             var matcher = CANDIDATE.matcher(prompt);
             assertThat(matcher.find()).isTrue();
@@ -413,10 +473,23 @@ class NutritionWorkflowTest {
                     .filter(Objects::nonNull).count();
             request.messages().stream().filter(ToolExecutionResultMessage.class::isInstance)
                     .map(ToolExecutionResultMessage.class::cast).forEach(result -> {
+                        if (result.toolName().equals("nutritionTotalsForDay")
+                                && currentPlan.days().stream().noneMatch(day -> day.day() == toolDay)) {
+                            assertThat(result.text()).contains("ERROR: No meals planned for " + toolDay,
+                                    "No nutrition total is available", "report it as a violation");
+                            verifiedToolResults.incrementAndGet();
+                            return;
+                        }
                         var json = JSON.readTree(result.text());
                         switch (result.toolName()) {
-                            case "dailyNutritionTotals" -> assertThat(json.get("MONDAY").get("calories").asInt())
-                                    .isEqualTo(mondayCalories);
+                            case "dailyNutritionTotals" -> {
+                                if (currentPlan.days().stream().anyMatch(day -> day.day() == java.time.DayOfWeek.MONDAY)) {
+                                    assertThat(json.get("MONDAY").get("calories").asInt()).isEqualTo(mondayCalories);
+                                } else {
+                                    assertThat(json.has("MONDAY")).isFalse();
+                                    assertThat(json.has("THURSDAY")).isTrue();
+                                }
+                            }
                             case "nutritionTotalsForDay" -> assertThat(json.get("calories").asInt())
                                     .isEqualTo(mondayCalories);
                             case "totalMealCount" -> assertThat(json.asLong()).isEqualTo(mealCount);

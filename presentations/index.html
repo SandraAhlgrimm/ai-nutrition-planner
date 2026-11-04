@@ -142,6 +142,7 @@
     .hero-grid { display: grid; grid-template-columns: 1.45fr 1fr; gap: 56px; align-items: center; }
     .hero-title { font-size: 78px; line-height: 1.01; letter-spacing: -0.045em; font-weight: 780; }
     .hero-title em { font-style: normal; color: var(--cp-accent); }
+    .hero-title.oredev-title { font-size: 58px; line-height: 1.06; letter-spacing: -0.04em; }
     .hero-event { display: inline-block; margin-bottom: 20px; padding: 8px 14px; border: 1px solid var(--cp-accent); border-radius: 0.625rem; color: var(--cp-accent); font-size: 19px; font-weight: 750; letter-spacing: 0.12em; text-transform: uppercase; }
     .hero-subtitle { margin-top: 24px; font-size: 29px; line-height: 1.3; }
     .hero-byline { margin-top: 32px; font-size: 22px; color: var(--cp-text-soft); }
@@ -414,7 +415,7 @@
       };
       const escape = value => String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
       const link = ref => `<a href="${escape(ref.url)}" target="_blank" rel="noopener noreferrer">${escape(ref.label)}</a>`;
-      const note = (talk, cue, transition, sources) => ({ talk, cue, transition, sources });
+      const note = (talk, cue, transition, sources, sessionDescription = "") => ({ talk, cue, transition, sources, sessionDescription });
       const slide = (id, title, body, notes, options = {}) => ({
         id, title, body, notes, minutes: 2, chapter: "Mechanics", kind: "", ...options
       });
@@ -422,6 +423,11 @@
         `<div class="card"><span class="tag">${tag}</span><h3>${title}</h3><p>${text}</p></div>`).join("")}</div>`;
       const strip = text => `<p class="strip">${text}</p>`;
       const lanes = items => items.map(([label, steps]) => `<div class="lane"><div class="lane-label">${label}</div><div class="lane-steps">${steps.map((step, i) => `<span class="${i === steps.length - 1 ? "emphasis" : ""}">${step}</span>`).join("")}</div></div>`).join("");
+      const oredevSessionDescription = `Agentic AI marks a shift from passive, prompt-driven interactions to autonomous systems that can reason, plan, and execute work. On the JVM, several frameworks are emerging to support this new paradigm, but they take very different approaches.
+
+In this session, I compare frameworks such as Spring AI, LangChain4j, and Embabel on how they implement core agent capabilities such as reasoning loops, tool invocation, memory, and orchestration. I also look at how the Model Context Protocol (MCP) helps standardize access to data and tools across agents.
+
+Through practical examples, attendees will gain a clear understanding of the trade-offs between these frameworks and guidance on choosing the right one to evolve JVM applications from simple LLM integrations into truly autonomous, agentic systems.`;
       const labScope = " These are opt-in culinary labs, not the audited WeeklyPlan baseline, allergy certification or medical advice. Enable patterns alongside exactly one provider. GET /api/patterns and explicit POST routes require existing authentication; authenticated lab routes return 404 with the profile off. Startup and catalog reads make no model calls or downloads. Bounds count logical model/framework sends, not transport retries, tokens, billing or clinical guarantees. Failure/cancellation must propagate, not become partial success. These examples are newly demonstrated here; not all mechanisms are newly released.";
 
       const snippets = {
@@ -753,11 +759,11 @@ verifyWorkflowCounts(4, 3);`
         slide(id, title, codePanel(snippet) + `<p class="lesson">${lesson}</p>`, notes, { kind: "code-slide", ...options });
 
       const shared = {
-        opening(title, headline, subtitle, labels, sources, eventLabel = "") {
-          return slide("opening", title, `<div class="hero-grid"><div>${eventLabel ? `<p class="hero-event">${escape(eventLabel)}</p>` : ""}<p class="hero-title">${headline}</p><p class="hero-subtitle">${subtitle}</p><p class="hero-byline">Sandra Ahlgrimm / Java &amp; Spring developers</p></div><div class="ownership-stack">${labels.map(([small, big]) => `<div class="layer"><small>${small}</small><strong>${big}</strong></div>`).join("")}</div></div>`,
+        opening(title, headline, subtitle, labels, sources, eventLabel = "", titleClass = "", sessionDescription = "") {
+          return slide("opening", title, `<div class="hero-grid"><div>${eventLabel ? `<p class="hero-event">${escape(eventLabel)}</p>` : ""}<p class="hero-title${titleClass ? ` ${escape(titleClass)}` : ""}">${headline}</p><p class="hero-subtitle">${subtitle}</p><p class="hero-byline">Sandra Ahlgrimm / Java &amp; Spring developers</p></div><div class="ownership-stack">${labels.map(([small, big]) => `<div class="layer"><small>${small}</small><strong>${big}</strong></div>`).join("")}</div></div>`,
             note("Start with the engineering question, not a model leaderboard. We will follow one authenticated nutrition request through drafting, auditing, revision and explicit failure. The model may propose content, but a software system must decide what is allowed to count as success. This is a programming-model talk, not a performance benchmark or medical-quality evaluation. Every code excerpt is from the merged refresh, with its source in the notes.",
               "Ask: When an LLM says it is finished, which line of your application decides that the work is actually acceptable? Take one quick answer.",
-              "Set the route and the ownership vocabulary before showing APIs.", sources),
+              "Set the route and the ownership vocabulary before showing APIs.", sources, sessionDescription),
             { minutes: 1, chapter: "Opening", kind: "hero" });
         },
         route(stops, sources) {
@@ -886,8 +892,8 @@ verifyWorkflowCounts(4, 3);`
         number: "01", label: "Framework comparison",
         description: "Explicit workflows, application orchestration, or typed planning: decide who should own the next step.",
         slides: [
-          shared.opening("A code-first framework comparison", "Who owns the<br><em>next step?</em>", "LangChain4j, Spring AI and Embabel solve the same problem in different ways.",
-            [["THE DOMAIN", "One acceptance contract"], ["THE DECISION", "Three control models"], ["THE EVIDENCE", "Code + failure behavior"]], [refs.overview], "Øredev"),
+          shared.opening("Øredev 2026 / JVM track", "Comparing Agentic AI<br>Frameworks for Java", "Who owns the next step? Comparing LangChain4j, Spring AI and Embabel through one nutrition-planning contract.",
+            [["THE DOMAIN", "One acceptance contract"], ["THE DECISION", "Three control models"], ["THE EVIDENCE", "Code + failure behavior"]], [refs.overview, { label: "Øredev 2026 / official session feed", url: "https://sessionize.com/api/v2/y2gp6i8d/view/Sessions" }, { label: "Øredev 2026 / conference site", url: "https://oredev.org/2026" }], "Øredev 2026", "oredev-title", oredevSessionDescription),
           slide("origin-story", "From recipe finder to framework comparison.", `<div class="origin-grid"><article class="origin-card"><span class="origin-step">Topic inspiration</span><h3>AI Recipe Finder</h3><p>Its README describes a Spring Boot demo across Java AI frameworks, highlighting Function Calling and RAG.</p></article><article class="origin-card"><span class="origin-step">The question</span><h3>Who owns the next step?</h3><p>How should a Java AI framework organize a real application workflow?</p></article><article class="origin-card"><span class="origin-step">This comparison</span><h3>One contract, three models</h3><p>Nutrition planning through LangChain4j, Spring AI and Embabel.</p></article></div><p class="origin-credit">Inspiration confirmed by Sandra: <a href="https://github.com/timosalm/ai-recipe-finder" target="_blank" rel="noopener noreferrer">Timo Salm / AI Recipe Finder</a></p>`,
             note("The topic inspiration is Timo Salm's public AI Recipe Finder, as Sandra confirmed. Its README describes a Spring Boot demo on Java AI frameworks, highlights Function Calling and RAG, lists LangChain4j and archived Semantic Kernel, and links to external Spring AI projects. The question this talk takes forward is how to compare application control models against one shared nutrition-planning contract. This is a conceptual progression only: it does not claim that this repository forks the recipe finder, reuses its code, has its author's endorsement, or follows a particular personal timeline. Keep the visible repository link for attribution and source context.",
               "Give credit to Timo Salm, distinguish inspiration from implementation lineage, then move to the common contract this talk compares.",
@@ -1442,9 +1448,13 @@ verifyWorkflowCounts(4, 3);`
         resizeStage();
       }
       function notesMarkup(item) {
+        const sessionDescription = item.notes.sessionDescription
+          ? `<h3>Session description (supplied by Sandra)</h3><div data-session-description>${item.notes.sessionDescription.split(/\n\s*\n/).map(paragraph => `<p>${escape(paragraph)}</p>`).join("")}</div>`
+          : "";
         return `<h3>Story &amp; explanation</h3><p>${escape(item.notes.talk)}</p>
           <h3>Demo / audience cue</h3><p>${escape(item.notes.cue)}</p>
           <h3>Transition</h3><p>${escape(item.notes.transition)}</p>
+          ${sessionDescription}
           <h3>Code &amp; pinned sources</h3><ul>${item.notes.sources.map(ref => `<li>${link(ref)}</li>`).join("")}</ul>`;
       }
       function updateNotes() {

@@ -42,11 +42,14 @@ class NutritionPlannerAgentUnitTests {
 
         var invocation = context.getLlmInvocations().getFirst();
         assertTrue(invocation.getPrompt().contains("Germany"));
-        assertTrue(invocation.getPrompt().contains("current_month"));
+        assertTrue(invocation.getPrompt().contains("current-month"));
         assertFalse(invocation.getPrompt().contains("{country}"));
         var names = invocation.getInteraction().getTools().stream().map(tool -> tool.getDefinition().getName()).toList();
-        assertTrue(names.contains("current_month"), names.toString());
-        assertTrue(names.stream().anyMatch(name -> name.contains("current_month") && !name.equals("current_month")), names.toString());
+        assertEquals(names.size(), names.stream().distinct().count(), "Native reference tools must have unique names");
+        assertTrue(invocation.getInteraction().getTools().stream().anyMatch(tool ->
+                tool.getDefinition().getDescription().contains("Call once with no arguments")));
+        assertTrue(invocation.getInteraction().getTools().stream().anyMatch(tool ->
+                tool.getDefinition().getDescription().contains("Execute the current-month.sh")));
     }
 
     @Test

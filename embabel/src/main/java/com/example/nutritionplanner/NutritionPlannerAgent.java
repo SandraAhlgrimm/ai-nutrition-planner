@@ -41,7 +41,8 @@ class NutritionPlannerAgent {
                 .createObject("""
                         You are a nutrition expert with deep knowledge of seasonal produce.
 
-                        Activate the current_month skill and execute its script tool to determine the current month.
+                        Activate the current-month skill using its advertised activation tool, then execute its script
+                        tool to determine the current month. Use the tool names in the supplied tool catalog.
                         Do not guess the month. If the script fails, report the failure rather than inventing a month.
                         Return a list of ingredients in English that are currently in season for that month in %s.
                         Focus on fish, meat, fruits, vegetables, and herbs that are at peak availability and quality.

@@ -6,9 +6,9 @@ import java.util.List;
 final class PlanFixtures {
 
     static final UserProfile ALICE = new UserProfile("alice", List.of("vegetarian"),
-            List.of("weight-loss", "improve-energy"), 1800, List.of("nuts"), List.of("cilantro", "olives"));
+            List.of("weight-loss", "improve-energy"), 2500, List.of("nuts"), List.of("cilantro", "olives"));
     static final UserProfile BOB = new UserProfile("bob", List.of("vegan"),
-            List.of("maintain-energy"), 2100, List.of("soy"), List.of("mushrooms"));
+            List.of("maintain-energy"), 2500, List.of("soy"), List.of("mushrooms"));
     static final UserProfileProperties PROFILES = new UserProfileProperties(List.of(ALICE, BOB));
     static final WeeklyPlanRequest REQUEST = new WeeklyPlanRequest(List.of(
             new WeeklyPlanRequest.DayPlanRequest(DayOfWeek.MONDAY, List.of(WeeklyPlanRequest.MealType.DINNER)),
@@ -18,7 +18,7 @@ final class PlanFixtures {
 
     static WeeklyPlan plan(int candidate) {
         var recipe = new Recipe("candidate-" + candidate, List.of(new Recipe.Ingredient("carrot", "200", "g")),
-                new NutritionInfo(100 * candidate, 10, 20, 5, 30), "Roast the carrots.", 20);
+                new NutritionInfo(2400 + 25 * candidate, 10, 20, 5, 30), "Roast the carrots.", 20);
         return new WeeklyPlan(List.of(
                 new WeeklyPlan.DailyPlan(DayOfWeek.MONDAY, null, null, recipe),
                 new WeeklyPlan.DailyPlan(DayOfWeek.THURSDAY, null, recipe, null)));

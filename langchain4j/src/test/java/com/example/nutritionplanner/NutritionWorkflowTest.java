@@ -74,6 +74,8 @@ class NutritionWorkflowTest {
 
         assertThat(model.generationPrompts).allSatisfy(prompt -> assertThat(prompt)
                 .contains(ALICE.toString(), REQUEST.toString(), REQUEST.additionalInstructions(), "carrot"));
+        assertThat(model.generationPrompts).allSatisfy(prompt ->
+                assertThat(prompt).contains("90% and 110%", "dailyCalorieTarget=2500"));
         assertThat(model.generationPrompts.getFirst()).doesNotContain("# Current response", "# Feedback");
         for (int revision = 1; revision < passingAudit; revision++) {
             assertThat(model.generationPrompts.get(revision))
@@ -81,6 +83,8 @@ class NutritionWorkflowTest {
         }
         assertThat(model.auditPrompts).allSatisfy(prompt -> assertThat(prompt)
                 .contains(ALICE.toString(), REQUEST.toString(), REQUEST.additionalInstructions()));
+        assertThat(model.auditPrompts).allSatisfy(prompt ->
+                assertThat(prompt).contains("90% and 110%", "dailyCalorieTarget=2500"));
     }
 
     @Test
@@ -131,6 +135,24 @@ class NutritionWorkflowTest {
         assertThat(model.generationPrompts.subList(1, 4)).allSatisfy(prompt ->
                 assertThat(prompt).contains(expectedFeedback, ALICE.toString(), REQUEST.toString()));
         assertThat(monitor.successfulExecutions()).isEmpty();
+        assertIdle();
+    }
+
+    @Test
+    void mistakenPassingModelAuditCannotAccept190CalorieDay() {
+        var model = new ScriptedChatModel(1);
+        model.planCandidates = candidate -> RequestShapeAuditTest.planWithCalories(190, 2500);
+        model.useTools = false;
+
+        assertThatThrownBy(() -> invoke(planner(model), "alice"))
+                .isInstanceOfSatisfying(PlanValidationException.class, exception -> {
+                    assertThat(exception.audit().allPassed()).isFalse();
+                    assertThat(exception.audit().consolidatedFeedback()).contains("MONDAY has 190 kcal")
+                            .contains("accepted range is 2250–2750 kcal");
+                });
+        assertThat(model.initials).hasValue(1);
+        assertThat(model.revisions).hasValue(3);
+        assertThat(model.audits).hasValue(4);
         assertIdle();
     }
 
@@ -300,7 +322,7 @@ class NutritionWorkflowTest {
         for (var extra : extraListeners) {
             listener.addListener(extra);
         }
-        return new AgentConfiguration().nutritionPlanner(model, PROFILES, executor, listener);
+        return new AgentConfiguration().nutritionPlanner(model, PROFILES, executor, listener, JsonMapper.builder().build());
     }
 
     private WeeklyPlan invoke(Agents.NutritionPlanner planner, String username) {

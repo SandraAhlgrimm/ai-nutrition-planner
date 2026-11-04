@@ -1,0 +1,12 @@
+{
+  "name": "nutrition-planner-presentations",
+  "private": true,
+  "description": "Browser-only checks for the self-contained conference presentation; no runtime dependencies.",
+  "scripts": {
+    "test": "playwright test",
+    "test:visual": "CAPTURE_SLIDES=1 playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  }
+}

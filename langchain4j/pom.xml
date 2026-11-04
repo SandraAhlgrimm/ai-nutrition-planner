@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.1.1</version>
+        <version>4.1.2</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.example</groupId>
@@ -14,7 +14,11 @@
 
     <properties>
         <java.version>25</java.version>
-        <langchain4j.version>1.20.0</langchain4j.version>
+        <langchain4j.version>1.23.0</langchain4j.version>
+        <mcp.version>2.1.0</mcp.version>
+        <!-- Keep the JSON versions required by the LangChain4j release instead of Boot's older baseline. -->
+        <jackson-bom.version>3.2.4</jackson-bom.version>
+        <jackson-2-bom.version>2.22.4</jackson-2-bom.version>
     </properties>
 
     <dependencies>
@@ -60,7 +64,17 @@
         </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-agentic-patterns</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-jackson3</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.modelcontextprotocol.sdk</groupId>
+            <artifactId>mcp</artifactId>
+            <version>${mcp.version}</version>
         </dependency>
 
         <!-- Observability -->

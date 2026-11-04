@@ -32,10 +32,10 @@ class NutritionToolsTest {
         var bob = DefaultAgenticScope.ephemeralAgenticScope();
         alice.writeState(WeeklyPlan.class, plan(1));
         bob.writeState(WeeklyPlan.class, plan(3));
-        assertThat(tools.nutritionTotalsForDay(DayOfWeek.MONDAY, alice).calories()).isEqualTo(100);
+        assertThat(tools.nutritionTotalsForDay(DayOfWeek.MONDAY, alice).calories()).isEqualTo(2425);
         alice.writeState(WeeklyPlan.class, plan(2));
-        assertThat(tools.nutritionTotalsForDay(DayOfWeek.MONDAY, alice).calories()).isEqualTo(200);
-        assertThat(tools.nutritionTotalsForDay(DayOfWeek.MONDAY, bob).calories()).isEqualTo(300);
+        assertThat(tools.nutritionTotalsForDay(DayOfWeek.MONDAY, alice).calories()).isEqualTo(2450);
+        assertThat(tools.nutritionTotalsForDay(DayOfWeek.MONDAY, bob).calories()).isEqualTo(2475);
         assertThat(tools.totalMealCount(alice)).isEqualTo(2);
     }
 
@@ -60,10 +60,11 @@ class NutritionToolsTest {
         var scope = DefaultAgenticScope.ephemeralAgenticScope();
         scope.writeState(WeeklyPlan.class, duplicate);
 
-        assertThat(tools.dailyNutritionTotals(scope).get(DayOfWeek.MONDAY).calories()).isEqualTo(200);
-        assertThat(tools.nutritionTotalsForDay(DayOfWeek.MONDAY, scope).calories()).isEqualTo(200);
+        assertThat(tools.dailyNutritionTotals(scope).get(DayOfWeek.MONDAY).calories()).isEqualTo(4850);
+        assertThat(tools.nutritionTotalsForDay(DayOfWeek.MONDAY, scope).calories()).isEqualTo(4850);
         assertThat(tools.totalMealCount(scope)).isEqualTo(3);
-        var audit = new RequestShapeAudit().checkRequestShape(duplicate, PlanFixtures.REQUEST, PlanFixtures.PASSED);
+        var audit = new RequestShapeAudit().checkRequestShape(
+                duplicate, PlanFixtures.REQUEST, PlanFixtures.ALICE, PlanFixtures.PASSED);
         assertThat(audit.allPassed()).isFalse();
         assertThat(audit.consolidatedFeedback()).contains("Duplicate day");
     }

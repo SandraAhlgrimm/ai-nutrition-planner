@@ -46,8 +46,26 @@ class ValidationRetryAdvisor<T> implements CallAdvisor {
     @Override
     public ChatClientResponse adviseCall(ChatClientRequest request, CallAdvisorChain chain) {
         var response = chain.nextCall(request);
+        T lastEntity = null;
+        ValidationResult lastValidationResult = null;
         for (int attempt = 0; ; attempt++) {
-            var entity = toEntity(response);
+            T entity;
+            try {
+                entity = toEntity(response);
+            } catch (RuntimeException parseFailure) {
+                // A revision that comes back unusable must not discard an already audited candidate.
+                if (lastEntity == null) {
+                    throw parseFailure;
+                }
+                log.warn("Revision {}/{} returned no usable plan ({}); keeping the previous candidate",
+                        attempt, maxRetries, parseFailure.getMessage());
+                if (attempt == maxRetries) {
+                    throw new NutritionPlanValidationException(attempt + 1, lastValidationResult.feedback(), lastEntity);
+                }
+                response = chain.copy(this).nextCall(
+                        withValidationFeedback(request, lastEntity, lastValidationResult));
+                continue;
+            }
             var validationResult = Objects.requireNonNull(validator.apply(entity), "Missing nutrition audit");
 
             if (validationResult.allPassed()) {
@@ -55,6 +73,8 @@ class ValidationRetryAdvisor<T> implements CallAdvisor {
                 return response;
             }
 
+            lastEntity = entity;
+            lastValidationResult = validationResult;
             if (attempt == maxRetries) {
                 log.warn("Nutrition validation failed after {} audited candidates", attempt + 1);
                 throw new NutritionPlanValidationException(attempt + 1, validationResult.feedback(), entity);

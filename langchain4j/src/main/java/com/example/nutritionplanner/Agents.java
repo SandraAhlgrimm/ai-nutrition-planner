@@ -128,6 +128,8 @@ interface Agents {
         @UserMessage("""
             Audit this candidate meal plan against the user profile and the original request.
             Use the nutrition tools to calculate totals from the current candidate, not invented data.
+            Prefer dailyNutritionTotals for the candidate's actual days. If a day is absent, do not
+            repeatedly request its totals: report a violation only if that day was requested.
             Audit only ingredients and nutrition actually present in this candidate, not earlier candidates.
             Nutrition values are per serving. For every requested day, its tool-calculated calorie total
             must be between 90% and 110% of dailyCalorieTarget, inclusive. Check each day independently;

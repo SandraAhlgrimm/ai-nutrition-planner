@@ -6,6 +6,8 @@ import com.embabel.agent.test.unit.FakeOperationContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 
@@ -102,7 +104,7 @@ class NutritionPlannerAgentUnitTests {
                 .findFirst().orElseThrow();
         var result = assertInstanceOf(Tool.Result.WithArtifact.class, daily.call("{}"));
         assertEquals(plan.dailyNutritionTotals(), result.getArtifact());
-        assertTrue(result.getContent().contains("1000"));
+        assertTrue(result.getContent().contains("2500"));
         assertTrue(result.getContent().contains("MONDAY"));
     }
 
@@ -110,7 +112,7 @@ class NutritionPlannerAgentUnitTests {
     void passingModelAuditCannotHideMissingRequestedMealsOrNutrition() {
         var broken = new WeeklyPlan(List.of(new WeeklyPlan.DailyPlan(DayOfWeek.MONDAY, Optional.empty(),
                 Optional.of(new Recipe("No nutrition", List.of(), null, "Cook.", 10)), Optional.empty())));
-        var checked = PASS.withRequiredMealChecks(broken, REQUEST);
+        var checked = PASS.withDeterministicChecks(broken, REQUEST, ALICE);
         assertFalse(checked.allPassed());
         assertEquals(3, checked.violations().size());
         assertTrue(checked.consolidatedFeedback().contains("Nutrition information is missing"));
@@ -120,7 +122,7 @@ class NutritionPlannerAgentUnitTests {
     void passingModelAuditCannotAddUnrequestedDaysEvenWithoutMeals() {
         var days = new java.util.ArrayList<>(plan("Lentils").days());
         days.add(new WeeklyPlan.DailyPlan(DayOfWeek.FRIDAY, Optional.empty(), Optional.empty(), Optional.empty()));
-        var checked = PASS.withRequiredMealChecks(new WeeklyPlan(days), REQUEST);
+        var checked = PASS.withDeterministicChecks(new WeeklyPlan(days), REQUEST, ALICE);
         assertFalse(checked.allPassed());
         assertEquals(1, checked.violations().size());
         assertEquals("Unrequested day", checked.violations().getFirst().explanation());
@@ -133,7 +135,7 @@ class NutritionPlannerAgentUnitTests {
         var days = new java.util.ArrayList<>(valid.days());
         days.add(valid.days().getFirst());
         var duplicate = new WeeklyPlan(days);
-        assertEquals(2000, duplicate.dailyNutritionTotals().get(DayOfWeek.MONDAY).calories());
+        assertEquals(5000, duplicate.dailyNutritionTotals().get(DayOfWeek.MONDAY).calories());
         fake.expectResponse(PASS);
         var audit = new NutritionPlannerAgent.NutritionAudit(duplicate,
                 new NutritionPlannerAgent.PlanningContext(REQUEST, SEASONAL, ALICE), new RevisionBudget(0));
@@ -160,6 +162,37 @@ class NutritionPlannerAgentUnitTests {
         assertThrows(IllegalStateException.class, () -> audit.budget().nextRevision());
     }
 
+    @ParameterizedTest
+    @CsvSource({"2250,2750", "2500,2500", "2750,2250"})
+    void acceptsEachDayWithinInclusiveCalorieBounds(int monday, int wednesday) {
+        var checked = PASS.withDeterministicChecks(plan("In range", monday, wednesday), REQUEST, ALICE);
+        assertEquals(PASS, checked);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"2249,2500,1", "2500,2751,1", "190,2500,1", "2500,190,1",
+            "2249,2751,2", "0,5000,2", "2147483647,2500,1"})
+    void passingModelAuditCannotHideOutOfRangeDaysOrOffsetThem(int monday, int wednesday, int violations) {
+        var fake = FakeOperationContext.create();
+        fake.expectResponse(PASS);
+        var audit = new NutritionPlannerAgent.NutritionAudit(plan("Out of range", monday, wednesday),
+                new NutritionPlannerAgent.PlanningContext(REQUEST, SEASONAL, ALICE), new RevisionBudget(0));
+        var revision = assertInstanceOf(NutritionPlannerAgent.ReviseWeeklyPlan.class, audit.validate(fake.ai()));
+        assertEquals(violations, revision.validationResult().violations().size());
+        assertTrue(revision.validationResult().consolidatedFeedback().contains("2250-2750 kcal inclusive"));
+        assertEquals(1, fake.getLlmInvocations().size(), "The model audit still runs for every candidate");
+    }
+
+    @Test
+    void calorieLimitsUseTheAuthenticatedProfileAndRoundInward() {
+        var profile = new UserProfile("custom", List.of(), List.of(), 1001, List.of(), List.of());
+        assertEquals(PASS, PASS.withDeterministicChecks(plan("Bounds", 901, 1101), REQUEST, profile));
+        var checked = PASS.withDeterministicChecks(plan("Outside", 900, 1102), REQUEST, profile);
+        assertFalse(checked.allPassed());
+        assertEquals(2, checked.violations().size());
+        assertTrue(checked.consolidatedFeedback().contains("901-1101 kcal inclusive"));
+    }
+
     @Test
     void profileRequiresScopedAuthenticatedIdentityAndNeverDefaultsToAlice() {
         assertThrows(AuthenticationCredentialsNotFoundException.class, agent::fetchUserProfile);
@@ -173,5 +206,7 @@ class NutritionPlannerAgentUnitTests {
         assertTrue(prompt.contains(ALICE.toString()));
         assertTrue(prompt.contains(SEASONAL.toString()));
         assertTrue(prompt.contains(REQUEST.additionalInstructions()));
+        assertTrue(prompt.contains("2250-2750"));
+        assertTrue(prompt.contains("+/-10%"));
     }
 }

@@ -102,6 +102,29 @@ public record WeeklyPlan(List<DailyPlan> days) {
         return List.copyOf(violations);
     }
 
+    List<NutritionAuditValidationResult.NutritionAuditRecipeViolation> dailyCalorieViolations(
+            WeeklyPlanRequest request, UserProfile profile) {
+        var violations = new ArrayList<NutritionAuditValidationResult.NutritionAuditRecipeViolation>();
+        long target = profile.dailyCalorieTarget();
+        long minimum = (target * 90 + 99) / 100;
+        long maximum = target * 110 / 100;
+        for (var requestedDay : request.days()) {
+            long calories = days.stream().filter(day -> day.day() == requestedDay.day())
+                    .flatMap(day -> Stream.of(day.breakfast(), day.lunch(), day.dinner()))
+                    .flatMap(Optional::stream)
+                    .mapToLong(recipe -> Objects.requireNonNull(recipe.nutrition()).calories()).sum();
+            if (calories < minimum || calories > maximum) {
+                violations.add(new NutritionAuditValidationResult.NutritionAuditRecipeViolation(
+                        requestedDay.day(), "Daily calories",
+                        requestedDay.day() + " has " + calories + " kcal; target " + target
+                                + " kcal requires " + minimum + "-" + maximum + " kcal inclusive.",
+                        "Adjust the requested meals on " + requestedDay.day() + " to total between "
+                                + minimum + " and " + maximum + " kcal. Do not offset with another day."));
+            }
+        }
+        return List.copyOf(violations);
+    }
+
     // Nullable storage avoids Embabel 1.5.2's Optional-schema type-array normalization bug.
     // Preserve the JSON field names and the existing Optional-based Java accessors.
     public record DailyPlan(DayOfWeek day,

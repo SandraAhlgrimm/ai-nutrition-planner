@@ -91,7 +91,7 @@ class ModelProviderLoopTests {
                 assertEquals("object", function(fixture.requests.get(5), "dailyNutritionTotals")
                         .path("parameters").path("type").asText());
                 assertTrue(messages(fixture.requests.get(6)).contains("MONDAY"));
-                assertTrue(messages(fixture.requests.get(6)).contains("1000"), "Native nutrition tool result must return to the model");
+                assertTrue(messages(fixture.requests.get(6)).contains("2500"), "Native nutrition tool result must return to the model");
                 String expectedPath = switch (profile) {
                     case "ollama" -> "/api/chat";
                     case "openai" -> "/v1/chat/completions";

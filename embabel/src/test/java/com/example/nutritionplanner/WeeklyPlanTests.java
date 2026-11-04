@@ -83,9 +83,10 @@ class WeeklyPlanTests {
         var day = NutritionTestData.plan("Lentils").days().getFirst();
         var plan = new WeeklyPlan(List.of(day, day));
 
-        assertEquals(2000, plan.dailyNutritionTotals().get(DayOfWeek.MONDAY).calories());
-        assertEquals(2000, plan.nutritionTotalsForDay(DayOfWeek.MONDAY).calories());
-        var audit = NutritionTestData.PASS.withRequiredMealChecks(plan, NutritionTestData.REQUEST);
+        assertEquals(5000, plan.dailyNutritionTotals().get(DayOfWeek.MONDAY).calories());
+        assertEquals(5000, plan.nutritionTotalsForDay(DayOfWeek.MONDAY).calories());
+        var audit = NutritionTestData.PASS.withDeterministicChecks(
+                plan, NutritionTestData.REQUEST, NutritionTestData.ALICE);
         assertFalse(audit.allPassed());
         assertTrue(audit.violations().stream().anyMatch(violation -> violation.explanation().contains("Duplicate day")));
     }

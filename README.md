@@ -10,8 +10,9 @@ ranking of model quality or a performance benchmark.
 self-contained [`presentations/index.html`](presentations/index.html) locally;
 slides, speaker notes and synthetic demos work offline.
 
-The browser talks and [historical presentation slides](slides.pdf) are retained
-unchanged from earlier work. The code and comparison tables below reflect
+The browser talks reflect the merged November 2026 samples;
+the [historical presentation slides](slides.pdf) remain unchanged.
+The code and comparison tables below reflect
 **November 2026**: the validated planner remains the baseline, with separate,
 runnable **opt-in pattern labs**.
 

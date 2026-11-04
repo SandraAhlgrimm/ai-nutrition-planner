@@ -146,9 +146,11 @@ check and model audit; JSON validity alone is never treated as a passing audit.
 
 Draft/revision prompts spell out every selected meal slot, even when instructions
 ask for one dish that can be reused across meals. Nutrition values are per
-serving, and audit prompts require evidence from the current candidate and
-per-day tool totals rather than invented ingredients or comparisons against a
-per-meal minimum.
+serving. The demo profile targets **2,500 kcal per requested day**; each day's
+summed calories must be within **2,250–2,750 kcal** (inclusive). The deterministic
+acceptance gate checks every requested day independently, in addition to the
+model audit, so an out-of-range total cannot pass or be offset by another day.
+Audit prompts require evidence from the current candidate and per-day tool totals.
 
 The tests use deterministic chat responses and local/in-memory transport
 fixtures. They cover real MCP HTTP discovery and execution, authenticated-user

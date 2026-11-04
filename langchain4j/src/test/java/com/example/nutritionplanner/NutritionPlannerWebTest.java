@@ -58,7 +58,7 @@ class NutritionPlannerWebTest {
                 .andExpect(jsonPath("$.days.length()").value(2))
                 .andExpect(jsonPath("$.days[0].day").value("MONDAY"))
                 .andExpect(jsonPath("$.days[0].dinner.name").value("candidate-1"))
-                .andExpect(jsonPath("$.days[0].dinner.nutrition.calories").value(100))
+                .andExpect(jsonPath("$.days[0].dinner.nutrition.calories").value(2425))
                 .andExpect(jsonPath("$.days[0].dinner.ingredients[0].quantity").value("200"))
                 .andExpect(jsonPath("$.days[0].breakfast").doesNotExist());
         verify(planner).createNutritionPlan("bob", REQUEST);
@@ -138,7 +138,7 @@ class NutritionPlannerWebTest {
                 .andExpect(status().isOk())
                 .andExpect(view().name("fragments/plan :: plan"))
                 .andExpect(content().string(containsString("candidate-1")))
-                .andExpect(content().string(containsString("100 kcal")));
+                .andExpect(content().string(containsString("2425 kcal")));
         verify(planner).createNutritionPlan("bob", REQUEST);
     }
 

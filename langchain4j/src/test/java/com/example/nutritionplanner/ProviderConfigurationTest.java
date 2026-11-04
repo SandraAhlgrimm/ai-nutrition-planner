@@ -87,7 +87,7 @@ class ProviderConfigurationTest {
                             var body = JsonMapper.builder().build().readTree(requestBody.get());
                             assertThat(body.get("model").asString()).isEqualTo(modelName);
                             assertThat(requestPath.get()).endsWith(profile.equals("ollama") ? "/api/chat" : "/chat/completions");
-                            assertTokenMetrics(context.getBean(MeterRegistry.class));
+                            assertModelMetrics(context.getBean(MeterRegistry.class));
                         }
                         assertThat(context.getBean(UserProfileProperties.class).getUserProfile("alice"))
                                 .isEqualTo(PlanFixtures.ALICE);
@@ -133,7 +133,7 @@ class ProviderConfigurationTest {
             assertThat(model.chat("Reply with ready.")).isEqualTo("ready");
             assertThat(requests.get().getUrl().getPath()).contains("/deployments/custom-azure/chat/completions");
             assertThat(requests.get().getBodyAsBinaryData().toString()).contains("Reply with ready.");
-            assertTokenMetrics(registry);
+            assertModelMetrics(registry);
         } finally {
             registry.close();
         }
@@ -163,10 +163,12 @@ class ProviderConfigurationTest {
                 });
     }
 
-    private static void assertTokenMetrics(MeterRegistry registry) {
+    private static void assertModelMetrics(MeterRegistry registry) {
         assertThat(registry.get("gen_ai.client.token.usage").tag("gen_ai.token.type", "input").summary().totalAmount())
                 .isEqualTo(10);
         assertThat(registry.get("gen_ai.client.token.usage").tag("gen_ai.token.type", "output").summary().totalAmount())
                 .isEqualTo(5);
+        assertThat(registry.get("gen_ai.client.operation.duration").tag("outcome", "SUCCESS").timer().count())
+                .isEqualTo(1);
     }
 }

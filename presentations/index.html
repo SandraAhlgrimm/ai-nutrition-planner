@@ -1,0 +1,1507 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Four offline conference talks about agentic Java with LangChain4j, Spring AI, and Embabel.">
+  <title>Who owns the next step? | Agentic Java</title>
+  <script>
+    (() => {
+      const param = new URLSearchParams(window.location.search).get("clawpilotTheme");
+      const theme =
+        param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+  <style>
+    :root {
+      color-scheme: light;
+      --cp-bg: #f7f4ef;
+      --cp-bg-elevated: #fcfbf8;
+      --cp-surface: #ffffff;
+      --cp-surface-soft: #f5f5f5;
+      --cp-border: #dedede;
+      --cp-border-strong: #919191;
+      --cp-text: #242424;
+      --cp-text-muted: #5c5c5c;
+      --cp-text-soft: #6f6f6f;
+      --cp-accent: #b11f4b;
+      --cp-accent-hover: #9a1a41;
+      --cp-accent-soft: rgba(177, 31, 75, 0.08);
+      --cp-accent-fg: #ffffff;
+      --cp-success: #16a34a;
+      --cp-danger: #dc2626;
+      --cp-warning: #f59e0b;
+      --cp-link: #0078d4;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+      --cp-overlay: rgba(255, 255, 255, 0.8);
+      --cp-panel: rgba(255, 255, 255, 0.86);
+      --cp-panel-strong: rgba(255, 255, 255, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.55);
+      --cp-highlight: rgba(177, 31, 75, 0.12);
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --cp-bg: #3d3b3a;
+      --cp-bg-elevated: #343231;
+      --cp-surface: #292929;
+      --cp-surface-soft: #2e2e2e;
+      --cp-border: #474747;
+      --cp-border-strong: #5f5f5f;
+      --cp-text: #dedede;
+      --cp-text-muted: #919191;
+      --cp-text-soft: #b0b0b0;
+      --cp-accent: #fd8ea1;
+      --cp-accent-hover: #fb7b91;
+      --cp-accent-soft: rgba(253, 142, 161, 0.14);
+      --cp-accent-fg: #1a1a1a;
+      --cp-success: #4ade80;
+      --cp-danger: #f87171;
+      --cp-warning: #fbbf24;
+      --cp-link: #4da6ff;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+      --cp-overlay: rgba(41, 41, 41, 0.88);
+      --cp-panel: rgba(41, 41, 41, 0.72);
+      --cp-panel-strong: rgba(41, 41, 41, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.04);
+      --cp-highlight: rgba(253, 142, 161, 0.12);
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body {
+      margin: 0; background: var(--cp-bg); color: var(--cp-text);
+      font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    button, input, select { font: inherit; }
+    button, .button {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      min-height: 40px; padding: 8px 12px; border: 1px solid var(--cp-border-strong);
+      border-radius: 0.625rem; background: var(--cp-surface); color: var(--cp-text);
+      font-weight: 600; text-decoration: none; cursor: pointer;
+    }
+    button:hover, .button:hover { background: var(--cp-highlight); }
+    button:disabled { cursor: default; color: var(--cp-text-muted); border-color: var(--cp-border); }
+    button.primary { background: var(--cp-accent); color: var(--cp-accent-fg); border-color: var(--cp-accent); }
+    button.primary:hover { background: var(--cp-accent-hover); }
+    a { color: var(--cp-link); text-underline-offset: 4px; }
+    :focus-visible { outline: 3px solid var(--cp-accent); outline-offset: 4px; }
+    ::selection { background: var(--cp-highlight); color: var(--cp-text); }
+    h1, h2, h3, p { margin: 0; }
+    code, pre, kbd { font-family: Consolas, "Courier New", Courier, monospace; }
+    kbd { padding: 2px 6px; border: 1px solid var(--cp-border-strong); border-radius: 4px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    #menu { max-width: 1280px; margin: auto; padding: 48px 48px 32px; }
+    .menu-top, .toolbar, .toolbar-group, .dialog-top { display: flex; align-items: center; gap: 12px; }
+    .menu-top { justify-content: space-between; }
+    .eyebrow { color: var(--cp-accent); font-size: 18px; font-weight: 750; letter-spacing: 0.12em; text-transform: uppercase; }
+    #menu h1 { max-width: 920px; margin: 32px 0 16px; font-size: clamp(40px, 5vw, 68px); line-height: 1.04; letter-spacing: -0.035em; }
+    .menu-intro { max-width: 900px; font-size: 24px; line-height: 1.45; }
+    .track-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 32px 0 24px; }
+    .track-card {
+      display: grid; grid-template-columns: 56px 1fr; gap: 16px; padding: 24px;
+      background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: 16px;
+      color: var(--cp-text); text-decoration: none;
+    }
+    .track-card:hover { border-color: var(--cp-accent); background: var(--cp-accent-soft); }
+    .track-card h2 { margin: 0 0 8px; font-size: 28px; }
+    .track-card p { font-size: 18px; line-height: 1.45; }
+    .track-card .meta { margin-top: 16px; font-size: 16px; color: var(--cp-text-soft); }
+    .ordinal { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--cp-highlight); color: var(--cp-accent); font-size: 22px; font-weight: 700; }
+    .menu-bottom { display: flex; flex-wrap: wrap; gap: 12px 24px; color: var(--cp-text-soft); font-size: 16px; line-height: 1.6; }
+    #deck { height: 100dvh; display: flex; flex-direction: column; background: var(--cp-surface); }
+    .toolbar { flex-wrap: wrap; justify-content: space-between; padding: 8px 16px; border-bottom: 1px solid var(--cp-border); }
+    #track-name { font-weight: 700; margin: 0 8px; }
+    #slide-count { font-variant-numeric: tabular-nums; min-width: 80px; text-align: center; }
+    #viewport { flex: 1; min-height: 0; display: grid; place-items: center; padding: 16px; overflow: hidden; }
+    #stage-shell { position: relative; }
+    #stage { position: absolute; inset: 0 auto auto 0; width: 1280px; height: 720px; transform-origin: top left; }
+    .slide {
+      width: 1280px; height: 720px; padding: 44px 64px 28px; display: flex; flex-direction: column;
+      background: var(--cp-bg); color: var(--cp-text); position: relative;
+    }
+    .slide-head { margin-bottom: 20px; padding-bottom: 8px; flex: 0 0 auto; }
+    .slide-head .eyebrow { margin-bottom: 12px; }
+    .slide-head h2 { font-size: 50px; line-height: 1.07; font-weight: 750; letter-spacing: -0.025em; }
+    .slide-head h2:focus { outline: none; }
+    .slide-body { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: 24px; }
+    .slide-footer { display: flex; justify-content: space-between; gap: 24px; margin-top: 24px; font-size: 17px; color: var(--cp-text-soft); }
+    .slide-footer span:last-child { text-align: right; }
+    .slide-footer a { color: var(--cp-text-soft); }
+    .slide.hero { background: var(--cp-surface); }
+    .hero .slide-head { margin-bottom: 0; }
+    .hero .slide-head h2 { font-size: 24px; color: var(--cp-text-soft); font-weight: 600; letter-spacing: 0; }
+    .hero-grid { display: grid; grid-template-columns: 1.45fr 1fr; gap: 56px; align-items: center; }
+    .hero-title { font-size: 78px; line-height: 1.01; letter-spacing: -0.045em; font-weight: 780; }
+    .hero-title em { font-style: normal; color: var(--cp-accent); }
+    .hero-subtitle { margin-top: 24px; font-size: 29px; line-height: 1.3; }
+    .hero-byline { margin-top: 32px; font-size: 22px; color: var(--cp-text-soft); }
+    .ownership-stack { display: grid; gap: 16px; }
+    .ownership-stack .layer { padding: 24px; border: 2px solid var(--cp-border-strong); border-radius: 16px; }
+    .ownership-stack .layer:nth-child(2) { border-color: var(--cp-accent); background: var(--cp-accent-soft); }
+    .layer small { display: block; font-size: 17px; letter-spacing: 0.1em; color: var(--cp-text-soft); }
+    .layer strong { display: block; margin-top: 8px; font-size: 30px; }
+    .cards { display: grid; gap: 24px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .cards.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .card { padding: 28px; border-radius: 16px; background: var(--cp-surface); border: 1px solid var(--cp-border); }
+    .card .tag { display: inline-block; margin-bottom: 20px; color: var(--cp-accent); font-size: 18px; font-weight: 750; letter-spacing: 0.04em; text-transform: uppercase; }
+    .card h3 { font-size: 32px; line-height: 1.15; margin-bottom: 16px; letter-spacing: -0.01em; }
+    .card p { font-size: 28px; line-height: 1.34; }
+    .card p + p { margin-top: 16px; }
+    .card code { font-size: 25px; overflow-wrap: anywhere; }
+    .card.accent { border-color: var(--cp-accent); background: var(--cp-accent-soft); }
+    .lesson { font-size: 28px; line-height: 1.32; }
+    .lesson strong { color: var(--cp-accent); font-weight: 750; }
+    .strip { padding: 20px 24px; border-radius: 0.625rem; border-left: 5px solid var(--cp-accent); background: var(--cp-accent-soft); font-size: 28px; line-height: 1.3; }
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; }
+    .request-code { margin: 0; font-size: 25px; line-height: 1.36; white-space: pre-wrap; }
+    .workflow-visual { position: relative; height: 400px; }
+    .flow { display: grid; grid-template-columns: 1.3fr 32px 1fr 32px 1fr 32px 1fr; align-items: center; gap: 12px; position: absolute; top: 0; width: 100%; height: 280px; z-index: 1; }
+    .feedback-path { position: absolute; inset: 0; width: 100%; height: 400px; }
+    .node { padding: 24px 18px; background: var(--cp-surface); border: 2px solid var(--cp-border-strong); border-radius: 16px; text-align: center; }
+    .node strong { display: block; font-size: 29px; line-height: 1.2; }
+    .node small { display: block; margin-top: 12px; font-size: 22px; line-height: 1.3; color: var(--cp-text-soft); }
+    .node.active { border-color: var(--cp-accent); background: var(--cp-accent-soft); }
+    .fork { display: grid; gap: 20px; }
+    .arrow { color: var(--cp-accent); font-size: 40px; text-align: center; }
+    .budget { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+    .budget .card { padding: 24px; }
+    .budget .big { font-size: 72px; font-weight: 750; letter-spacing: -0.05em; color: var(--cp-accent); }
+    .budget h3 { font-size: 27px; margin-top: 8px; }
+    .budget p { font-size: 25px; }
+    .code-label { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 12px; font-size: 17px; color: var(--cp-text-soft); }
+    .code-panel { padding: 20px 28px; background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: 16px; }
+    .code-panel pre { margin: 0; white-space: normal; tab-size: 4; font-size: 26px; line-height: 1.25; }
+    .code-line { display: block; min-height: 1.25em; padding-left: calc(var(--code-indent, 0ch) + 2ch); text-indent: -2ch; white-space: pre-wrap; overflow-wrap: normal; }
+    .code-slide .slide-body { gap: 20px; }
+    .code-slide .lesson { font-size: 27px; }
+    .lane { display: grid; grid-template-columns: 220px 1fr; gap: 24px; align-items: center; }
+    .lane-label { font-size: 26px; font-weight: 700; }
+    .lane-steps { display: flex; align-items: stretch; gap: 12px; }
+    .lane-steps span { flex: 1; display: grid; place-items: center; padding: 20px 12px; border: 1px solid var(--cp-border-strong); border-radius: 0.625rem; background: var(--cp-surface); font-size: 24px; text-align: center; }
+    .lane-steps span.emphasis { color: var(--cp-accent); border-color: var(--cp-accent); background: var(--cp-accent-soft); }
+    .test-grid { width: 100%; border-collapse: collapse; font-size: 29px; text-align: left; }
+    .test-grid th, .test-grid td { padding: 16px 8px; border-bottom: 1px solid var(--cp-border); }
+    .test-grid .table-head { font-size: 20px; font-weight: 750; color: var(--cp-accent); text-transform: uppercase; letter-spacing: 0.04em; }
+    .test-grid .count { font-variant-numeric: tabular-nums; font-weight: 750; }
+    .demo-steps { display: flex; gap: 12px; }
+    .demo-steps button { flex: 1; padding: 16px 12px; font-size: 22px; }
+    .demo-steps button[aria-pressed="true"] { background: var(--cp-accent); border-color: var(--cp-accent); color: var(--cp-accent-fg); }
+    .demo-panel { padding: 28px; background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: 16px; }
+    .demo-panel h3 { font-size: 34px; line-height: 1.2; margin-bottom: 20px; }
+    .demo-panel p { font-size: 28px; line-height: 1.35; }
+    .demo-panel .split { grid-template-columns: 1.2fr 1fr; }
+    .demo-panel .outcome { padding: 24px; background: var(--cp-accent-soft); border-radius: 0.625rem; }
+    .demo-caption { font-size: 19px; color: var(--cp-text-soft); }
+    .route { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+    .route .stop { padding: 24px; background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: 16px; }
+    .route strong { display: block; margin: 20px 0 12px; font-size: 30px; }
+    .route p { font-size: 24px; line-height: 1.35; }
+    .closing { display: grid; grid-template-columns: 1.7fr 1fr; align-items: center; gap: 48px; }
+    .closing .statement { font-size: 66px; font-weight: 750; line-height: 1.06; letter-spacing: -0.035em; }
+    .closing .statement em { color: var(--cp-accent); font-style: normal; }
+    .closing .card { font-size: 28px; line-height: 1.4; }
+    .source-list { display: grid; gap: 20px; grid-template-columns: 1fr 1fr; }
+    .source-list a { display: block; padding: 20px 24px; background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: 0.625rem; font-size: 25px; text-decoration: none; line-height: 1.25; }
+    .source-list small { display: block; margin-top: 8px; font-size: 19px; color: var(--cp-text-soft); }
+    #progress { width: 100%; height: 4px; appearance: none; border: 0; background: var(--cp-border); }
+    #progress::-webkit-progress-bar { background: var(--cp-border); }
+    #progress::-webkit-progress-value { background: var(--cp-accent); }
+    #progress::-moz-progress-bar { background: var(--cp-accent); }
+    #status { position: fixed; bottom: 12px; left: 24px; max-width: 700px; padding: 12px 16px; border: 1px solid var(--cp-border-strong); border-radius: 0.625rem; background: var(--cp-surface); color: var(--cp-text); z-index: 5; }
+    #status:empty { display: none; }
+    dialog { width: min(900px, calc(100vw - 48px)); max-height: calc(100dvh - 48px); padding: 28px; border: 1px solid var(--cp-border-strong); border-radius: 16px; background: var(--cp-surface); color: var(--cp-text); }
+    dialog::backdrop { background: var(--cp-overlay); }
+    .dialog-top { justify-content: space-between; margin-bottom: 24px; }
+    .dialog-top h2 { font-size: 28px; }
+    dialog h3 { margin: 24px 0 12px; font-size: 22px; }
+    dialog p, dialog li { font-size: 19px; line-height: 1.55; }
+    dialog ul { padding-left: 24px; }
+    #notes-meta { color: var(--cp-accent); font-weight: 700; }
+    .notes-warning { margin-top: 20px; padding: 12px; background: var(--cp-accent-soft); border-radius: 0.625rem; }
+    #outline-links { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    #outline-links h3 { grid-column: 1 / -1; }
+    #outline-links a { padding: 12px; border: 1px solid var(--cp-border); border-radius: 0.625rem; font-size: 17px; line-height: 1.4; text-decoration: none; }
+    #outline-links a[aria-current="page"] { border-color: var(--cp-accent); background: var(--cp-accent-soft); }
+    .print-options { display: grid; gap: 16px; margin: 24px 0; font-size: 20px; }
+    .print-options label { display: flex; align-items: center; gap: 12px; }
+    .print-options select { padding: 8px; background: var(--cp-bg); color: var(--cp-text); border: 1px solid var(--cp-border-strong); border-radius: 0.625rem; }
+    #print-deck { display: none; }
+    @media (max-width: 760px) {
+      #menu { padding: 24px; }
+      .track-grid { grid-template-columns: 1fr; }
+      #track-name { display: none; }
+      .toolbar { gap: 8px; padding: 8px; }
+      .toolbar-group { flex-wrap: wrap; gap: 4px; }
+      .toolbar button, .toolbar .button { padding: 8px; font-size: 13px; }
+      #outline-links { grid-template-columns: 1fr; }
+      .menu-intro { font-size: 21px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+    }
+    @page { size: 13.333333in 7.5in; margin: 0; }
+    @page handout { size: A4; margin: 14mm; }
+    @media print {
+      body > :not(#print-deck) { display: none !important; }
+      #print-deck { display: block; }
+      .printed-slide { break-after: page; break-inside: avoid; }
+      .printed-slide:last-child { break-after: auto; }
+      .printed-slide .slide { display: flex !important; }
+      .print-handout { page: handout; break-after: page; font-size: 11pt; line-height: 1.45; }
+      .print-handout:last-child { break-after: auto; }
+      .print-handout h1 { font-size: 23pt; line-height: 1.15; margin-bottom: 12pt; }
+      .print-handout h2 { font-size: 13pt; margin: 14pt 0 5pt; }
+      .print-handout p { margin: 6pt 0; font-size: 11pt; }
+      .print-handout a { overflow-wrap: anywhere; }
+      .print-handout pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 9pt; }
+      * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <main id="menu">
+    <div class="menu-top">
+      <p class="eyebrow">Agentic Java / field notes from code</p>
+      <button type="button" data-action="theme" aria-label="Switch color theme">Theme</button>
+    </div>
+    <h1>Who owns the <span>next step?</span></h1>
+    <p class="menu-intro">One nutrition-planning problem. Three programming models. Choose a standalone talk, not a chapter you need another talk to understand.</p>
+    <nav class="track-grid" id="track-menu" aria-label="Choose a 45-minute talk"></nav>
+    <div class="menu-bottom">
+      <span>Sandra Ahlgrimm</span>
+      <span>English / 16:9 / fully offline</span>
+      <span>Source snapshot: merged framework refresh</span>
+      <button type="button" data-action="help">Keys &amp; presenting</button>
+    </div>
+  </main>
+  <div id="deck" hidden>
+    <nav class="toolbar" aria-label="Presentation controls">
+      <div class="toolbar-group">
+        <a class="button" href="#/" title="Return to talk menu (M)">Menu</a>
+        <span id="track-name"></span>
+        <button type="button" id="previous" title="Previous slide (Left arrow)">Previous</button>
+        <span id="slide-count" aria-live="polite"></span>
+        <button type="button" id="next" title="Next slide (Right arrow)">Next</button>
+      </div>
+      <div class="toolbar-group">
+        <button type="button" data-action="outline" title="Slide index (O)">Index</button>
+        <button type="button" data-action="notes" title="Speaker notes (N)">Notes</button>
+        <button type="button" data-action="fullscreen" title="Toggle fullscreen (F)">Fullscreen</button>
+        <button type="button" data-action="theme" title="Switch color theme (T)">Theme</button>
+        <button type="button" data-action="print" title="Print slides or notes (P)">Print</button>
+        <button type="button" data-action="help" aria-label="Keyboard help">?</button>
+      </div>
+    </nav>
+    <div id="viewport"><div id="stage-shell"><div id="stage"></div></div></div>
+    <progress id="progress" max="24" value="1" aria-label="Talk progress"></progress>
+  </div>
+  <div id="status" role="status" aria-live="polite"></div>
+  <dialog id="notes-dialog" aria-labelledby="notes-heading">
+    <div class="dialog-top"><h2 id="notes-heading">Speaker notes</h2><button type="button" data-close>Close notes</button></div>
+    <p id="notes-meta"></p>
+    <div id="notes-content"></div>
+    <p class="notes-warning">These notes are on this screen. Close them before projecting, or print a separate notes handout.</p>
+    <div class="dialog-top" style="margin-top: 24px; margin-bottom: 0">
+      <button type="button" data-note-step="-1">Previous notes</button>
+      <button type="button" data-note-step="1">Next notes</button>
+    </div>
+  </dialog>
+  <dialog id="outline-dialog" aria-labelledby="outline-heading">
+    <div class="dialog-top"><h2 id="outline-heading">Talk index</h2><button type="button" data-close>Close index</button></div>
+    <p>The main talk is 45 minutes. Backups are optional and excluded from that timing.</p>
+    <nav id="outline-links" aria-label="Slides in this talk"></nav>
+  </dialog>
+  <dialog id="help-dialog" aria-labelledby="help-heading">
+    <div class="dialog-top"><h2 id="help-heading">Ready for the room</h2><button type="button" data-close>Close help</button></div>
+    <p><kbd>Right</kbd> / <kbd>Space</kbd> / <kbd>PageDown</kbd> advance. <kbd>Left</kbd> / <kbd>PageUp</kbd> go back. <kbd>Home</kbd> and <kbd>End</kbd> jump to the opening and conclusion of the main talk.</p>
+    <h3>Presentation tools</h3>
+    <p><kbd>F</kbd> fullscreen &middot; <kbd>N</kbd> notes &middot; <kbd>O</kbd> index and backups &middot; <kbd>M</kbd> menu &middot; <kbd>T</kbd> theme &middot; <kbd>P</kbd> print &middot; <kbd>?</kbd> this help.</p>
+    <h3>Offline by design</h3>
+    <p>This one HTML file contains every slide, diagram, code excerpt and synthetic demo. No CDN, model, application login, font download or server is required. Source links are optional reading and need a connection.</p>
+    <h3>Audience safety</h3>
+    <p>Notes are hidden until requested. They open on the current screen, not a private presenter display. Synthetic demo panels are not captured model results. Nutrition estimates and dietary judgments are not clinically validated.</p>
+    <h3>Deep links and backups</h3>
+    <p>Copy the URL to resume an exact track and slide. The main talk stops at its questions slide; open the index to choose a backup. Escape closes a dialog, exits fullscreen, or returns to the menu.</p>
+  </dialog>
+  <dialog id="print-dialog" aria-labelledby="print-heading">
+    <div class="dialog-top"><h2 id="print-heading">Print this talk</h2><button type="button" data-close>Cancel</button></div>
+    <p>Print one slide per 16:9 page, or an A4 speaker handout with timing, demo cues and source links. Source content is already embedded.</p>
+    <div class="print-options">
+      <label>Format <select id="print-format"><option value="slides">Audience slides (16:9)</option><option value="notes">Speaker handout (A4)</option></select></label>
+      <label><input id="print-backups" type="checkbox"> Include optional backups</label>
+    </div>
+    <button class="primary" type="button" id="print-now">Print / save PDF</button>
+  </dialog>
+  <div id="print-deck"></div>
+  <noscript><p style="padding: 32px">Enable JavaScript to select a talk. All scripts and content are inside this file; no network access is needed.</p></noscript>
+  <script>
+    "use strict";
+    (() => {
+      const revision = "8781b41982b7431dade1ebe3d37fc132fbf29d0d";
+      const repository = "https://github.com/SandraAhlgrimm/ai-nutrition-planner";
+      const javaPath = "src/main/java/com/example/nutritionplanner/";
+      const repo = (path, label = path.split("/").at(-1)) => ({ label, url: `${repository}/blob/${revision}/${path}` });
+      const upstream = (label, url) => ({ label, url });
+      const lc = name => repo(`langchain4j/${javaPath}${name}.java`);
+      const sa = name => repo(`spring-ai/${javaPath}${name}.java`);
+      const eb = name => repo(`embabel/${javaPath}${name}.java`);
+      const refs = {
+        overview: repo("README.md", "Merged comparison and failure contract"),
+        lcWorkflow: upstream("LangChain4j 1.20.0: workflow API", "https://github.com/langchain4j/langchain4j/tree/1.20.0/langchain4j-agentic/src/main/java/dev/langchain4j/agentic"),
+        lcHitl: upstream("LangChain4j 1.20.0: HumanInTheLoop", "https://github.com/langchain4j/langchain4j/blob/1.20.0/langchain4j-agentic/src/main/java/dev/langchain4j/agentic/workflow/HumanInTheLoop.java"),
+        lcSearch: upstream("LangChain4j 1.20.0: experimental tool search", "https://github.com/langchain4j/langchain4j/blob/1.20.0/langchain4j/src/main/java/dev/langchain4j/service/tool/search/ToolSearchStrategy.java"),
+        lcSkills: upstream("LangChain4j 1.20.0: experimental Skills", "https://github.com/langchain4j/langchain4j/blob/1.20.0/langchain4j-skills/src/main/java/dev/langchain4j/skills/Skills.java"),
+        lcMcp: upstream("LangChain4j: core client vs community stdio server", "https://github.com/langchain4j/langchain4j/blob/1.20.0/docs/docs/tutorials/mcp-stdio-server.md"),
+        saTools: upstream("Spring AI 2.0.1: ToolCallingAdvisor", "https://github.com/spring-projects/spring-ai/blob/v2.0.1/spring-ai-client-chat/src/main/java/org/springframework/ai/chat/client/advisor/ToolCallingAdvisor.java"),
+        saSearch: upstream("Spring AI 2.0.1: ToolSearchToolCallingAdvisor", "https://github.com/spring-projects/spring-ai/blob/v2.0.1/advisors/spring-ai-tool-search-advisor/src/main/java/org/springframework/ai/chat/client/advisor/toolsearch/ToolSearchToolCallingAdvisor.java"),
+        lucene: upstream("Spring AI 2.0.1: Lucene metadata index", "https://github.com/spring-projects/spring-ai/blob/v2.0.1/spring-ai-tool-search-tool/src/main/java/org/springframework/ai/tool/toolsearch/index/lucene/LuceneToolIndex.java"),
+        questions: upstream("Community 0.12.0: AskUserQuestionTool", "https://github.com/spring-ai-community/spring-ai-agent-utils/blob/v0.12.0/spring-ai-agent-utils/src/main/java/org/springaicommunity/agent/tools/AskUserQuestionTool.java"),
+        skills: upstream("Community 0.12.0: JAR-aware skill loading", "https://github.com/spring-ai-community/spring-ai-agent-utils/blob/v0.12.0/spring-ai-agent-utils/src/main/java/org/springaicommunity/agent/utils/Skills.java"),
+        states: upstream("Embabel 1.5.2: states and loops", "https://github.com/embabel/embabel-agent/blob/v1.5.2/embabel-agent-docs/src/main/asciidoc/reference/states/page.adoc"),
+        concurrent: upstream("Embabel 1.5.2: concurrent process", "https://github.com/embabel/embabel-agent/blob/v1.5.2/embabel-agent-docs/src/main/asciidoc/reference/agent-process/page.adoc"),
+        unfolding: upstream("Embabel 1.5.2: category-based unfolding", "https://github.com/embabel/embabel-agent/blob/v1.5.2/embabel-agent-api/src/main/kotlin/com/embabel/agent/api/annotation/UnfoldingTools.kt"),
+        ebHitl: upstream("Embabel 1.5.2: WaitFor", "https://github.com/embabel/embabel-agent/blob/v1.5.2/embabel-agent-api/src/main/java/com/embabel/agent/core/hitl/WaitFor.java"),
+        script: upstream("Embabel 1.5.2: process skill engine", "https://github.com/embabel/embabel-agent/blob/v1.5.2/embabel-agent-skills/src/main/kotlin/com/embabel/agent/skills/script/ProcessSkillScriptExecutionEngine.kt"),
+        converters: upstream("Embabel 1.5.2: native OpenAI converters", "https://github.com/embabel/embabel-agent/blob/v1.5.2/embabel-agent-openai/src/main/kotlin/com/embabel/agent/openai/converters.kt"),
+        schema: upstream("Embabel 1.5.2: schema normalization", "https://github.com/embabel/embabel-agent/blob/v1.5.2/embabel-agent-common/embabel-agent-ai/src/main/kotlin/com/embabel/common/ai/converters/jsonSchemaSupport.kt")
+      };
+      const escape = value => String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+      const link = ref => `<a href="${escape(ref.url)}" target="_blank" rel="noopener noreferrer">${escape(ref.label)}</a>`;
+      const note = (talk, cue, transition, sources) => ({ talk, cue, transition, sources });
+      const slide = (id, title, body, notes, options = {}) => ({
+        id, title, body, notes, minutes: 2, chapter: "Mechanics", kind: "", ...options
+      });
+      const cards = (items, two = false) => `<div class="cards${two ? " two" : ""}">${items.map(([tag, title, text]) =>
+        `<div class="card"><span class="tag">${tag}</span><h3>${title}</h3><p>${text}</p></div>`).join("")}</div>`;
+      const strip = text => `<p class="strip">${text}</p>`;
+      const lanes = items => items.map(([label, steps]) => `<div class="lane"><div class="lane-label">${label}</div><div class="lane-steps">${steps.map((step, i) => `<span class="${i === steps.length - 1 ? "emphasis" : ""}">${step}</span>`).join("")}</div></div>`).join("");
+
+      const snippets = {
+        lcAgent: {
+          file: `langchain4j/${javaPath}Agents.java`, owner: "native @Agent / application contract",
+          text: `@Agent(description = "Creates an audited weekly nutrition plan", typedOutputKey = WeeklyPlan.class)
+WeeklyPlan createNutritionPlan(
+        @V("username") String username,
+        @K(WeeklyPlanRequest.class) WeeklyPlanRequest request,
+        @V("month") String month,
+        @V("country") String country,
+        @V("additionalInstructions") String additionalInstructions);`
+        },
+        lcParallel: {
+          file: `langchain4j/${javaPath}AgentConfiguration.java`, owner: "native graph / application executor",
+          text: `var contextPropagation = new ContextPropagatingTaskDecorator();
+var preparation = AgenticServices.parallelBuilder()
+        .name("prepareProfileAndIngredients")
+        .subAgents(profiles, seasonalIngredients)
+        .executor(task -> agentExecutor.execute(contextPropagation.decorate(task)))
+        .build();`
+        },
+        lcSequence: {
+          file: `langchain4j/${javaPath}AgentConfiguration.java`, owner: "native composition / application acceptance",
+          text: `return AgenticServices.sequenceBuilder(Agents.NutritionPlanner.class)
+        .subAgents(preparation, creator, nutritionGuard(model, "auditInitialPlan"),
+                new RequestShapeAudit(), reviseIfNeeded)
+        .output(AgentConfiguration::validatedPlan)
+        .listener(listener)
+        .build();`
+        },
+        lcLoop: {
+          file: `langchain4j/${javaPath}AgentConfiguration.java`, owner: "native loop / application budget",
+          text: `var revisions = AgenticServices.loopBuilder()
+        .name("reviseAndAudit")
+        .subAgents(reviser, nutritionGuard(model, "auditRevision"), new RequestShapeAudit())
+        .maxIterations(MAX_REVISIONS)
+        .testExitAtLoopEnd(true)
+        .exitCondition("All dietary and request checks passed", AgentConfiguration::auditPassed)
+        .outputKey(WeeklyPlan.class)
+        .build();`
+        },
+        lcGate: {
+          file: `langchain4j/${javaPath}AgentConfiguration.java`, owner: "application",
+          text: `private static WeeklyPlan validatedPlan(AgenticScope scope) {
+    var audit = Objects.requireNonNull(scope.readState(NutritionAuditValidationResult.class),
+            "The nutrition audit did not return a result");
+    if (!audit.allPassed()) {
+        throw new PlanValidationException(audit);
+    }
+    return Objects.requireNonNull(scope.readState(WeeklyPlan.class), "The planner did not return a plan");
+}`
+        },
+        lcTool: {
+          file: `langchain4j/${javaPath}NutritionTools.java`, owner: "native tool + hidden scope / application totals",
+          text: `@Tool("Returns the total number of meals in the current candidate plan")
+public long totalMealCount(AgenticScope scope) {
+    return currentPlan(scope).days().stream().flatMap(NutritionTools::meals).count();
+}`
+        },
+        lcShape: {
+          file: `langchain4j/${javaPath}RequestShapeAudit.java`, owner: "application deterministic check",
+          text: `for (var meal : MealType.values()) {
+    boolean present = switch (meal) {
+        case BREAKFAST -> day.breakfast() != null;
+        case LUNCH -> day.lunch() != null;
+        case DINNER -> day.dinner() != null;
+    };
+    var slot = day.day() + " " + meal;`
+        },
+        lcTest: {
+          file: "langchain4j/src/test/java/com/example/nutritionplanner/NutritionWorkflowTest.java", owner: "application regression test",
+          text: `assertThat(invoke(planner, "alice")).isEqualTo(plan(passingAudit));
+assertThat(model.initials.get()).isEqualTo(1);
+assertThat(model.revisions.get()).isEqualTo(passingAudit - 1);
+assertThat(model.audits.get()).isEqualTo(passingAudit);
+assertThat(model.seasonal.get()).isEqualTo(1);
+assertThat(model.verifiedToolResults.get()).isEqualTo(passingAudit * 3);`
+        },
+        saClient: {
+          file: `spring-ai/${javaPath}NutritionPlannerAgent.java`, owner: "native builder / community skills / app clock",
+          text: `this.userProfileProperties = userProfileProperties;
+this.chatClient = chatClientBuilder.build();
+this.toolIndex = toolIndex;
+this.toolCallingManager = toolCallingManager;
+this.skillsTool = SkillsTool.builder().addSkillsResource(skillsResource).build();
+this.currentMonthTool = new CurrentMonthTool(clock);`
+        },
+        saSequence: {
+          file: `spring-ai/${javaPath}NutritionPlannerAgent.java`, owner: "application orchestration",
+          text: `request.validate();
+var result = Workflow.parallel(() -> fetchUserProfileForUser(name), () -> fetchSeasonalIngredients(request));
+var userProfile = result.first();
+var seasonalIngredients = result.second();
+
+var weeklyPlan = createWeeklyPlan(request, seasonalIngredients, userProfile, questionHandler);
+log.info("Audited nutrition plan created with {} meals", weeklyPlan.totalMealCount());
+return weeklyPlan;`
+        },
+        saParallel: {
+          file: `spring-ai/${javaPath}Workflow.java`, owner: "application / Java virtual threads",
+          text: `var context = ContextSnapshotFactory.builder().build().captureAll();
+try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+    var firstResult = executor.submit(context.wrap(first::get));
+    var secondResult = executor.submit(context.wrap(second::get));
+    try {
+        return new ParallelResult<>(firstResult.get(), secondResult.get());`
+        },
+        saRetry: {
+          file: `spring-ai/${javaPath}ValidationRetryAdvisor.java`, owner: "application policy",
+          text: `if (validationResult.allPassed()) {
+    log.info("ValidationRetryAdvisor: validation passed");
+    return response;
+}
+
+if (attempt == maxRetries) {
+    log.warn("Nutrition validation failed after {} audited candidates", attempt + 1);
+    throw new NutritionPlanValidationException(attempt + 1, validationResult.feedback());
+}`
+        },
+        saOrder: {
+          file: `spring-ai/${javaPath}ValidationRetryAdvisor.java`, owner: "application advisor / native ordering",
+          text: `@Override
+public int getOrder() {
+    // Audit completed candidates, never intermediate tool-call responses.
+    return ToolCallingAdvisor.DEFAULT_ORDER - 100;
+}`
+        },
+        saAnswers: {
+          file: `spring-ai/${javaPath}NutritionPlannerAgent.java`, owner: "application state propagation",
+          text: `var answers = new LinkedHashMap<String, String>();
+var validationRetryAdvisor = new ValidationRetryAdvisor<>(WeeklyPlan.class,
+        plan -> this.validateWeeklyPlan(plan, userProfile, weeklyPlanRequest, Map.copyOf(answers)),
+        3, answers::toString);`
+        },
+        saAuditAnswers: {
+          file: `spring-ai/${javaPath}NutritionPlannerAgent.java`, owner: "application audit prompt",
+          text: `# Questions already asked and the user's recorded answers:
+{userAnswers}
+
+Apply these cooking preferences when auditing the recipes.
+Questions with recorded answers have already been completed;
+do not require the plan to repeat that conversation.`
+        },
+        saSearch: {
+          file: `spring-ai/${javaPath}NutritionPlannerAgent.java`, owner: "native search / application audit session",
+          text: `var toolSearchAdvisor = ToolSearchToolCallingAdvisor.builder()
+        .toolIndex(toolIndex).toolCallingManager(toolCallingManager).build();
+var auditId = UUID.randomUUID().toString();`
+        },
+        saEvict: {
+          file: `spring-ai/${javaPath}NutritionPlannerAgent.java`, owner: "application lifecycle",
+          text: `var shapeFeedback = request.shapeFeedback(weeklyPlan);
+if (!shapeFeedback.isEmpty()) {
+    return new NutritionAuditValidationResult(false, validationResult.violations(),
+            shapeFeedback + "\\n" + validationResult.consolidatedFeedback());
+}
+return validationResult;
+} finally {
+    toolSearchAdvisor.evictSession(auditId);
+}`
+        },
+        saClock: {
+          file: `spring-ai/${javaPath}CurrentMonthTool.java`, owner: "application clock / native @Tool",
+          text: `record CurrentMonthTool(Clock clock) {
+
+    @Tool(description = "Returns the current month in English using the application's UTC clock")
+    public String currentMonth() {
+        return LocalDate.now(clock).getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
+    }
+}`
+        },
+        saMcp: {
+          file: `spring-ai/${javaPath}NutritionPlannerAgent.java`, owner: "native MCP / application identity check",
+          text: `public WeeklyPlan createNutritionPlan(WeeklyPlanRequest request, McpSyncRequestContext context) {
+    var username = context.transportContext().get(NutritionPlannerMcpConfiguration.PRINCIPAL_NAME);
+    if (!(username instanceof String name) || name.isBlank()) {
+        throw new AuthenticationCredentialsNotFoundException("An authenticated MCP principal is required");
+    }
+    return createNutritionPlan(name, request);
+}`
+        },
+        saQuestionClose: {
+          file: `spring-ai/${javaPath}AskUserQuestionHandler.java`, owner: "application question lifecycle",
+          text: `@Override
+public void close() {
+    closed.set(true);
+    var pending = pendingResponse.getAndSet(null);
+    if (pending != null) pending.answer().completeExceptionally(new IllegalStateException("Interaction closed"));
+}`
+        },
+        ebStates: {
+          file: `embabel/${javaPath}NutritionPlannerAgent.java`, owner: "native states / application domain types",
+          text: `@State
+sealed interface Stage permits NutritionAudit, ReviseWeeklyPlan, Done {}
+
+record PlanningContext(WeeklyPlanRequest request, SeasonalIngredients seasonalIngredients, UserProfile userProfile) {}`
+        },
+        ebAction: {
+          file: `embabel/${javaPath}NutritionPlannerAgent.java`, owner: "native typed action + LlmReference",
+          text: `@Action
+SeasonalIngredients fetchSeasonalIngredients(WeeklyPlanRequest weeklyPlanRequest, Ai ai) {
+    var country = Locale.of("", weeklyPlanRequest.countryCode()).getDisplayCountry(Locale.ENGLISH);
+    return ai
+            .withLlm(LlmOptions.withAutoLlm())
+            .withReferences(bundledSkills.forRequest().asIndividualReferences())`
+        },
+        ebTransition: {
+          file: `embabel/${javaPath}NutritionPlannerAgent.java`, owner: "application policy / native state transition",
+          text: `if (validationResult.allPassed()) {
+    return new Done(weeklyPlan);
+}
+if (budget.exhausted()) {
+    throw new NutritionPlanRejectedException(budget, validationResult);
+}
+return new ReviseWeeklyPlan(weeklyPlan, context, budget, validationResult);`
+        },
+        ebBudget: {
+          file: `embabel/${javaPath}RevisionBudget.java`, owner: "application",
+          text: `int auditNumber() {
+    return revisionsUsed + 1;
+}
+
+boolean exhausted() {
+    return revisionsUsed == MAX_REVISIONS;
+}`
+        },
+        ebConverter: {
+          file: `embabel/${javaPath}ModelConfiguration.java`, owner: "application bridge / native provider converters",
+          text: `OptionsConverter optionsConverter = environment.acceptsProfiles(Profiles.of("ollama"))
+        ? new OllamaOptionsConverter() : StandardOpenAiOptionsConverter.INSTANCE;
+return new SpringAiLlmService(model, provider, chatModel, optionsConverter);`
+        },
+        ebBinding: {
+          file: `embabel/${javaPath}WeeklyPlan.java`, owner: "application binding compatibility",
+          text: `public record DailyPlan(DayOfWeek day,
+                        @JsonProperty("breakfast") @Nullable Recipe breakfastRecipe,
+                        @JsonProperty("lunch") @Nullable Recipe lunchRecipe,
+                        @JsonProperty("dinner") @Nullable Recipe dinnerRecipe) {
+    public DailyPlan {
+        Objects.requireNonNull(day, "Day is required");
+    }`
+        },
+        ebGoal: {
+          file: `embabel/${javaPath}NutritionPlannerAgent.java`, owner: "native goal + remote export",
+          text: `@AchievesGoal(description = "Provides a nutrition plan for the week",
+        export = @Export(remote = true, name = "createNutritionPlan", startingInputTypes = WeeklyPlanRequest.class))
+@Action
+WeeklyPlan createNutritionPlan() {
+    return weeklyPlan;
+}`
+        },
+        ebSkill: {
+          file: `embabel/${javaPath}BundledSkills.java`, owner: "application packaging / native Skills engine",
+          text: `loadedSkills = new Skills("nutrition-skills", "Trusted bundled nutrition skills")
+        .withLocalSkill(directory.resolve("current-month").toString())
+        .withScriptExecutionEngine(ProcessSkillScriptExecutionEngine.confinedTo(directory.toString()));`
+        },
+        ebIdentity: {
+          file: `embabel/${javaPath}PlannerIdentity.java`, owner: "application / Java 25 ScopedValue",
+          text: `public static Runnable propagate(Runnable task) {
+    if (!USERNAME.isBound()) {
+        return task;
+    }
+    var username = USERNAME.get();
+    return () -> ScopedValue.where(USERNAME, username).run(task);
+}`
+        },
+        ebTest: {
+          file: "embabel/src/test/java/com/example/nutritionplanner/NutritionPlannerAgentIntegrationTests.java", owner: "application / real GOAP integration test",
+          text: `var failure = assertThrows(NutritionPlanRejectedException.class, () -> planner.plan(REQUEST, () -> "alice"));
+
+assertEquals(4, failure.audits());
+assertEquals(3, failure.revisions());
+assertEquals(FAIL, failure.validationResult());
+verifyWorkflowCounts(4, 3);`
+        }
+      };
+      function formattedCode(text) {
+        return text.split("\n").map(line => {
+          const indent = Math.min(Math.floor(line.match(/^\s*/)[0].length / 2), 6);
+          const content = line.trimStart();
+          let result = "";
+          let quote = null;
+          let escaped = false;
+          for (let i = 0; i < content.length; i++) {
+            const character = content[i];
+            if (!quote && character === "/" && content[i + 1] === "/") {
+              result += escape(content.slice(i));
+              break;
+            }
+            if (!quote && character === "." && /[A-Za-z_$]/.test(content[i + 1] || "")) result += "<wbr>";
+            result += escape(character);
+            if (quote) {
+              if (escaped) escaped = false;
+              else if (character === "\\") escaped = true;
+              else if (character === quote) quote = null;
+            } else if (character === '"' || character === "'") {
+              quote = character;
+            } else if (character === "(" || character === ",") {
+              result += "<wbr>";
+            }
+          }
+          return `<span class="code-line" style="--code-indent: ${indent}ch">${result}\n</span>`;
+        }).join("");
+      }
+      const codePanel = id => {
+        const snippet = snippets[id];
+        return `<div><div class="code-label"><span>REPOSITORY EXCERPT / ${escape(snippet.owner)}</span>${link(repo(snippet.file))}</div><div class="code-panel"><pre><code data-source-file="${escape(snippet.file)}" data-snippet="${id}">${formattedCode(snippet.text)}</code></pre></div></div>`;
+      };
+      const codeSlide = (id, title, snippet, lesson, notes, options = {}) =>
+        slide(id, title, codePanel(snippet) + `<p class="lesson">${lesson}</p>`, notes, { kind: "code-slide", ...options });
+
+      const shared = {
+        opening(title, headline, subtitle, labels, sources) {
+          return slide("opening", title, `<div class="hero-grid"><div><p class="hero-title">${headline}</p><p class="hero-subtitle">${subtitle}</p><p class="hero-byline">Sandra Ahlgrimm / Java &amp; Spring developers</p></div><div class="ownership-stack">${labels.map(([small, big]) => `<div class="layer"><small>${small}</small><strong>${big}</strong></div>`).join("")}</div></div>`,
+            note("Start with the engineering question, not a model leaderboard. We will follow one authenticated nutrition request through drafting, auditing, revision and explicit failure. The model may propose content, but a software system must decide what is allowed to count as success. This is a programming-model talk, not a performance benchmark or medical-quality evaluation. Every code excerpt is from the merged refresh, with its source in the notes.",
+              "Ask: When an LLM says it is finished, which line of your application decides that the work is actually acceptable? Take one quick answer.",
+              "Set the route and the ownership vocabulary before showing APIs.", sources),
+            { minutes: 1, chapter: "Opening", kind: "hero" });
+        },
+        route(stops, sources) {
+          return slide("route", "The route through this talk", `<div class="route">${stops.map(([title, text], i) => `<div class="stop"><span class="ordinal">0${i + 1}</span><strong>${title}</strong><p>${text}</p></div>`).join("")}</div>` + strip("A 45-minute standalone talk. Optional deep dives live in the index."),
+            note("Frame the four movements of the talk. First establish the domain and acceptance contract; then make the framework's execution model concrete; then examine boundaries such as tools, identity and human interaction; finally rehearse behavior and decide what to adopt. Native means the named framework supplies the mechanism. Application means this repository defines the policy or plumbing. Community means a separately versioned extension. Those labels are about ownership, not quality.",
+              "Point out that the offline replay is built into the slides. No application, model service or network is required to follow the talk.",
+              "Begin with the request the application must preserve.", sources),
+            { minutes: 1, chapter: "Orientation" });
+        },
+        contract(sources) {
+          return slide("request-contract", "A request is a contract", `<div class="split"><div class="card"><span class="tag">Synthetic REST request</span><pre class="request-code">{
+  "days": [
+    {"day": "MONDAY",
+     "meals": ["LUNCH"]},
+    {"day": "TUESDAY",
+     "meals": ["DINNER"]}
+  ],
+  "countryCode": "DE",
+  "additionalInstructions":
+    "Under 30 minutes"
+}</pre></div><div class="card accent"><span class="tag">Authenticated profile</span><h3>Vegetarian. No nuts.</h3><p>The identity comes from the transport, not the model.</p><p>Missing meals are failures. Unrequested meals remain null.</p></div></div>`,
+            note("This small synthetic request gives us a precise invariant: one Monday lunch and one Tuesday dinner, no extra meal slots. The authenticated profile supplies dietary restrictions, allergies and preferences; the request adds location and cooking instructions. Invalid input is rejected before model execution. All samples share the successful REST shape, but they keep their own domain records and do not depend on a shared framework abstraction. The profile here is illustrative, not a real person's data. A valid JSON object is not yet a valid plan.",
+              "Ask the room whether a beautiful Monday lunch alone should count as success. It should not. We will deliberately use that missing Tuesday dinner in the replay.",
+              "Now split the work that is independent from the decisions that must stay ordered.", sources),
+            { chapter: "The contract" });
+        },
+        workflow(sources) {
+          return slide("workflow", "Prepare in parallel. Decide in order.", `<div class="workflow-visual"><svg class="feedback-path" viewBox="0 0 1152 400" role="img" aria-label="A failed audit sends feedback back to candidate revision; the revised candidate is audited again."><path d="M752 201 V340 H468 V209" fill="none" stroke="var(--cp-accent)" stroke-width="3"/><path d="m460 217 8-8 8 8" fill="none" stroke="var(--cp-accent)" stroke-width="3"/><text x="610" y="307" text-anchor="middle" font-size="23" fill="var(--cp-text)">Revise with feedback</text></svg><div class="flow"><div class="fork"><div class="node"><strong>Profile</strong><small>Authenticated user</small></div><div class="node"><strong>Season</strong><small>Month + country</small></div></div><div class="arrow" aria-hidden="true">&rarr;</div><div class="node"><strong>Candidate</strong><small>Draft / revise</small></div><div class="arrow" aria-hidden="true">&rarr;</div><div class="node active"><strong>Audit</strong><small>Model + shape</small></div><div class="arrow" aria-hidden="true">&rarr;</div><div class="node"><strong>Accept</strong><small>Only after a pass</small></div></div></div>`,
+            note("Parallel fan-out/join solves the problem of waiting unnecessarily for independent inputs: profile lookup and seasonal generation can overlap, then drafting waits for both. Sequential composition encodes true dependencies: an audit needs a candidate. Reflection, also called evaluator-optimizer, separates generation from assessment and feeds concrete violations into revision. Its tradeoff is more model work and the risk of repeating the same mistake, so the application needs an explicit stopping policy. This diagram is a conceptual rendering of the repository flow, not an execution trace or a latency measurement.",
+              "Trace one success path left to right, then one failure path around the bottom. Emphasize that drafting and auditing are not parallelized together.",
+              "An audit has two very different kinds of evidence.", sources),
+            { chapter: "Patterns" });
+        },
+        guards(sources) {
+          return slide("two-judges", "Two judges. One acceptance gate.", cards([
+            ["Application / deterministic", "Did we honor the shape?", "Exact days and meal slots. No duplicate days. No missing or extra requested coverage."],
+            ["Model / judgment", "Does the content comply?", "Ingredients, dietary restrictions and preferences. Tools sum model-generated nutrition estimates."]
+          ], true) + strip("A passing model verdict cannot override a failed structural check."),
+            note("The problem is conflating a model's confidence with an enforceable contract. Deterministic code checks requested days and meal coverage. The LLM auditor handles dietary semantics and uses tools for totals. Arithmetic can be deterministic while its inputs remain model estimates. A persona improves task framing but does not turn those estimates into independently verified facts. Merge the structural findings with the model audit before acceptance. The tradeoff is a deliberately limited guarantee: we can prove shape and control-flow properties, not clinical correctness.",
+              "Counterexample: the model returns allPassed=true for a plan missing Tuesday dinner. Explain why the application still revises or rejects it.",
+              "Make the retry budget count the same thing that the acceptance gate inspects.", sources),
+            { chapter: "Acceptance" });
+        },
+        budget(sources) {
+          return slide("revision-budget", "Four candidates. No unaudited escape.", `<div class="budget">${["Initial draft", "Revision 1", "Revision 2", "Revision 3"].map((label, i) => `<div class="card${i === 3 ? " accent" : ""}"><div class="big">C${i}</div><h3>${label}</h3><p>Audit ${i + 1}<br>Pass &rarr; stop</p></div>`).join("")}</div>` + strip("Final failure &rarr; explicit rejection. REST: HTTP 422, not an invalid plan."),
+            note("The reflection budget is one initial candidate plus at most three revisions. Every candidate, including the last allowed revision, gets a logical audit; success stops immediately. Four is a ceiling, not a target. Do not confuse this with tool-calling turns within one audit or provider HTTP retries. Those are nested mechanisms with different failure modes and accounting. A malformed response or failed tool must not be replaced with a fabricated successful plan. Embabel additionally marks exhausted validation as NonRetryable so native action retries cannot create a fifth logical audit.",
+              "Count C0 through C3 with the room. Ask what happens if C3 passes: it is accepted. If it fails: 422 for REST. Neither case permits C4.",
+              "See how the implementation makes that boundary explicit.", sources),
+            { chapter: "Reflection" });
+        },
+        roles(sources, nativePersona = false) {
+          return slide("roles", "Roles guide. Policies decide.", cards([
+            [nativePersona ? "Native Persona" : "Application role prompt", "Recipe Curator", "Creates practical recipes and preserves the original request."],
+            [nativePersona ? "Native Persona" : "Application role prompt", "Nutrition Guard", "Looks for violations and returns actionable feedback."]
+          ], true) + strip("A useful separation of responsibilities, not a proof of correctness."),
+            note("Role or persona prompting addresses a problem of competing objectives: generation wants appealing options; evaluation should look for violations. Use a distinct curator and guard so each prompt has a focused task. LangChain4j expresses these roles through SystemMessage; Spring AI through system prompts; Embabel has native Persona prompt contributors. The mechanism still conditions an LLM. Two roles can share blind spots, so they do not replace deterministic checks, trusted data, validation limits or independent domain evaluation.",
+              "Read the two objectives out loud, not the entire prompts. Ask what happens if both roles believe the wrong nutrition estimate.",
+              "The next boundary is what the model can call, and what it cannot choose.", sources),
+            { chapter: "Role prompting" });
+        },
+        tests(sources, title = "Test the boundary, not the prose.") {
+          return slide("test-contract", title, `<table class="test-grid" aria-label="Expected logical workflow counts"><thead><tr><th class="table-head" scope="col">Scenario</th><th class="table-head" scope="col">Candidates</th><th class="table-head" scope="col">Audits</th></tr></thead><tbody>${[
+            ["First-pass success", "1", "1"],
+            ["Revision succeeds", "2", "2"],
+            ["Last revision succeeds", "4", "4"],
+            ["Exhaustion: reject", "4", "4"]
+          ].map(row => `<tr>${row.map((value, i) => `<td class="${i ? "count" : ""}">${value}</td>`).join("")}</tr>`).join("")}</tbody></table>` + `<p class="lesson">Fake model responses. <strong>Real workflow and tool execution.</strong></p>`,
+            note("These are assertions, not measured performance numbers. Test early success, revision success, success on the final allowed revision, and exhaustion with exact candidate and audit counts. Add adversarial shape cases even when the model audit claims success; assert original profile and instructions survive revision. Script model responses while keeping native orchestration and tools real. Test authentication, failure surfaces and resource cleanup at the transport boundary. This provides deterministic CI evidence of control flow without live provider credentials; it does not evaluate the model's dietary quality.",
+              "Use the source links to show the matching regression test if useful. Do not run Maven or a provider on stage just to prove a count that the offline deck can explain.",
+              "Walk the same boundary in a synthetic replay.", sources),
+            { chapter: "Verification" });
+        },
+        demo(sources, interactive = false, cue = "") {
+          const panels = [
+            ["Request", "The invariant is small enough to see.", "Monday lunch + Tuesday dinner. Vegetarian, no nuts, under 30 minutes. Month and country guide seasonal ingredients.", "Trusted input", "The authenticated profile and the full request travel together."],
+            ...(interactive ? [["Human input", "The browser supplies a cooking preference.", "Question: Cook once or prepare every day? Synthetic answer: Batch cooking. The answer is recorded by the interaction owner.", "State, not decoration", "Both the revision prompt and each audit receive the recorded answer."]] : []),
+            ["Reject C0", "A pleasant recipe can still be incomplete.", "Candidate C0 contains Monday lunch only. Even if the model audit approves it, the deterministic check finds Tuesday dinner missing.", "Audit 1: reject", "Feedback asks for exactly the missing requested meal. No success response is sent."],
+            ["Accept C1", "Repair, then audit the repair.", "Candidate C1 now covers both requested slots. In this synthetic scenario the model judgment and shape checks both pass.", "Audit 2: accept", "Return immediately. Do not spend the remaining revision budget."],
+            ["Exhaustion", "Failure is a first-class result.", "Alternative branch: C0, C1, C2 and C3 all fail their audits. There is no fifth candidate and no unaudited final response.", "REST: HTTP 422", "The UI shows an error. Where implemented, MCP returns an error tool result."]
+          ];
+          return slide("offline-replay", "Rehearse failure before the live demo.", `<div data-demo><div class="demo-steps" role="group" aria-label="Synthetic replay steps">${panels.map(([label], i) => `<button type="button" data-demo-step="${i}" aria-pressed="${i === 0}">${label}</button>`).join("")}</div><div style="height: 20px"></div>${panels.map(([, title, text, verdict, result], i) => `<section class="demo-panel" data-demo-panel="${i}"${i ? " hidden" : ""}><h3>${title}</h3><div class="split"><p>${text}</p><div class="outcome"><h3>${verdict}</h3><p>${result}</p></div></div></section>`).join("")}</div><p class="demo-caption">Synthetic replay / illustrative states, not a captured run or a model-quality result.</p>`,
+            note("Reserve three minutes for this built-in replay. The panels are deliberate synthetic states, not screenshots of a successful run. Start with the request, reject the incomplete first candidate, then accept the re-audited repair. Finally switch to the exhaustion branch. If a preconfigured local app is available, use the same tiny request and explain that a live model may take another path; do not promise it will reproduce these states. No service is needed for this replay. " + (interactive ? "The human panel is browser-only; REST and MCP never install a fake question handler. " : "") + cue,
+              "Click every panel from left to right. Keep the original two meal slots visible in your narration. If a live model fails or is slow, stay with this replay and explain the contract instead of waiting.",
+              "Turn the execution story into an ownership decision.", sources),
+            { minutes: 3, chapter: "Offline demo" });
+        },
+        closing(title, statement, text, sources) {
+          return slide("takeaways", title, `<div class="closing"><p class="statement">${statement}</p><div class="card accent">${text}</div></div>`,
+            note("Land the argument in three ideas: preserve the request as typed state; separate model judgment from deterministic acceptance; bound refinement and surface exhaustion honestly. A framework can make the next step more explicit or more declarative, but it cannot choose your domain contract for you. Choose the ownership model your team can explain, instrument and test.",
+              "Pause after the highlighted phrase. Give the room one sentence they could repeat to a colleague.",
+              "Open questions; keep optional deep dives available in the index.", sources),
+            { minutes: 1, chapter: "Conclusion" });
+        },
+        questions(prompt, sources) {
+          return slide("questions", "What should your framework own?", `<div class="closing"><p class="statement">${prompt}</p><div class="card"><span class="tag">Continue the conversation</span><p>Code and pinned sources: <strong>Notes</strong></p><p>Optional deep dives: <strong>Index</strong></p><p>All four talks: <strong>Menu</strong></p></div></div>`,
+            note("Leave one minute of the 45-minute slot for a focused question or final discussion prompt. The appendices are deliberately outside the timed route; use the index if a question needs a source, a failure detail or a provider-migration explanation. Not demonstrated in this sample is not the same as unsupported upstream. Avoid turning this discussion into an unmeasured speed or quality ranking.",
+              "Invite one question about a boundary: control flow, state, identity, human input or testing. For longer discussion, use the remaining conference Q&A time if the format permits it.",
+              "End here; backups are opt-in, not an automatic extension of the talk.", sources),
+            { minutes: 1, chapter: "Questions" });
+        },
+        versions(sources) {
+          return slide("versions", "The snapshot behind these slides", cards([
+            ["Shared platform", "Java 25 / Boot 4.1.1", "Spring Framework 7, Jackson 3 and Boot-managed Jupiter 6.0.3."],
+            ["Model-facing APIs", "1.20.0 / 2.0.1", "LangChain4j core 1.20.0; agentic + Boot 4 starters beta30. Spring AI 2.0.1."],
+            ["Additional layers", "1.5.2 / 0.12.0", "Embabel agent + skills 1.5.2. Spring AI community agent-utils 0.12.0."]
+          ]) + `<p class="lesson">Pinned to merge <code>${revision.slice(0, 12)}</code>. No claims about unreleased main branches.</p>`,
+            note("This is a source snapshot, not a promise that the latest release behaves identically. Each module independently inherits Boot 4.1.1; the root POM only aggregates them. Boot manages Jackson 3 and Jupiter 6. The dedicated LangChain4j Boot 4 artifacts and its beta30 agentic API matter; do not substitute the old Boot 3 starter names. Spring AI community tools are separately versioned. Embabel uses a deliberate Spring AI model bridge rather than abandoning its native planning APIs.",
+              "Use this slide when asked which versions the code actually compiled against. The POM and upstream links are in the notes; no dependency resolution is needed on stage.",
+              "Return to the question that prompted the backup.", sources),
+            { backup: true, chapter: "Version reference" });
+        },
+        sources(id, title, entries) {
+          return slide(id, title, `<div class="source-list">${entries.map(ref => {
+            const module = ref.url.split(`/${revision}/`)[1]?.split("/")[0];
+            const owner = { langchain4j: "LangChain4j", "spring-ai": "Spring AI", embabel: "Embabel" }[module] || "Repository";
+            return `<a href="${escape(ref.url)}" target="_blank" rel="noopener noreferrer">${escape(ref.label)}<small>${ref.url.includes(revision) ? `${owner} / merged source snapshot` : "Upstream / version-pinned reference"}</small></a>`;
+          }).join("")}</div>`,
+            note("Use these links for the precise code and version-pinned upstream capabilities behind this talk. The presentation itself has no network dependency; these links are optional further reading. Source excerpts are embedded in the HTML. If showing code from an IDE, open only the public repository file, not local environment files, logs, traces, cookies or credentials.",
+              "Explain one source that answers the audience's question rather than reading the entire list.",
+              "Return to the main conclusion or the question slide.", entries),
+            { backup: true, chapter: "Sources" });
+        }
+      };
+      const tracks = {};
+      tracks.comparison = {
+        number: "01", label: "Framework comparison",
+        description: "Explicit workflows, application orchestration, or typed planning: decide who should own the next step.",
+        slides: [
+          shared.opening("A code-first framework comparison", "Who owns the<br><em>next step?</em>", "LangChain4j, Spring AI and Embabel solve the same problem in different ways.",
+            [["THE DOMAIN", "One acceptance contract"], ["THE DECISION", "Three control models"], ["THE EVIDENCE", "Code + failure behavior"]], [refs.overview]),
+          shared.route([["Contract", "Define what success must preserve."], ["Control", "Read three execution models."], ["Boundaries", "Tools, humans, skills and identity."], ["Decision", "Replay failure. Choose ownership."]], [refs.overview]),
+          shared.contract([refs.overview, lc("WeeklyPlanRequest"), sa("WeeklyPlanRequest"), eb("WeeklyPlanRequest")]),
+          shared.workflow([lc("AgentConfiguration"), sa("NutritionPlannerAgent"), eb("NutritionPlannerAgent")]),
+          shared.guards([lc("RequestShapeAudit"), sa("WeeklyPlanRequest"), eb("WeeklyPlan")]),
+          shared.budget([lc("AgentConfiguration"), sa("ValidationRetryAdvisor"), eb("RevisionBudget"), eb("NutritionPlanRejectedException")]),
+          slide("control-models", "Three ways to own control", cards([
+            ["LangChain4j / native", "Compose the graph", "Interfaces define agents. Builders express parallel, sequential and looping work."],
+            ["Spring AI / app + native", "Write the workflow", "ChatClient supplies model integration. The app chooses sequence and revision policy."],
+            ["Embabel / native", "Declare actions + goal", "Types describe dependencies. The planner schedules ready actions and state transitions."]
+          ]),
+            note("The same domain lets us compare programming models without pretending the model output is a benchmark. LangChain4j's native agentic builders make a graph visible in code. Spring AI supplies model, tool and protocol building blocks, while this application implements orchestration. Embabel asks for domain types, actions and a goal; the native planner chooses execution from those declarations. None removes the need to define acceptance and resource policy. The useful question is which part of that responsibility you want your team to own.",
+              "Ask developers to locate their current code on this spectrum. Avoid suggesting that more autonomous automatically means better.",
+              "Read the LangChain4j graph in six lines.", [lc("AgentConfiguration"), sa("Workflow"), eb("NutritionPlannerAgent")]), { chapter: "Control models" }),
+          codeSlide("lc-graph", "Make the execution graph visible.", "lcSequence", "Native composition. <strong>Application-owned acceptance.</strong>",
+            note("Read the sequence from left to right: preparation, initial creation, model guard, deterministic shape audit, and conditional revisions. The output function is a final acceptance gate, not a trivial mapper. The framework owns subagent sequencing and per-invocation state. The application selects the agents, policy and executor. This is a deliberately composed workflow, not an LLM supervisor deciding arbitrary routes. LangChain4j's agentic module is experimental at the pinned version, so API stability is a real adoption consideration.",
+              "Point to output(validatedPlan): removing that line would change the meaning of success even if the graph still runs.",
+              "The tool needs the current candidate, but that candidate must not become a model-controlled argument.", [lc("AgentConfiguration"), refs.lcWorkflow]), { chapter: "LangChain4j" }),
+          codeSlide("lc-current-plan", "The tool reads trusted invocation state.", "lcTool", "The LLM chooses a tool, <strong>not another request's plan.</strong>",
+            note("Tool calling delegates a narrow operation to deterministic Java. Here the tool totals the current candidate from AgenticScope. LangChain4j injects that scope and does not publish it as an LLM tool argument. That prevents the model from substituting an invented plan just to make totals look acceptable, and avoids a mutable singleton field shared between users. State isolation is a request-lifecycle concern, not a prompt instruction. The totals still operate on estimated nutrition values produced by the model.",
+              "Contrast this with a hypothetical tool that accepts the entire meal plan from the model. Ask which source of truth that would validate.",
+              "Spring AI gives us the building blocks but leaves the surrounding workflow visible in application code.", [lc("NutritionTools"), lc("AgentConfiguration")]), { chapter: "LangChain4j" }),
+          codeSlide("sa-workflow", "A client is not a planner.", "saSequence", "<code>Workflow.parallel</code> is <strong>this application's Java code.</strong>",
+            note("Spring AI's autoconfigured ChatClient.Builder constructs the model client. That does not make this method a native multi-agent planner. Request validation, fan-out, typed join and the call into creation are application choices. The Workflow helper uses virtual threads and captures Micrometer context. The tradeoff is direct integration and familiar code in exchange for owning lifecycle, sequencing and policy yourself. Community tools can enrich this path without changing that ownership.",
+              "Follow first() and second() back to the two distinct result types rather than an untyped list of agent outputs.",
+              "The location of the validation advisor determines what one retry actually means.", [sa("NutritionPlannerAgent"), sa("Workflow")]), { chapter: "Spring AI" }),
+          codeSlide("sa-reflection", "Audit outside the tool-call loop.", "saOrder", "One completed candidate can contain <strong>many tool turns.</strong>",
+            note("The native ToolCallingAdvisor runs the tool-calling loop. The application ValidationRetryAdvisor sits outside it, so it converts and audits a completed structured response rather than an intermediate tool-call message. If the candidate fails, it calls the downstream chain again with the original request plus feedback. This is evaluator-optimizer as application policy built on native advisors, not a native planning engine. Provider transient retries are another nested level entirely.",
+              "Draw three nested scopes verbally: candidate revision, model/tool turns, provider HTTP attempts. Only the outer candidate budget is the shared three-revision rule.",
+              "Embabel uses types and states to expose the next permitted transition.", [sa("ValidationRetryAdvisor"), refs.saTools]), { chapter: "Spring AI" }),
+          codeSlide("eb-types", "Types describe what can happen next.", "ebStates", "Typed facts + actions + goal &rarr; <strong>native planning.</strong>",
+            note("GOAP means goal-oriented action planning. Action input types describe prerequisites; output types describe facts that become available. The application declares the states and what an action does, while the framework schedules actions toward the goal. The sealed Stage hierarchy constrains the audit/revision lifecycle. The linked profile action uses scoped identity, not a username invented by the model. This is not just a hand-written Java loop with planner terminology pasted on it.",
+              "Name the three possible stages before explaining the transitions. Ask what information a revising stage would need after a blackboard clear.",
+              "Separate deliberate domain policy from the planner's execution responsibility.", [eb("NutritionPlannerAgent"), refs.states]), { chapter: "Embabel" }),
+          slide("eb-policy", "Policy is explicit. Execution is planned.", lanes([
+            ["Independent facts", ["UserProfile", "SeasonalIngredients"]],
+            ["Candidate lifecycle", ["NutritionAudit", "ReviseWeeklyPlan", "NutritionAudit"]],
+            ["Terminal decision", ["Pass: Done", "Budget exhausted: reject"]]
+          ]) + `<p class="lesson">Native concurrent scheduling does not mean <strong>every stage runs at once.</strong></p>`,
+            note("Embabel's CONCURRENT process runs currently achievable independent actions together. Profile and season can overlap. Drafting, auditing and revision remain ordered by type dependencies and current state. State-transition actions explicitly decide pass, revise or reject. The PlanningContext travels with the candidate because looping actions clear the blackboard. Native planning chooses how to execute the declared graph; it does not invent the domain policy or its revision budget.",
+              "Use the first lane for fan-out and the second for reflection. State clearly that the diagram is conceptual and contains no timing measurements.",
+              "Now compare two mechanisms often mislabeled as the same kind of discovery.", [eb("NutritionPlannerAgent"), eb("RevisionBudget"), refs.concurrent]), { chapter: "Embabel" }),
+          slide("discovery", "Search is not the same as unfolding.", cards([
+            ["Spring AI / native", "Search metadata", "Lucene matches words in tool names and descriptions. The audit discovers relevant tools."],
+            ["Embabel / native", "Unfold a category", "A known facade reveals the nutrition or meal tools when the model selects that category."]
+          ], true) + strip("Neither sample demonstrates embedding-based semantic tool search."),
+            note("Both mechanisms reduce the initial tool surface, but their contracts differ. LuceneToolIndex is lexical full-text search over tool metadata, scoped to an audit session. Good descriptions and terms matter; this is not embedding retrieval. Unfolding starts with a known facade and exposes child tools by category, which trades open-ended matching for deliberate organization. LangChain4j uses a fixed nutrition tool set here; it has experimental search strategies upstream, including vector search, but this sample does not wire them.",
+              "Ask whether a taxonomy or descriptive search would be easier to maintain for ten tools versus thousands. Do not invent a measured token-saving claim.",
+              "Human answers introduce another kind of state that a tool API alone cannot manage.", [sa("NutritionPlannerAgent"), refs.lucene, eb("WeeklyPlan"), refs.unfolding, refs.lcSearch]), { chapter: "Tool discovery" }),
+          slide("human-state", "Answers are state, not decoration.", lanes([
+            ["Browser owner", ["Ask", "Answer", "Record"]],
+            ["Use the answer", ["Revision prompt", "Every audit"]],
+            ["End the interaction", ["Complete / disconnect", "Cancel waiting question"]]
+          ]) + strip("Community question tool. Application-owned SSE and lifecycle."),
+            note("The Spring AI browser flow can ask cooking-preference questions using community AskUserQuestionTool. The application owns the authenticated interaction, event stream, answers, deadlines and cancellation. Collected answers must reach both revisions and audits; otherwise the guard may reject a plan for not asking a question that was already answered. REST and MCP are noninteractive and do not register the question tool. LangChain4j and Embabel have native HITL APIs upstream, but neither nutrition graph demonstrates human input.",
+              "Counterexample: the user said batch cooking, the reviser remembers it, but the auditor does not. Explain why that is a state-propagation defect rather than a prompting mystery.",
+              "A reusable skill packages instructions, but its execution boundary is still a design decision.", [sa("AskUserQuestionHandler"), sa("SseInteractionController"), sa("NutritionPlannerAgent"), refs.questions, refs.lcHitl, refs.ebHitl]), { chapter: "Human input" }),
+          slide("skills", "Instructions travel. Boundaries remain.", cards([
+            ["LangChain4j sample", "Application month", "The app supplies the month. Experimental upstream skills are not wired here."],
+            ["Spring AI sample", "Skill + narrow tool", "Community SkillsTool loads instructions. An application currentMonth @Tool uses a UTC Clock."],
+            ["Embabel sample", "Skill + native engine", "Packaged trusted instructions activate a bundled Bash script through the native process engine."]
+          ]),
+            note("A skill is reusable task guidance with associated resources or tools, not a synonym for arbitrary shell access. Spring AI's community skill instructs a narrow Java clock tool, avoiding shell execution. Embabel materializes trusted bundled resources from the JAR and configures its released process engine. That engine inherits the host environment and is not a strong sandbox. LangChain4j's sample simply supplies the current month; its experimental upstream Skills API is a separate capability, not demonstrated here. This is a portability and trust-boundary comparison, not a checkbox ranking.",
+              "Ask what must still work when the application is an executable JAR instead of an IDE classpath.",
+              "Personas have a similar separation between useful guidance and enforceable guarantees.", [sa("CurrentMonthTool"), sa("NutritionPlannerAgent"), eb("BundledSkills"), refs.script, refs.lcSkills]), { chapter: "Reusable skills" }),
+          shared.roles([lc("Agents"), sa("NutritionPlannerAgent"), eb("NutritionPlannerAgent")]),
+          slide("mcp-identity", "A protocol boundary is an identity boundary.", cards([
+            ["Spring AI", "Native @McpTool", "Streamable HTTP /mcp. Principal comes from transport context. Browser SSE is separate."],
+            ["Embabel", "Native goal export", "The discovered goal is exported. Scoped identity crosses transport and executor boundaries."],
+            ["LangChain4j sample", "No MCP server", "Upstream core has a client; a separate community stdio server exists. Neither is wired here."]
+          ]),
+            note("MCP is a tool protocol, not a synonym for exposing a REST controller. Spring AI and Embabel export createNutritionPlan through authenticated Streamable HTTP. Their MCP schemas and output shapes differ from each other and from the shared successful REST contract. Identity comes from authenticated transport metadata, never a model-controlled username argument. The Spring AI browser SSE stream is a separate interaction channel, not MCP elicitation. LangChain4j's upstream client and separate community stdio server do not make this sample an MCP server.",
+              "Trace trusted identity from HTTP into the tool call. Mention that demo Basic credentials and simplified security are not production security guidance.",
+              "Observe those boundaries without pretending framework metrics are normalized benchmarks.", [sa("NutritionPlannerMcpConfiguration"), eb("McpIdentityConfiguration"), eb("PlannerIdentity"), refs.lcMcp]), { chapter: "Protocols" }),
+          slide("observability", "Count the right thing.", cards([
+            ["LangChain4j", "Agents + model", "App agent listeners and timers. Native model token-usage instrumentation."],
+            ["Spring AI", "Client + tools", "Native chat-client and tool observations. Tool spans use execute_tool."],
+            ["Embabel", "Process + model + tools", "Native agent, LLM, tool and tool-loop metrics, alongside Spring AI observations."]
+          ]) + `<p class="lesson">Agent nodes, model calls and audits are <strong>different units.</strong></p>`,
+            note("Observability answers where work happened and how it failed. It does not automatically make cross-framework measurements comparable. LangChain4j's application agent counters include orchestration and shape-check nodes. Spring AI exposes chat-client and tool observations. Embabel adds its own process, model and tool-loop metrics. The bundled Grafana agent panels are LangChain4j-specific, not a normalized scorecard. Export is opt-in through the observability profile. Do not project private prompts, traces or profiles; the deck uses no captured telemetry.",
+              "Ask which counter would prove four logical audits. The answer must refer to domain policy, not simply count every span.",
+              "A deterministic test can establish that policy boundary without a live model.", [lc("AgentListeners"), repo("README.md", "Observability ownership and dashboard scope"), repo("spring-ai/README.md"), repo("embabel/README.md")]), { chapter: "Observability" }),
+          shared.tests([repo("langchain4j/src/test/java/com/example/nutritionplanner/NutritionWorkflowTest.java"), repo("spring-ai/src/test/java/com/example/nutritionplanner/ValidationRetryAdvisorTests.java"), repo("embabel/src/test/java/com/example/nutritionplanner/NutritionPlannerAgentIntegrationTests.java")]),
+          shared.demo([refs.overview, lc("RequestShapeAudit"), sa("ValidationRetryAdvisor"), eb("RevisionBudget")]),
+          slide("choose-ownership", "Choose ownership, not checkboxes.", cards([
+            ["Prefer explicit composition?", "LangChain4j", "A visible graph and small agent interfaces. Accept an experimental agentic API surface."],
+            ["Prefer direct Spring integration?", "Spring AI", "Native model/tool/protocol building blocks. Own orchestration and interaction lifecycle."],
+            ["Prefer typed planning?", "Embabel", "Native scheduling toward a goal. Invest in domain types, states and model boundaries."]
+          ]),
+            note("This is a decision aid, not a universal ranking. An explicit workflow can be easier to review when the graph is stable. Direct Spring integration fits teams that want to keep orchestration ordinary application code. Typed planning fits work that can be expressed as facts, actions and goals, but still demands disciplined state and policy design. Evaluate the operational responsibilities you want to keep: identity propagation, retry semantics, tool trust, resource cleanup, schema compatibility and observability. Not demonstrated never means unsupported.",
+              "Have the room choose one responsibility they would not delegate. Use that answer to connect the three programming models.",
+              "Finish with the invariant that survived all three implementations.", [refs.overview, refs.lcWorkflow, refs.saTools, refs.states]), { chapter: "Decision" }),
+          shared.closing("The invariant survives the framework.", "Different control.<br><em>Same contract.</em>", "Preserve state.<br>Audit every candidate.<br>Reject honestly.", [refs.overview]),
+          shared.questions("Who decides<br><em>when it is done?</em>", [refs.overview]),
+          shared.versions([repo("langchain4j/pom.xml"), repo("spring-ai/pom.xml"), repo("embabel/pom.xml"), refs.overview]),
+          slide("capability-ceiling", "Not shown here does not mean unsupported.", cards([
+            ["LangChain4j upstream", "HITL, search, skills", "Native human input; experimental tool-search strategies and Skills API. Not wired in this sample."],
+            ["Spring AI community", "More than two tools", "The pinned extension also offers TaskTools. This application uses skills and questions, not subagents."],
+            ["Embabel upstream", "WaitFor", "Native waits and confirmations exist. The nutrition graph contains no human approval step."]
+          ]),
+            note("Use this backup to correct capability-ceiling misunderstandings. The main comparison is intentionally about code that actually runs in the sample. Upstream APIs provide additional paths, but their existence is not evidence of integration here. LangChain4j search includes a vector strategy; the sample's tools remain fixed. Community TaskTools are not Spring AI core. Embabel's native HITL support is real, but an approval state was not added to this goal.",
+              "Open a pinned upstream link only if a capability question needs it. No need to visit a moving main branch.",
+              "Return to the ownership comparison.", [refs.lcHitl, refs.lcSearch, refs.lcSkills, refs.ebHitl, upstream("Community utilities v0.12.0", "https://github.com/spring-ai-community/spring-ai-agent-utils/tree/v0.12.0")]), { backup: true, chapter: "Capability boundaries" }),
+          shared.sources("sources-code", "Start in the code.", [lc("AgentConfiguration"), lc("NutritionTools"), sa("NutritionPlannerAgent"), sa("ValidationRetryAdvisor"), eb("NutritionPlannerAgent"), eb("RevisionBudget")]),
+          shared.sources("sources-upstream", "Mechanisms, pinned upstream.", [refs.lcWorkflow, refs.saTools, refs.lucene, refs.states, refs.concurrent, refs.unfolding]),
+          slide("demo-checklist", "A live demo is optional, not a dependency.", cards([
+            ["Before the room", "Rehearse locally", "Choose one provider profile. Verify the tiny request. Keep environment files and traces off screen."],
+            ["During the room", "Explain the boundary", "Show requested slots, the audit decision and either an accepted plan or an explicit error."],
+            ["When the model stalls", "Use the replay", "The built-in synthetic path already shows repair and exhaustion. Never relabel it as captured output."]
+          ]),
+            note("The deck's offline replay is the default reliable fallback. An optional live demonstration requires a separately prepared local application and a tool-capable model; it is not part of loading this file. The public example login belongs to a demo, not a production security pattern. Avoid logging into cloud consoles or opening environment files on the projector. Do not fabricate a success if the live request fails: the failure boundary is part of the talk.",
+              "Return to offline-replay and run its four panels if you need a controlled explanation.",
+              "Close on the contract, not the demo infrastructure.", [refs.overview]), { backup: true, chapter: "Demo runbook" })
+        ]
+      };
+
+      tracks.langchain4j = {
+        number: "02", label: "LangChain4j",
+        description: "Compose an explicit agentic graph, keep state invocation-local, and prove the last candidate is audited.",
+        slides: [
+          shared.opening("Explicit agentic workflows on the JVM", "Make the<br><em>graph visible.</em>", "Small typed agents. Native composition. An application-owned definition of success.",
+            [["CONTRACT", "@Agent interfaces"], ["CONTROL", "Compose the workflow"], ["ACCEPTANCE", "Audit before return"]], [lc("AgentConfiguration"), lc("Agents"), refs.lcWorkflow]),
+          shared.route([["Contract", "A tiny request with hard invariants."], ["Graph", "Fan out, join, create, audit, revise."], ["State", "Tool isolation and acceptance gates."], ["Evidence", "Observe, test, replay and decide."]], [lc("AgentConfiguration"), refs.overview]),
+          shared.contract([lc("WeeklyPlanRequest"), lc("NutritionPlannerAgent"), refs.overview]),
+          shared.workflow([lc("AgentConfiguration")]),
+          codeSlide("typed-agents", "An agent interface is a contract.", "lcAgent", "Explicit inputs and a <strong>typed output key</strong> connect the graph.",
+            note("LangChain4j's Agent annotation declares the operation and output key. V names scalar inputs such as the authenticated username, month and country; K binds typed values such as the request. Specialized curator, reviser and guard interfaces stay small, while builders compose them. The benefit is readable contracts instead of unstructured strings passed through every stage. The tradeoff is that type correctness alone says nothing about dietary validity or exact requested coverage. Those require separate audits and a terminal gate.",
+              "Read the method signature before its prompt. Which inputs would be unsafe for the model to invent? Identity is supplied by the application.",
+              "Follow the values through the per-invocation state.", [lc("Agents"), lc("NutritionPlannerAgent")]), { chapter: "Typed agents" }),
+          slide("typed-state", "Names for scalars. Types for facts.", cards([
+            ["@V / named inputs", "Request context", "Username, month, country and additional instructions enter explicitly."],
+            ["@K / typed facts", "Shared domain state", "WeeklyPlanRequest, UserProfile and SeasonalIngredients feed the creator."],
+            ["Typed outputs", "Latest candidate + audit", "The current plan and its typed validation result carry refinement state."]
+          ]),
+            note("Typed structured output addresses a problem of contracts between agents: the creator returns a WeeklyPlan, the guard returns a NutritionAuditValidationResult, and subsequent agents consume those types. AgenticScope holds state for the invocation. The application deliberately distinguishes an initial creator prompt from a reviser prompt so the initial draft never pretends to have prior feedback. Keep original request facts alongside changing candidate facts. Structured conversion can still fail, so parse and model errors remain errors rather than default plans.",
+              "Name which values are stable for the whole request and which change after every revision. This is more useful than calling everything memory.",
+              "Use a native parallel builder only for genuinely independent inputs.", [lc("Agents"), lc("AgentConfiguration")]), { chapter: "State" }),
+          codeSlide("parallel-preparation", "Fan out without losing context.", "lcParallel", "Native fan-out/join. <strong>Application-supplied virtual threads.</strong>",
+            note("The profile lookup and seasonal ingredient agent are independent, so parallelBuilder starts both and joins their results before creation. The application supplies an ExecutorService backed by newVirtualThreadPerTaskExecutor and closes it with the bean lifecycle. A ContextPropagatingTaskDecorator carries observation context. Native graph composition is not a reason to ignore resource ownership. Concurrency can reduce waiting on independent I/O, but this repository makes no measured latency claim; it tests actual overlap on distinct virtual threads.",
+              "Point at subAgents, then executor. Distinguish the framework's scheduling mechanism from the application's execution resource and context propagation.",
+              "Once both inputs are ready, order is intentional.", [lc("AgentConfiguration"), repo("langchain4j/src/test/java/com/example/nutritionplanner/NutritionWorkflowTest.java")]), { chapter: "Parallel pattern" }),
+          codeSlide("sequence", "The graph reads like the use case.", "lcSequence", "Prepare &rarr; create &rarr; audit &rarr; <strong>revise only if needed.</strong>",
+            note("Sequential composition expresses prerequisites. The initial model audit always runs after creation, then a deterministic RequestShapeAudit merges structural feedback. A conditional builder enters the revisions only when that combined audit has failed. The output function validates the terminal state before returning a plan. This graph is explicit in application configuration and executed by the native agentic API. It is not an unconstrained autonomous supervisor, and that predictability is part of the design.",
+              "Trace one first-pass success: the conditional revision path is skipped, but the output acceptance gate still runs.",
+              "Explain why two generation interfaces are clearer than a single ambiguous prompt.", [lc("AgentConfiguration")]), { chapter: "Sequential pattern" }),
+          slide("create-versus-revise", "A revision is not a fresh request.", cards([
+            ["Initial creator", "No imaginary history", "Original request + profile + season + instructions. Explicitly no previous candidate or feedback."],
+            ["Reviser", "Repair with constraints", "The same original context, plus the current plan and concrete audit violations."]
+          ], true) + strip("Keep the user's constraints stable while the candidate changes."),
+            note("Evaluator-optimizer only works when revision preserves the original problem. If feedback displaces the profile or meal selection, an apparent repair may solve a different request. The separate WeeklyPlanCreator and WeeklyPlanReviser interfaces make this distinction explicit. The reviser receives all stable inputs plus the latest candidate and validation result. The cost is more prompt surface to maintain, but it avoids accidental feedback-only prompting and is directly testable. Neither persona nor structured output can substitute for preserving context.",
+              "Use a concrete example: repairing a nut ingredient must not delete Tuesday dinner or forget the under-30-minutes instruction.",
+              "Let the auditor calculate against the current candidate without letting it replace that candidate.", [lc("Agents")]), { chapter: "Reflection pattern" }),
+          codeSlide("nutrition-tools", "Tools calculate. The model judges.", "lcTool", "A narrow operation over <strong>the current scoped candidate.</strong>",
+            note("Tool calling moves arithmetic into deterministic Java. The three tools compute daily totals, totals for a specified day and the meal count. LangChain4j injects AgenticScope; it is hidden from the LLM tool schema. Tools read the latest WeeklyPlan from that invocation, not an arbitrary model-supplied object. Duplicate-day candidates can reach tools: totals combine their entries, then the shape audit rejects the duplicate structure. Tool argument and execution errors are configured to throw rather than feed a success-shaped fallback to the guard.",
+              "Clarify that deterministic summing does not make the model's nutrition estimates accurate. The source of the estimate remains an LLM.",
+              "Why not simply put the current plan in a singleton field?", [lc("NutritionTools"), lc("AgentConfiguration")]), { chapter: "Tool calling" }),
+          slide("scope-isolation", "A singleton agent is not shared request state.", lanes([
+            ["Request A", ["AgenticScope A", "Candidate A", "Tools read A"]],
+            ["Request B", ["AgenticScope B", "Candidate B", "Tools read B"]]
+          ]) + strip("No mutable singleton currentPlan. No model-selected scope."),
+            note("One composed Spring bean can serve overlapping users. The lifetime of the graph is therefore not the lifetime of candidate data. AgenticScope provides invocation-local state, and hidden injection means the model cannot choose another scope as a tool argument. The application test deliberately overlaps requests and checks both profiles and current-plan tool results. This mechanism solves request-state isolation; it does not replace transport authentication, which still decides whose profile enters the graph.",
+              "Point to the two lanes and ask where a static or singleton currentPlan field would connect them incorrectly. The diagram is conceptual, not a claim of a particular scheduler interleaving.",
+              "Now constrain the output structure with ordinary Java.", [lc("NutritionTools"), repo("langchain4j/src/test/java/com/example/nutritionplanner/NutritionWorkflowTest.java")]), { chapter: "Isolation" }),
+          codeSlide("shape-audit", "Do not ask the model to count slots.", "lcShape", "Java checks exact coverage. <strong>Model approval cannot override it.</strong>",
+            note("RequestShapeAudit is itself a typed agent node, but its implementation is ordinary deterministic code. It checks duplicate, missing and extra days, then checks presence for each requested or unrequested meal slot. Structural violations are merged into the model audit and force allPassed=false. The shown excerpt is the presence calculation, not the whole audit. Keeping a separate check makes failures explainable and testable even when the model claims compliance. It also distinguishes graph-node counts from LLM-call counts.",
+              "Return to the missing Tuesday dinner. Show how a null field becomes a structural violation rather than a subjective model decision.",
+              "The loop must test the combined audit after each new revision.", [lc("RequestShapeAudit"), lc("NutritionAuditValidationResult")]), { chapter: "Deterministic acceptance" }),
+          codeSlide("bounded-loop", "Audit at the end of every iteration.", "lcLoop", "<code>MAX_REVISIONS = 3</code>. <strong>The last revision still gets an audit.</strong>",
+            note("The loop body is reviser, nutrition guard, then shape audit. testExitAtLoopEnd(true) is important: the exit decision applies to the newly revised and audited candidate. maxIterations is the number of revisions, not the total number of candidates, because the initial draft and audit happened outside this loop. The conditional builder avoids entering it after an initial pass. Bounded reflection trades extra work for a chance to repair, without pretending that repeated prompting must eventually succeed.",
+              "Walk the off-by-one case. Initial audit fails; revision 1 fails; revision 2 fails; revision 3 passes. The result is accepted after the fourth audit.",
+              "Exhaustion must still be caught at the final output boundary.", [lc("AgentConfiguration")]), { chapter: "Reflection pattern" }),
+          codeSlide("acceptance-gate", "Finishing the graph is not success.", "lcGate", "A terminal invalid state becomes <strong>an explicit exception.</strong>",
+            note("The graph may terminate because the bounded loop exhausted its budget. That is not the same as a passing audit. validatedPlan checks the audit and candidate again and throws PlanValidationException on failure. The REST exception handler maps that domain failure to 422 ProblemDetail, and the UI renders an error rather than an invalid plan. Missing audit or missing plan is also an error. The application owns this success definition even though the framework owns execution.",
+              "Ask what would happen if the final output function simply returned the last WeeklyPlan. That is exactly the invalid-success path this gate prevents.",
+              "Separate the domain budget from all the model infrastructure inside it.", [lc("AgentConfiguration"), lc("NutritionPlannerExceptionHandler")]), { chapter: "Failure handling" }),
+          shared.budget([lc("AgentConfiguration"), lc("PlanValidationException")]),
+          shared.roles([lc("Agents")]),
+          slide("beyond-this-graph", "A focused sample, not an API ceiling.", cards([
+            ["Native upstream", "Human input", "HumanInTheLoop workflows exist. This nutrition graph has no question or approval step."],
+            ["Experimental upstream", "Tool search", "Simple and vector strategies exist. This graph exposes a fixed nutrition tool set."],
+            ["Experimental upstream", "Skills", "A Skills API exists. Here the application supplies the current month directly."]
+          ]),
+            note("Keep two evidence levels separate. The graph we just read is the sample's behavior. Pinned upstream source shows native HumanInTheLoop and experimental ToolSearchStrategy and Skills APIs. Their presence does not mean this graph registers or exercises them. The application supplies the month instead of activating a skill. This distinction prevents an unfair comparison with the other frameworks and helps an adopter identify additional integration work. Experimental capabilities can change even when core model integration is stable.",
+              "Use the phrase not demonstrated, not unsupported. Mention that LangChain4j's vector search is not what the Spring AI sample's lexical index demonstrates.",
+              "The same rule matters for MCP client and server claims.", [refs.lcHitl, refs.lcSearch, refs.lcSkills, lc("NutritionPlannerAgent")]), { chapter: "Capability boundaries" }),
+          slide("mcp-boundary", "A REST endpoint is not an MCP server.", cards([
+            ["This sample", "REST + browser", "Authenticated nutrition planning. No MCP server is registered."],
+            ["Core upstream", "MCP client", "Connects an agent to external MCP servers and their tools."],
+            ["Separate community module", "Stdio server", "Can expose tools to a local MCP client. Not included in this application."]
+          ]),
+            note("MCP distinguishes the client that consumes tools from the server that exposes them. LangChain4j's core MCP module is a client. The pinned upstream stdio-server guide points to a separate community server module. Neither creates a server in this nutrition sample, which has REST and browser endpoints. This is a scope statement, not an assertion that Java or LangChain4j cannot host MCP. Do not compare a future integration against the already wired native servers in the other samples.",
+              "Sketch the direction of the tool call in words: an MCP client calls an MCP server. Ask which side this repository actually implements for LangChain4j.",
+              "Observe what the graph does today, not what a framework might eventually support.", [refs.lcMcp, lc("NutritionPlannerController")]), { chapter: "Protocols" }),
+          slide("instrumentation", "Observe the graph and the model separately.", cards([
+            ["Application listener", "Graph lifecycle", "Logging, invocation/error counts, active gauge and agent-duration timers."],
+            ["Native model listener", "Model usage", "Micrometer chat-model instrumentation, including token-usage metrics."],
+            ["Interpretation", "Different denominators", "A shape-check or orchestration node is an agent invocation, not a model request."]
+          ]) + `<p class="lesson">Scope + agent IDs distinguish overlapping invocations.</p>`,
+            note("AgentListeners propagates to subagents and records starts, completions and failures. Its timer key combines scope identity and agent identity so concurrent requests do not overwrite each other's sample. AgentMonitor is also composed into the listener. Native MicrometerMetricsChatModelListener instruments the model layer. The optional observability profile enables export and duration histograms. The bundled agent dashboard is tailored to these application metrics; do not turn its node count into a normalized cost or quality claim.",
+              "Name the event that closes a timer on failure as well as on success. Do not open real traces or profiles on the projector.",
+              "Use scripted responses to make those lifecycles and limits reproducible.", [lc("AgentListeners"), lc("AgentConfiguration"), refs.overview]), { chapter: "Observability" }),
+          shared.tests([repo("langchain4j/src/test/java/com/example/nutritionplanner/NutritionWorkflowTest.java"), repo("langchain4j/src/test/java/com/example/nutritionplanner/NutritionToolsTest.java"), repo("langchain4j/src/test/java/com/example/nutritionplanner/NutritionPlannerWebTest.java")]),
+          shared.demo([lc("AgentConfiguration"), lc("RequestShapeAudit"), lc("NutritionPlannerExceptionHandler")], false, "For an optional code walkthrough, keep AgentConfiguration and RequestShapeAudit open; there is no need to expose environment or provider configuration."),
+          slide("ownership", "The graph is native. The policy is yours.", cards([
+            ["Framework owns", "Composition + scope", "Typed agent invocation, fan-out/join, conditional/loop execution and hidden scope injection."],
+            ["Application owns", "Meaning + resources", "Prompts, revision budget, shape validation, acceptance, identity and the executor."],
+            ["Adoption tradeoff", "Visible control", "Easy to follow an explicit graph. Budget for experimental agentic API changes."]
+          ]),
+            note("LangChain4j fits this example when a visible, reviewable workflow is valuable. Its native builders reduce execution plumbing without hiding the sequence. You still choose what a valid plan means, which tools are trusted, how context enters the graph and how failures reach clients. The graph shown is neither a full capability inventory nor a performance argument. The main adoption risk highlighted by the source is the experimental status of the agentic API, distinct from the core framework version.",
+              "Ask a teammate to explain the failure path from the configuration alone. If that is difficult, the composition probably needs simplification.",
+              "Finish with the acceptance boundary, not the number of agents.", [lc("AgentConfiguration"), refs.lcWorkflow]), { chapter: "Decision" }),
+          shared.closing("Compose deliberately. Accept explicitly.", "Visible graph.<br><em>Honest outcome.</em>", "Keep state scoped.<br>Bound reflection.<br>Gate the final output.", [lc("AgentConfiguration"), lc("NutritionTools")]),
+          shared.questions("Can you explain<br><em>the failure path?</em>", [lc("AgentConfiguration")]),
+          shared.versions([repo("langchain4j/pom.xml"), refs.overview]),
+          codeSlide("test-excerpt", "Assert the actual logical work.", "lcTest", "The real native graph runs against <strong>scripted model responses.</strong>",
+            note("This excerpt comes from the parametrized test for first, second and fourth-audit success. It asserts one initial candidate, the expected revisions and audits, one seasonal result and actual tool-result checks. Adjacent tests cover exhaustion, bad shape despite model approval, duplicate days, malformed output, failures, overlap and scoped tool isolation. These are behavior assertions rather than provider-quality evaluation.",
+              "Use this backup if asked whether the tests mock away the graph. They script the model while exercising native workflow and tools.",
+              "Return to the boundary discussion.", [repo("langchain4j/src/test/java/com/example/nutritionplanner/NutritionWorkflowTest.java")]), { backup: true, chapter: "Test evidence" }),
+          { ...shared.guards([lc("RequestShapeAudit"), lc("NutritionTools")]), backup: true, chapter: "Audit deep dive" },
+          shared.sources("sources-code", "The smallest useful source tour", [lc("Agents"), lc("AgentConfiguration"), lc("NutritionTools"), lc("RequestShapeAudit"), lc("AgentListeners"), lc("NutritionPlannerExceptionHandler")]),
+          shared.sources("sources-upstream", "What exists beyond this sample", [refs.lcWorkflow, refs.lcHitl, refs.lcSearch, refs.lcSkills, refs.lcMcp])
+        ]
+      };
+
+      tracks["spring-ai"] = {
+        number: "03", label: "Spring AI",
+        description: "Build a reliable workflow around ChatClient, native tool advisors, and a browser-owned human interaction.",
+        slides: [
+          shared.opening("Agentic patterns with Spring-native building blocks", "Own the<br><em>workflow.</em>", "ChatClient, tool advisors and MCP are native. The sequence and success policy remain application code.",
+            [["BUILDING BLOCKS", "Spring AI 2.0.1"], ["ORCHESTRATION", "Application code"], ["EXTENSIONS", "Community utilities"]], [sa("NutritionPlannerAgent"), repo("spring-ai/README.md")]),
+          shared.route([["Contract", "Define the candidate and the audit."], ["Advisors", "Separate tool turns from revisions."], ["Interaction", "Own answers, cancellation and identity."], ["Evidence", "Test and replay honest outcomes."]], [repo("spring-ai/README.md")]),
+          shared.contract([sa("WeeklyPlanRequest"), sa("NutritionPlannerController"), refs.overview]),
+          shared.workflow([sa("NutritionPlannerAgent"), sa("Workflow"), sa("ValidationRetryAdvisor")]),
+          codeSlide("chat-client", "Start with the autoconfigured builder.", "saClient", "One selected model. <strong>Explicitly owned dependencies.</strong>",
+            note("The service constructor receives the autoconfigured ChatClient.Builder, ToolIndex, ToolCallingManager, an injectable Clock and a skills resource. The shown constructor body turns those into the objects used by the workflow. ChatClient model integration and tools are Spring AI core; SkillsTool is from community agent-utils; CurrentMonthTool is application code. Selecting exactly one provider profile keeps inactive providers from demanding credentials. The sample does not introduce a second custom model client or a pretend agent planner.",
+              "Read the imports in the linked source if someone asks which library owns SkillsTool. Package names are more reliable than a generic agent label.",
+              "The workflow begins with two independent operations, joined by application Java.", [sa("NutritionPlannerAgent"), repo("spring-ai/pom.xml")]), { chapter: "Model integration" }),
+          codeSlide("parallel", "Parallelism is ordinary Java here.", "saParallel", "<code>Workflow.parallel</code> is <strong>not a Spring AI workflow API.</strong>",
+            note("The application's Workflow helper captures Micrometer context, submits two suppliers to a virtual-thread executor, and joins their typed results. The excerpt shows the happy-path join; the rest restores interruption, propagates failures, cancels unfinished work and closes the executor. Fan-out/join helps independent profile and seasonal work overlap. It also creates resource and context responsibilities. This is not a durable workflow engine or a native multi-agent planner, and adding community tools does not change that fact.",
+              "Compare typed ParallelResult<A,B> with a generic list whose elements would need casting. Mention that the parallelism test uses latches rather than a stopwatch benchmark.",
+              "Inside each model interaction, a different loop belongs to the framework.", [sa("Workflow"), repo("spring-ai/src/test/java/com/example/nutritionplanner/WorkflowTests.java")]), { chapter: "Parallel pattern" }),
+          slide("tool-loop", "A tool turn is not a plan revision.", lanes([
+            ["Application policy", ["Generate candidate", "Audit", "Revise or return"]],
+            ["Native tool loop", ["Model requests tool", "Execute Java tool", "Model continues"]],
+            ["Provider transport", ["HTTP attempt", "Transient retry policy"]]
+          ]) + strip("Native ToolCallingAdvisor handles tool execution inside a model interaction."),
+            note("Tool calling solves a narrow problem: let the model request an operation and continue after receiving its result. In Spring AI 2, ChatClient automatically registers the native ToolCallingAdvisor for that loop. Our ValidationRetryAdvisor is outside it and audits only completed structured candidates. A tool call may require another model turn without consuming a candidate revision. Provider transient retries are a third layer. Mixing these counters causes off-by-one errors and misleading telemetry.",
+              "Ask how many audits occurred if one candidate required five tool turns. The answer can still be one.",
+              "Give the tool loop a safe, small operation to execute.", [refs.saTools, sa("ValidationRetryAdvisor")]), { chapter: "Tool calling" }),
+          codeSlide("skill-clock", "Reusable instructions, a narrow clock tool.", "saClock", "Community skill loading. <strong>Application Java execution.</strong>",
+            note("The seasonal prompt asks the model to activate a current-month skill. Community SkillsTool loads its packaged instructions, which tell the model to call this application-defined native Tool method. The Clock is injectable and configured in UTC, so tests can control the month. No shell or file tool is registered, and the removed shell script is not needed at runtime. Skills address reusable guidance; the actual operation still needs a deliberately constrained execution surface and packaged-resource tests.",
+              "Compare the instructions with the method they name. A skill alone does not grant an arbitrary command runner.",
+              "A typed result is helpful, but it is not proof that the content satisfies the request.", [sa("CurrentMonthTool"), repo("spring-ai/src/main/resources/skills/current-month/SKILL.md"), refs.skills]), { chapter: "Skills" }),
+          slide("structured-output", "Typed output is a boundary, not a verdict.", cards([
+            ["Native conversion", "WeeklyPlan", "ChatClient entity conversion and a BeanOutputConverter turn structured output into domain values."],
+            ["Application prompts", "Two responsibilities", "Recipe Curator drafts. Nutrition Guard judges and asks nutrition tools for totals."],
+            ["Application acceptance", "Exact request shape", "Missing, extra or duplicate days/meals fail even when the model audit says yes."]
+          ]),
+            note("Typed structured output makes downstream contracts explicit and exposes malformed responses as failures. It does not prove that a plan contains the requested slots or follows dietary restrictions. The application uses two role prompts through system(): a curator and a guard. Those personas guide the model but are not framework agent types or enforcement mechanisms. Native tools on WeeklyPlan sum its model-generated nutrition estimates. The application request shape check has the final word on deterministic coverage.",
+              "Use a valid-looking WeeklyPlan with a missing dinner as the counterexample. The JSON parser can succeed while the plan contract fails.",
+              "Apply reflection only after a complete candidate exists.", [sa("NutritionPlannerAgent"), sa("ValidationRetryAdvisor"), sa("WeeklyPlan"), sa("WeeklyPlanRequest")]), { chapter: "Typed output + roles" }),
+          codeSlide("reflection-policy", "Reflection needs a terminal decision.", "saRetry", "Initial candidate + three revisions = <strong>at most four audits.</strong>",
+            note("ValidationRetryAdvisor converts the response, runs its validator, returns immediately on pass, and throws NutritionPlanValidationException when the revision budget is exhausted. The loop audits before deciding whether another revision is allowed. Thus the fourth candidate can still succeed, but a fourth failure cannot be returned as a plan. This is application-owned evaluator-optimizer policy layered over native advisors. Invalid model output and missing audit responses also fail explicitly, rather than consuming the budget with empty fallback objects.",
+              "Walk the final allowed revision and ask whether its audit runs before the limit check. It must.",
+              "A repair must retain the original task and any human answers.", [sa("ValidationRetryAdvisor"), sa("NutritionPlannerExceptionHandler")]), { chapter: "Reflection pattern" }),
+          slide("revision-context", "Feedback augments; it does not replace.", cards([
+            ["Stable original context", "The user's problem", "Days, meals, country, profile, season and additional instructions survive every revision."],
+            ["Changing repair context", "The latest evidence", "Current candidate, latest audit feedback and recorded human answers are added."]
+          ], true) + strip("The advisor rebuilds from the original request, not an ever-growing feedback chain."),
+            note("Feedback-only prompting quietly loses constraints. The advisor augments the original user message with the latest candidate and feedback, preserving the system prompt and the full original request. A revisionContext supplier provides the answers collected so far. chain.copy(this) repeats the downstream chain without recursively re-entering the same outer validator. The tradeoff is explicit application code and tests for prompt preservation, but the behavior is explainable. This is not general durable memory or automatic multi-agent planning.",
+              "Ask what would happen if a repair removes a disliked ingredient but forgets vegetarian requirements or the requested dinner slot.",
+              "The auditor should discover only the tools it needs for this candidate.", [sa("ValidationRetryAdvisor"), repo("spring-ai/src/test/java/com/example/nutritionplanner/ValidationRetryAdvisorTests.java")]), { chapter: "Context" }),
+          slide("tool-search", "Discover tools by their metadata.", lanes([
+            ["Native advisor", ["Index current tools", "Expose search tool", "Invoke discovered tool"]],
+            ["Lucene index", ["Tool name", "Tool description", "Lexical match"]],
+            ["Application scope", ["Unique audit ID", "Candidate-bound tools", "Evict in finally"]]
+          ]) + `<p class="lesson">This is <strong>lexical full-text search</strong>, not embedding similarity.</p>`,
+            note("ToolSearchToolCallingAdvisor indexes the supplied nutrition tools and exposes a search mechanism before adding selected tools to subsequent calls. LuceneToolIndex matches metadata words, scoped by session ID. The application creates a fresh audit ID and binds the current WeeklyPlan as the tool object; it evicts the session after the audit. Discovery reduces the initial tool surface but depends on good descriptions and introduces index lifecycle. This is different from Embabel's known category facade and different from vector search.",
+              "Say what a search query might ask: daily calories or meal count. Do not present an invented query as a captured model trace.",
+              "The cleanup path matters as much as the search path.", [sa("NutritionPlannerAgent"), repo("spring-ai/src/main/java/com/example/NutritionPlannerConfiguration.java"), refs.saSearch, refs.lucene]), { chapter: "Discovery" }),
+          codeSlide("search-lifecycle", "An audit session must end.", "saEvict", "Merge structural findings. <strong>Always evict request-local search state.</strong>",
+            note("After the model audit is converted, the application computes shape feedback. Any mismatch forces a failed validation result even if the model approved the recipes. The finally block evicts the unique audit session whether conversion, tools or validation succeeded or failed. The excerpt starts near the end of the try block; the complete method is linked. This lifecycle prevents stale tool metadata from becoming the next candidate's context and keeps audit-scoped resources bounded.",
+              "Point to finally, not merely the successful return. Ask which paths would leak if eviction were only on success.",
+              "Human interaction has an even longer-lived lifecycle to manage.", [sa("NutritionPlannerAgent"), refs.saSearch]), { chapter: "Resource ownership" }),
+          slide("browser-interaction", "A question tool is not a browser workflow.", lanes([
+            ["Authenticated owner", ["Submit /plan", "Connect SSE", "Answer question"]],
+            ["Community tool", ["Ask cooking preference", "Wait for valid answer", "Resume generation"]],
+            ["Application lifecycle", ["Own interaction", "Deliver result / error", "Close + clean up"]]
+          ]) + strip("AskUserQuestionTool is community code. SSE and ownership are application code."),
+            note("The browser creates an interaction and starts generation when its authenticated owner connects to the event stream. Community AskUserQuestionTool asks cooking-preference questions, not profile restrictions that are already known. The application translates them into UI events and validates submitted answers. Single-choice, multiple-choice and free text are supported. Answer submission returns 204 so it cannot overwrite a simultaneously delivered plan. The human step provides information, not a medical approval gate or MCP elicitation.",
+              "Use a harmless question such as batch cooking versus daily preparation. Explain why another authenticated user must not be able to answer it.",
+              "Once collected, the answer must reach more than the generation prompt.", [sa("NutritionPlannerUiController"), sa("AskUserQuestionHandler"), sa("SseInteractionController"), refs.questions]), { chapter: "Human input" }),
+          codeSlide("answers-everywhere", "Both revision and audit need the answer.", "saAnswers", "Snapshot for each audit. <strong>Current answers for each revision.</strong>",
+            note("The local answers map is shared by two carefully chosen consumers. Map.copyOf(answers) snapshots the recorded answers for each audit; answers::toString supplies current answers when a revision prompt is built. Every question must receive a nonblank answer before the tool loop continues. The audit prompt explicitly says recorded questions are already completed and asks the guard to apply the cooking preferences. Without that second path, the auditor can incorrectly demand the same question again even when generation followed the answer.",
+              "Follow both arrows from the map. This is the important migration lesson: human input is domain state, not merely a UI transcript.",
+              "A waiting question also needs an explicit cancellation path.", [sa("NutritionPlannerAgent"), sa("ValidationRetryAdvisor")]), { chapter: "State propagation" }),
+          codeSlide("cancellation", "Waiting is a resource.", "saQuestionClose", "Completion, disconnect and timeout <strong>release the pending question.</strong>",
+            note("AskUserQuestionHandler holds one pending question batch with a future. Closing the handler marks it closed and completes that future exceptionally, so a waiting virtual thread can stop. The SSE controller tracks the owner, interrupts work during cleanup and removes the interaction. Question waiting times out after five minutes; interactions expire after ten, even if the browser never connects. The application deadline sends an error before the container's emitter timeout. This is real lifecycle work that no question-tool API can eliminate.",
+              "Describe closing the browser while a model is waiting for an answer. No hidden question or successful empty answer should be left behind.",
+              "Those browser semantics must not accidentally leak into REST or MCP.", [sa("AskUserQuestionHandler"), sa("SseInteractionController"), repo("spring-ai/src/test/java/com/example/nutritionplanner/NutritionPlannerApplicationTests.java")]), { chapter: "Failure + cancellation" }),
+          slide("three-entry-points", "Three entry points. Two interaction modes.", cards([
+            ["Browser", "Interactive", "Authenticated SSE owner, question/answer flow, result or error, terminal done event."],
+            ["REST", "Noninteractive", "Shared days-list request shape. HTTP 422 ProblemDetail when audits exhaust."],
+            ["MCP", "Noninteractive", "Native tool at /mcp. Existing map-form meals input. Error tool result on exhaustion."]
+          ]) + `<p class="lesson">No question tool is registered for REST or MCP. <strong>No fake empty answers.</strong></p>`,
+            note("REST and MCP call the noninteractive overload, which does not register AskUserQuestionTool. The application tells the model to use the supplied profile and request, not to ask questions. REST adapts the common days list to the internal meals map. MCP preserves its existing request.meals map schema, and clients should inspect tools/list. Browser SSE is a different transport purpose from MCP Streamable HTTP. Authentication is required for each entry point, but the demo security configuration is not production guidance.",
+              "Ask whether a REST caller should receive a waiting browser question. It should not; that would be an unfulfillable interaction contract.",
+              "The MCP handler needs the authenticated transport identity, not an implicit thread-local.", [sa("NutritionPlannerController"), sa("NutritionPlannerAgent"), repo("spring-ai/README.md")]), { chapter: "Transport contracts" }),
+          codeSlide("mcp-principal", "Identity comes from the MCP transport.", "saMcp", "Native <code>@McpTool</code>. <strong>No client-controlled username argument.</strong>",
+            note("The method is annotated with native McpTool in the source. It reads the principal name from McpSyncRequestContext.transportContext(), validates its presence and delegates to the same planning service. NutritionPlannerMcpConfiguration extracts that principal from the authenticated servlet request. This explicit bridge is necessary because MCP execution may occur outside the original servlet security-context thread. A model-selected argument is not authentication. The normal HTTP identity must be supplied on MCP transport requests.",
+              "Trace principal -> transport context -> profile lookup. Mention that REST ProblemDetail and MCP error tool results are distinct failure surfaces.",
+              "Observe the same logical behavior without conflating transport and tool spans.", [sa("NutritionPlannerAgent"), sa("NutritionPlannerMcpConfiguration")]), { chapter: "MCP" }),
+          slide("observability", "Native observations; application meaning.", cards([
+            ["Client layer", "spring.ai.chat.client", "Observe model interactions and the surrounding advisor chain."],
+            ["Tool layer", "spring.ai.tool", "Spring AI 2 uses execute_tool spans for tool execution."],
+            ["Domain layer", "Candidates + audits", "An audit can include search and nutrition-tool turns. Count logical work separately."]
+          ]) + strip("Export is opt-in. Private prompts and human answers do not belong on a projector."),
+            note("Native observations give visibility into chat-client and tool execution. They do not know that our domain allows four candidates, or that one candidate may have several tool-search turns. The observability profile opts into OTLP; outside it exporters are disabled. Spring AI 2 tool spans use execute_tool rather than old tool_call labels. The repository's agent dashboard panels are LangChain4j-specific and need different queries for Spring AI. Do not compare raw span counts as a benchmark.",
+              "Name a trace question this instrumentation can answer: did tool search, execution or conversion fail? Then distinguish that from model-quality evaluation.",
+              "Control the model responses so CI can prove the application's policy.", [repo("spring-ai/README.md"), refs.overview, refs.saTools]), { chapter: "Observability" }),
+          shared.tests([repo("spring-ai/src/test/java/com/example/nutritionplanner/ValidationRetryAdvisorTests.java"), repo("spring-ai/src/test/java/com/example/nutritionplanner/NutritionPlannerApplicationTests.java"), repo("spring-ai/src/test/java/com/example/nutritionplanner/AskUserQuestionHandlerTests.java")]),
+          shared.demo([sa("NutritionPlannerAgent"), sa("ValidationRetryAdvisor"), sa("SseInteractionController")], true, "If demonstrating a local browser app, show the owner-bound question and then close the interaction; never use a live provider response as the only fallback."),
+          slide("ownership", "Building blocks are not policy.", cards([
+            ["Spring AI core", "Model / tools / MCP", "ChatClient, structured conversion, tool execution/search advisors and MCP annotations."],
+            ["Community 0.12.0", "Skills + questions", "SkillsTool and AskUserQuestionTool add focused capabilities, not a native planner."],
+            ["Application", "Workflow + lifecycle", "Fan-out/join, revision policy, clock, SSE ownership, cancellation and acceptance."]
+          ]),
+            note("This ownership split is the practical adoption decision. Spring AI integrates model, tool and protocol concerns in the Spring ecosystem. Community utilities offer skills and questions without becoming core APIs. The application remains responsible for sequencing, refinement, interaction lifecycle and a trustworthy final response. That control can be desirable for teams who want ordinary Java orchestration, but it must be budgeted and tested. Do not call the Workflow helper a native agent planner or imply that a community library is part of Spring AI core.",
+              "Ask which part of the application your team would extract for another domain and which part should remain specific to nutrition planning.",
+              "The final definition of done belongs beside the workflow.", [repo("spring-ai/README.md"), sa("Workflow"), sa("ValidationRetryAdvisor"), refs.questions, refs.skills]), { chapter: "Decision" }),
+          shared.closing("Own the lifecycle, not just the prompt.", "Native tools.<br><em>Explicit policy.</em>", "Preserve answers.<br>Audit completed candidates.<br>Close every interaction.", [sa("NutritionPlannerAgent"), sa("SseInteractionController")]),
+          shared.questions("Where does your<br><em>workflow end?</em>", [repo("spring-ai/README.md")]),
+          shared.versions([repo("spring-ai/pom.xml"), repo("spring-ai/README.md")]),
+          codeSlide("audit-answer-prompt", "The audit knows the conversation is done.", "saAuditAnswers", "Verbatim prompt excerpt, <strong>not pseudocode.</strong>",
+            note("This is a literal excerpt from the audit user-message template. The map of collected questions and answers is substituted into userAnswers for each validation. The guard is told to apply cooking preferences and not require the plan to repeat the conversation. Preserving answers only in revision prompts would be incomplete. This backup makes the second data path concrete without putting the entire prompt on a main slide.",
+              "Use the answered cooking-preference example from the replay and read the last two lines.",
+              "Return to the human-state or testing slide.", [sa("NutritionPlannerAgent")]), { backup: true, chapter: "Human-state deep dive" }),
+          { ...shared.budget([sa("ValidationRetryAdvisor")]), backup: true, chapter: "Retry boundaries" },
+          shared.sources("sources-code", "Follow the ownership boundaries.", [sa("NutritionPlannerAgent"), sa("ValidationRetryAdvisor"), sa("Workflow"), sa("AskUserQuestionHandler"), sa("SseInteractionController"), sa("NutritionPlannerMcpConfiguration")]),
+          shared.sources("sources-upstream", "Core and community are separate sources.", [refs.saTools, refs.saSearch, refs.lucene, refs.questions, refs.skills, repo("spring-ai/README.md")])
+        ]
+      };
+
+      tracks.embabel = {
+        number: "04", label: "Embabel",
+        description: "Model a typed goal and audit states; let the native planner schedule actions without hiding domain policy.",
+        slides: [
+          shared.opening("Typed planning, explicit policy", "Declare the goal.<br><em>Model the states.</em>", "Embabel schedules ready actions. Your domain still defines what a valid result means.",
+            [["FACTS", "Typed action inputs"], ["PLANNER", "Goal-oriented execution"], ["POLICY", "States + revision budget"]], [eb("NutritionPlannerAgent"), repo("embabel/README.md"), refs.states]),
+          shared.route([["Domain", "Turn the request into typed facts."], ["Planner", "Schedule actions; constrain states."], ["Boundaries", "Tools, skills, providers and identity."], ["Evidence", "Prove budgets and replay failure."]], [repo("embabel/README.md")]),
+          shared.contract([eb("WeeklyPlanRequest"), eb("NutritionPlanner"), refs.overview]),
+          slide("typed-dependencies", "Ready actions follow available types.", lanes([
+            ["Available input", ["WeeklyPlanRequest", "Scoped identity"]],
+            ["Independent actions", ["UserProfile", "SeasonalIngredients"]],
+            ["After the join", ["Draft", "NutritionAudit", "Done or revise"]]
+          ]) + strip("GOAP: goal-oriented action planning. Types describe prerequisites and effects."),
+            note("GOAP starts with available facts and a goal. Action input types tell the planner what must exist; output types tell it what an action can add. The profile and seasonal actions are independent, while the drafting action requires both outputs and the original request. The application declares meaningful types and action bodies. The framework plans and schedules execution. This is not the model inventing arbitrary Java steps, and it is not a hand-written loop disguised as a planner.",
+              "Read each lane as availability, not clock time. Ask which action cannot start until both independent results exist.",
+              "Look at one real typed action rather than a generic planning diagram.", [eb("NutritionPlannerAgent"), refs.concurrent]), { chapter: "GOAP" }),
+          codeSlide("typed-action", "The signature declares the dependency.", "ebAction", "<code>WeeklyPlanRequest</code> in. <strong>SeasonalIngredients</strong> out.",
+            note("This is the beginning of the actual seasonal action; its prompt and createObject call continue below the excerpt in the linked file. The signature gives the planner a typed dependency and effect. Ai is a native prompting API, LlmOptions selects the configured model, and individual skill references make the bundled current-month skill available. The profile action separately returns UserProfile from the scoped authenticated identity. Typed planning makes dependencies inspectable, but you must keep action side effects and data contracts trustworthy.",
+              "Point to the result type first. Explain why the draft action's three domain inputs form a natural join.",
+              "The process mode decides whether ready independent actions may overlap.", [eb("NutritionPlannerAgent"), eb("BundledSkills")]), { chapter: "Actions" }),
+          slide("concurrent-planning", "Native scheduling, deliberate concurrency.", cards([
+            ["Framework configuration", "CONCURRENT process", "The native process launches currently achievable actions together, then replans."],
+            ["Application integration", "Shared executor", "Virtual threads and the task decorator carry observations and scoped identity."],
+            ["Dependency boundary", "Not everything is parallel", "Only profile and season overlap here. Draft, audit and revision remain ordered."]
+          ]),
+            note("The default Embabel process is sequential, but this sample explicitly configures process-type CONCURRENT and shared threading. The native concurrent process runs all currently achievable actions in parallel on a planning tick, waits for them, then replans. The application's shared task decorator carries context into that executor. A latch-based integration test verifies real overlap on distinct virtual threads. The tradeoff is concurrency discipline around shared resources; this deck makes no measured speed claim.",
+              "Contrast independent preparation with an audit that requires the just-created candidate. Parallel cannot erase a true data dependency.",
+              "Now separate the creative and evaluative responsibilities of model calls.", [repo("embabel/src/main/resources/application.yaml"), repo("embabel/src/main/java/com/example/NutritionPlannerConfiguration.java"), refs.concurrent]), { chapter: "Parallel pattern" }),
+          shared.roles([eb("NutritionPlannerAgent")], true),
+          codeSlide("states", "States make the loop a domain concept.", "ebStates", "The planner executes a <strong>deliberately defined lifecycle.</strong>",
+            note("The Stage hierarchy has three domain outcomes: NutritionAudit, ReviseWeeklyPlan and Done. Native State annotations let an action return a new state and cause replanning from that state's actions. The application still chooses these types and their policy. A state transition hides previous state objects; it does not automatically clear all blackboard data. The looping actions in this sample explicitly use canRerun and clearBlackboard. That distinction matters when reasoning about context lifetime.",
+              "Name the lifecycle before the APIs. It should be explainable to someone who does not know Embabel.",
+              "A blackboard reset means important context must travel with the new state.", [eb("NutritionPlannerAgent"), refs.states]), { chapter: "Typed state" }),
+          slide("context-survival", "Carry what the next state must know.", cards([
+            ["Stable context", "PlanningContext", "Original request, seasonal ingredients and authenticated user profile."],
+            ["Changing state", "Candidate + evidence", "Current WeeklyPlan, RevisionBudget and the latest validation result."],
+            ["Looping actions", "Clear, then replan", "canRerun + clearBlackboard enable another pass. The returned state carries its context."]
+          ]) + `<p class="lesson">Do not mistake <strong>state hiding</strong> for <strong>blackboard clearing</strong>.</p>`,
+            note("The problem is losing the original request during a planner loop. Native State normally hides old state objects while retaining non-state facts, but these looping actions deliberately clear the blackboard so the planner can revisit the state. PlanningContext is therefore carried inside NutritionAudit and ReviseWeeklyPlan, along with the candidate and budget. The reviser uses the same request, profile, season and instructions plus feedback. This is an explicit domain-state design, not a guarantee the framework can infer automatically.",
+              "Ask what a feedback-only revision would forget. Use the original Tuesday dinner and allergy restrictions as examples.",
+              "An audit action returns a typed decision, not an ambiguous flag in shared mutable state.", [eb("NutritionPlannerAgent"), refs.states]), { chapter: "Context" }),
+          codeSlide("audit-transition", "Return the next permitted state.", "ebTransition", "Pass, revise or reject. <strong>No invalid Done state.</strong>",
+            note("The nutrition audit uses native Ai, the current plan as a tool object, and the Nutrition Guard persona. It combines the model verdict with deterministic required-meal checks before this decision block. A pass returns Done immediately. A failed audit with no remaining revisions throws a domain rejection. Otherwise the state contains the current candidate, preserved context, budget and feedback for revision. Reflection is expressed as state transitions, while the framework plans how to execute them.",
+              "Use the missing-meal example: a model pass is turned into a combined failure before this block sees it.",
+              "The budget should be a domain value you can inspect and test.", [eb("NutritionPlannerAgent"), eb("NutritionAuditValidationResult"), eb("WeeklyPlan")]), { chapter: "Reflection" }),
+          codeSlide("budget", "Count revisions, then derive audit number.", "ebBudget", "<code>MAX_REVISIONS = 3</code>. <strong>C0 through C3 all get audited.</strong>",
+            note("RevisionBudget starts at zero and caps revisionsUsed at three. auditNumber is revisionsUsed plus one, because the initial draft is already a candidate. nextRevision returns a new validated value rather than mutating a shared counter. The last revised candidate reaches NutritionAudit with budget three; it can pass, but a failed audit cannot produce another revision. This is application policy embedded in the state model. Provider retries and model tool turns do not increment this logical domain budget.",
+              "Count the initial draft before naming revision one. Ask whether the final permitted revision can be accepted: yes, after its audit.",
+              "A domain rejection must not be retried by the framework as if it were transient.", [eb("RevisionBudget"), eb("NutritionPlannerAgent")]), { chapter: "Budget" }),
+          slide("non-retryable", "Exhaustion is not a transient fault.", cards([
+            ["Application exception", "NutritionPlanRejectedException", "Implements native NonRetryable. It carries audits, revisions and final validation feedback."],
+            ["Transport outcomes", "Explicit rejection", "REST: 422 ProblemDetail. UI: escaped error. MCP: error tool result, not a plan."]
+          ], true) + strip("Do not let action retries turn four failed audits into a hidden fifth."),
+            note("Native action retry machinery may be appropriate for transient execution faults, but exhausted domain validation is a decision. NutritionPlanRejectedException implements Embabel's NonRetryable marker so the framework must not rerun the audit as a fifth attempt. The planner facade also preserves that domain exception across execution wrapping. REST and UI map it to their own explicit failure surfaces; native MCP reports an error result. Other model, configuration and parsing failures remain errors rather than fabricated plans.",
+              "Contrast an intermittent network error with an already audited candidate that violated the request four times.",
+              "Look at the tool surface the audit actually uses.", [eb("NutritionPlanRejectedException"), eb("NutritionPlanner"), eb("NutritionPlannerRestErrors"), eb("NutritionPlannerUiErrors")]), { chapter: "Failure handling" }),
+          slide("unfolding-tools", "Reveal a category, then call its tools.", lanes([
+            ["Known facade", ["weekly_meal_plan_tools", "Choose category"]],
+            ["nutrition", ["dailyNutritionTotals", "nutritionTotalsForDay"]],
+            ["meal", ["totalMealCount"]]
+          ]) + strip("Native @UnfoldingTools + @LlmTool. Progressive disclosure, not semantic search."),
+            note("Tool calling gives the model deterministic calculations on the current WeeklyPlan. UnfoldingTools initially presents a known facade; selecting nutrition or meal reveals the corresponding LlmTool methods. This solves initial tool-surface size with an application-defined category structure. It is not Lucene metadata search and not embedding-based semantic retrieval. withToolObject binds the candidate to that interaction, so the model does not provide a replacement plan for totals. Summing estimates still does not independently validate nutrition.",
+              "Describe one conceptual call sequence: unfold nutrition, call daily totals, return an audit. Label it as an explanation, not a captured trace.",
+              "A skill uses a different activation and resource mechanism.", [eb("WeeklyPlan"), eb("NutritionPlannerAgent"), refs.unfolding]), { chapter: "Tool discovery" }),
+          slide("native-skills", "A skill contributes context and tools.", lanes([
+            ["Native references", ["asIndividualReferences()", "Activate current_month"]],
+            ["Trusted bundled script", ["Native process engine", "Bash returns month"]],
+            ["Seasonal action", ["Month + country", "Typed ingredients"]]
+          ]) + `<p class="lesson">A skill reference is <strong>not the same mechanism</strong> as category unfolding.</p>`,
+            note("The seasonal action supplies Skills.asIndividualReferences() through native Ai.withReferences. The model activates the packaged current_month skill and executes its bundled script through the configured native engine instead of guessing the month. The reference contributes instructions plus activation and script tools; it is not the WeeklyPlan category facade. Reusable skills package guidance, but execution still requires trusted resources, an interpreter and failure handling. The prompt explicitly asks failures to be reported rather than inventing a month.",
+              "Trace activate, execute, then use the returned month. Do not execute any script merely to present this slide.",
+              "Resource packaging and trust are part of that feature, not deployment trivia.", [eb("NutritionPlannerAgent"), eb("BundledSkills"), refs.script]), { chapter: "Skills" }),
+          codeSlide("packaged-skills", "An IDE classpath is not the deployment.", "ebSkill", "Trusted bundled resources. <strong>Not a strong sandbox.</strong>",
+            note("BundledSkills copies only the packaged SKILL.md and current-month script from resource streams into a temporary directory. That works from an executable JAR as well as an exploded classpath. Native Skills is configured with the released ProcessSkillScriptExecutionEngine.confinedTo API, and cleanup runs at shutdown. The confined root is not a strong security sandbox: the process inherits the application environment and executes with host permissions. Do not substitute untrusted skills. Tests exercise packaged loading and real script execution with a fake model.",
+              "Mention Bash and writable temporary storage as runtime requirements. The deck itself requires neither because the demo is synthetic.",
+              "The model bridge has an equally important runtime compatibility boundary.", [eb("BundledSkills"), repo("embabel/src/test/java/com/example/nutritionplanner/BundledSkillsTests.java"), refs.script]), { chapter: "Packaging + trust" }),
+          codeSlide("provider-options", "Use native provider option converters.", "ebConverter", "Not <code>DefaultOptionsConverter</code>. <strong>Provider types matter.</strong>",
+            note("The application selects one Spring AI ChatModel and registers it as an Embabel SpringAiLlmService. Planning and prompting above that bridge remain native Embabel APIs. Spring AI 2 expects provider-specific option types, including when Embabel adds tools. The bridge therefore chooses the released OllamaOptionsConverter or StandardOpenAiOptionsConverter, not the generic default converter. An unrelated Ollama catalogue autoconfiguration is excluded so adding the converter does not turn on model discovery. Provider-loop tests cover configured model names and real wire requests against a local fixture.",
+              "Explain the migration failure class: Java interfaces can line up while runtime option types or model names still fail. The linked tests are stronger evidence than a compile-only check.",
+              "Structured JSON binding has a similar boundary between frameworks.", [eb("ModelConfiguration"), refs.converters, repo("embabel/src/test/java/com/example/nutritionplanner/ModelProviderLoopTests.java")]), { chapter: "Migration lesson" }),
+          codeSlide("nullable-binding", "Preserve the contract across schema changes.", "ebBinding", "Nullable storage. <strong>Same JSON fields and Optional Java accessors.</strong>",
+            note("Embabel 1.5.2's schema normalizer reads a JSON Schema type as a string; Jackson 3 can represent Optional types with a type array, exposing a compatibility problem. The sample uses nullable stored meal recipes with explicit JsonProperty names, while preserving Optional-based Java accessors and the constructor. Unrequested meals can be absent in model output and still serialize as the existing breakfast, lunch and dinner fields with null values. This is a targeted binding adaptation, not a change to the API's successful shape or an assertion that Optional is generally unusable.",
+              "Point to the explicit JSON names. Explain why renaming breakfast to breakfastRecipe in the public response would be the wrong migration.",
+              "The next contract to preserve is authenticated identity across asynchronous execution.", [eb("WeeklyPlan"), refs.schema, repo("embabel/src/test/java/com/example/nutritionplanner/WeeklyPlanTests.java")]), { chapter: "Migration lesson" }),
+          codeSlide("scoped-identity", "Capture identity at the boundary.", "ebIdentity", "Java 25 ScopedValue. <strong>Explicit executor propagation.</strong>",
+            note("PlannerIdentity binds a trusted principal name in a ScopedValue for REST and MCP entry points. The shared task decorator explicitly captures and rebinds that scope for asynchronous planner work; virtual threads alone do not make request identity propagation automatic. MCP first extracts the authenticated transport principal and decorates the framework-discovered tool callback. There is no global identity, default user or model-controlled username. The shown method is the executor bridge; callAs validates that the starting principal is authenticated.",
+              "Trace HTTP principal -> transport callback -> ScopedValue -> task decorator -> profile action. Count the two asynchronous or transport boundaries rather than assuming a security ThreadLocal crosses them.",
+              "Export the goal natively, while decorating only the trust boundary.", [eb("PlannerIdentity"), eb("McpIdentityConfiguration"), repo("embabel/src/main/java/com/example/NutritionPlannerConfiguration.java")]), { chapter: "Identity" }),
+          codeSlide("goal-export", "The successful state owns the export.", "ebGoal", "Native <code>@AchievesGoal</code> export at <strong>/mcp</strong>.",
+            note("This method is inside the Done state. AchievesGoal names the successful goal, and Export publishes createNutritionPlan with WeeklyPlanRequest as its starting input type. Embabel discovers and exports the goal; the application does not replace it with a hand-written pseudo-MCP endpoint. Streamable HTTP is authenticated and synchronous here. Native MCP success is a textual plan, and exhaustion is an error tool result. The input schema and output are not identical to Spring AI's MCP or to REST, so inspect tools/list rather than guessing.",
+              "Point out that the goal method is unreachable through a failed audit transition. Identity decoration does not change the native tool schema.",
+              "Prove that execution model with fake providers and real planning.", [eb("NutritionPlannerAgent"), eb("McpIdentityConfiguration"), repo("embabel/README.md")]), { chapter: "MCP" }),
+          slide("evidence", "Prove scheduling and stop conditions.", cards([
+            ["Native observability", "Agent / LLM / tool", "embabel.agent.*, embabel.llm.*, embabel.tool.* and tool-loop metrics. Export is opt-in."],
+            ["Offline integration", "Real GOAP graph", "Exact audit counts, parallel action overlap, scoped users, MCP failures and packaged skills."],
+            ["Provider fixtures", "Real client boundary", "Local HTTP responses exercise native options, tool loops, JSON binding and model names."]
+          ]),
+            note("Observability makes process, model and tool behavior visible, but domain audit counts remain separate from tool turns and provider calls. Offline tests use real GOAP registration and execution with fake model responses; the literal test profile disables auto-registration, so the integration profile is named offline. Latches prove concurrency. Local provider fixtures exercise actual native Ai/tool loops and Spring AI clients without credentials or network services. Tests do not prove clinical accuracy, provider uptime or comparative performance.",
+              "Use the optional budget-test backup if someone asks whether a mock bypassed the planner. Mention that no real logs or traces are embedded in this talk.",
+              "The synthetic replay makes the same policy visible to the audience.", [repo("embabel/src/test/java/com/example/nutritionplanner/NutritionPlannerAgentIntegrationTests.java"), repo("embabel/src/test/java/com/example/nutritionplanner/ModelProviderLoopTests.java"), repo("embabel/README.md")]), { chapter: "Testing + observability" }),
+          shared.demo([eb("NutritionPlannerAgent"), eb("RevisionBudget"), eb("NutritionPlanRejectedException")], false, "For a code demo, show the returned state after each audit. Do not promise that a live model will choose the same candidate sequence."),
+          slide("ownership", "Declare policy. Let the planner execute.", cards([
+            ["Embabel owns", "Native execution", "GOAP scheduling, typed state transitions, personas, unfolding tools and goal export."],
+            ["Application owns", "Domain + boundaries", "State definitions, revision budget, acceptance, trusted skill packaging and identity propagation."],
+            ["Not this graph", "Human input", "Native WaitFor waits and confirmations exist upstream. No approval step is implemented here."]
+          ]),
+            note("Embabel is useful when work can be expressed as typed prerequisites, actions and goals. Planning does not excuse vague domain modeling: the application deliberately defines stages, carries context, validates shape and constrains refinement. The model bridge and identity decorators are also application responsibilities. Native WaitFor supports human input and confirmations, but there is no human step in this nutrition graph. Adding one would require a deliberate state and interaction policy, not simply claiming a checkbox. This is the tradeoff between native scheduling and explicit domain design.",
+              "Ask which type or state would need to exist before a human-approved result could be exported. Treat that as a design discussion, not implemented behavior.",
+              "Close with the distinction between declaring policy and executing it.", [eb("NutritionPlannerAgent"), eb("RevisionBudget"), refs.ebHitl, refs.states]), { chapter: "Decision" }),
+          shared.closing("Native planning does not erase policy.", "Typed intent.<br><em>Bounded execution.</em>", "Carry context.<br>Audit every candidate.<br>Export only success.", [eb("NutritionPlannerAgent"), eb("RevisionBudget")]),
+          shared.questions("What should your<br><em>types make impossible?</em>", [repo("embabel/README.md")]),
+          shared.versions([repo("embabel/pom.xml"), repo("embabel/README.md")]),
+          codeSlide("budget-test", "No hidden fifth audit.", "ebTest", "Exhaustion is asserted through <strong>the real GOAP workflow.</strong>",
+            note("This excerpt follows stubWorkflow(4) in the integration test. The real planner facade is called under an authenticated synthetic principal; the exception carries four audits and three revisions, and the test verifies the workflow counts. Adjacent tests check early and final-permitted success, REST 422, MCP error results and concurrent profile/season actions. There is no live model dependency.",
+              "If needed, point to NonRetryable as the production mechanism and this count assertion as the regression proof.",
+              "Return to the failure boundary.", [repo("embabel/src/test/java/com/example/nutritionplanner/NutritionPlannerAgentIntegrationTests.java"), eb("NutritionPlanRejectedException")]), { backup: true, chapter: "Test evidence" }),
+          { ...shared.tests([repo("embabel/src/test/java/com/example/nutritionplanner/NutritionPlannerAgentIntegrationTests.java")]), backup: true, chapter: "Boundary matrix" },
+          shared.sources("sources-code", "Read the domain before the integration.", [eb("NutritionPlannerAgent"), eb("RevisionBudget"), eb("WeeklyPlan"), eb("BundledSkills"), eb("ModelConfiguration"), eb("PlannerIdentity")]),
+          shared.sources("sources-upstream", "Pinned mechanisms and migration edges", [refs.states, refs.concurrent, refs.unfolding, refs.script, refs.schema, refs.ebHitl])
+        ]
+      };
+
+      const menu = document.querySelector("#menu");
+      const deck = document.querySelector("#deck");
+      const stage = document.querySelector("#stage");
+      const status = document.querySelector("#status");
+      let currentTrack = null;
+      let currentIndex = 0;
+      let statusTimer;
+      function announce(message) {
+        clearTimeout(statusTimer);
+        status.textContent = message;
+        if (message) statusTimer = setTimeout(() => { status.textContent = ""; }, 7000);
+      }
+      function slideMarkup(item, index, trackId, forPrint = false) {
+        const track = tracks[trackId];
+        const number = item.backup ? `BACKUP ${index - track.mainCount + 1}` : `${String(index + 1).padStart(2, "0")} / ${track.mainCount}`;
+        return `<article class="slide ${item.kind}" data-slide-id="${item.id}" data-minutes="${item.minutes}" aria-labelledby="${trackId}-${item.id}-heading"${forPrint ? "" : " hidden"}>
+          <header class="slide-head"><p class="eyebrow">${escape(track.label)} / ${escape(item.chapter)}${item.backup ? " / optional" : ""}</p><h2 id="${trackId}-${item.id}-heading" tabindex="-1">${item.title}</h2></header>
+          <div class="slide-body">${item.body}</div>
+          <footer class="slide-footer"><span>Sandra Ahlgrimm / Agentic Java</span><span>${item.backup ? "Outside the 45-minute talk" : "Code, not capability ceilings"} &nbsp; / &nbsp; ${number}</span></footer>
+        </article>`;
+      }
+      function resizeStage() {
+        if (deck.hidden) return;
+        const viewport = document.querySelector("#viewport");
+        const scale = Math.max(0.1, Math.min((viewport.clientWidth - 32) / 1280, (viewport.clientHeight - 32) / 720));
+        const shell = document.querySelector("#stage-shell");
+        shell.style.width = `${1280 * scale}px`;
+        shell.style.height = `${720 * scale}px`;
+        stage.style.transform = `scale(${scale})`;
+      }
+      function currentSlide() { return currentTrack ? tracks[currentTrack].slides[currentIndex] : null; }
+      function goTo(index) {
+        if (!currentTrack) return;
+        const track = tracks[currentTrack];
+        const limit = currentIndex < track.mainCount ? track.mainCount : track.slides.length;
+        if (index >= 0 && index < limit) {
+          location.hash = `/${currentTrack}/${track.slides[index].id}`;
+          renderRoute();
+        }
+      }
+      function renderRoute() {
+        const parts = location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
+        const [trackId, slideId] = parts;
+        if (!trackId) {
+          menu.hidden = false;
+          deck.hidden = true;
+          currentTrack = null;
+          document.title = "Who owns the next step? | Agentic Java";
+          return;
+        }
+        const track = Object.hasOwn(tracks, trackId) ? tracks[trackId] : null;
+        const index = track?.slides.findIndex(item => item.id === slideId);
+        if (!track || parts.length !== 2 || index < 0) {
+          menu.hidden = false;
+          deck.hidden = true;
+          currentTrack = null;
+          announce("Unknown track or slide. Choose a talk from the menu.");
+          return;
+        }
+        menu.hidden = true;
+        deck.hidden = false;
+        if (currentTrack !== trackId) stage.innerHTML = track.slides.map((item, i) => slideMarkup(item, i, trackId)).join("");
+        currentTrack = trackId;
+        currentIndex = index;
+        const item = track.slides[index];
+        stage.querySelectorAll(".slide").forEach((element, i) => { element.hidden = i !== index; });
+        document.querySelector("#track-name").textContent = track.label;
+        document.querySelector("#slide-count").textContent = item.backup ? `Backup ${index - track.mainCount + 1} / ${track.slides.length - track.mainCount}` : `${index + 1} / ${track.mainCount}`;
+        document.querySelector("#previous").disabled = index === 0;
+        document.querySelector("#next").disabled = index === (item.backup ? track.slides.length : track.mainCount) - 1;
+        document.querySelector("#progress").max = track.mainCount;
+        document.querySelector("#progress").value = Math.min(index + 1, track.mainCount);
+        document.title = `${track.label}: ${item.title} | Agentic Java`;
+        updateNotes();
+        updateOutline();
+        if (!document.querySelector("dialog[open]")) stage.querySelector(".slide:not([hidden]) h2").focus({ preventScroll: true });
+        resizeStage();
+      }
+      function notesMarkup(item) {
+        return `<h3>Story &amp; explanation</h3><p>${escape(item.notes.talk)}</p>
+          <h3>Demo / audience cue</h3><p>${escape(item.notes.cue)}</p>
+          <h3>Transition</h3><p>${escape(item.notes.transition)}</p>
+          <h3>Code &amp; pinned sources</h3><ul>${item.notes.sources.map(ref => `<li>${link(ref)}</li>`).join("")}</ul>`;
+      }
+      function updateNotes() {
+        const item = currentSlide();
+        if (!item) return;
+        const track = tracks[currentTrack];
+        const elapsed = track.slides.slice(0, currentIndex).filter(s => !s.backup).reduce((sum, s) => sum + s.minutes, 0);
+        document.querySelector("#notes-heading").textContent = item.title;
+        document.querySelector("#notes-meta").textContent = item.backup ? `Optional backup / suggested ${item.minutes} min / outside main timing` :
+          `${currentIndex + 1} / ${track.mainCount} / ${item.minutes} min / talk clock ${elapsed}-${elapsed + item.minutes} min`;
+        document.querySelector("#notes-content").innerHTML = notesMarkup(item);
+        const controls = document.querySelectorAll("[data-note-step]");
+        controls[0].disabled = currentIndex === 0;
+        controls[1].disabled = currentIndex === (item.backup ? track.slides.length : track.mainCount) - 1;
+      }
+      function updateOutline() {
+        if (!currentTrack) return;
+        const track = tracks[currentTrack];
+        document.querySelector("#outline-heading").textContent = `${track.label}: slide index`;
+        document.querySelector("#outline-links").innerHTML = track.slides.map((item, i) =>
+          `${i === track.mainCount ? "<h3>Optional deep dives / outside the 45 minutes</h3>" : ""}<a href="#/${currentTrack}/${item.id}"${i === currentIndex ? ' aria-current="page"' : ""}>${item.backup ? "B" + (i - track.mainCount + 1) : String(i + 1).padStart(2, "0")} &nbsp; ${escape(item.title)}</a>`).join("");
+      }
+      function showDialog(name) {
+        if (["notes", "outline", "print"].includes(name) && !currentTrack) {
+          announce("Choose a talk first.");
+          return;
+        }
+        const dialog = document.querySelector(`#${name}-dialog`);
+        if (!dialog.open) dialog.showModal();
+      }
+      async function action(name) {
+        if (name === "theme") {
+          const theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+          document.documentElement.dataset.theme = theme;
+          const url = new URL(location.href);
+          url.searchParams.set("clawpilotTheme", theme);
+          history.replaceState(null, "", url);
+        } else if (name === "fullscreen") {
+          try {
+            if (document.fullscreenElement) await document.exitFullscreen();
+            else if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
+            else announce("Fullscreen is unavailable in this browser. Use the browser's presentation/fullscreen command.");
+          } catch (error) {
+            announce(`Fullscreen was not allowed: ${error.message}`);
+          }
+        } else {
+          showDialog(name);
+        }
+      }
+      function preparePrint() {
+        if (!currentTrack) return;
+        const track = tracks[currentTrack];
+        const format = document.querySelector("#print-format").value;
+        const includeBackups = document.querySelector("#print-backups").checked;
+        const selected = track.slides.filter(item => includeBackups || !item.backup);
+        document.querySelector("#print-deck").innerHTML = selected.map((item, i) => {
+          if (format === "slides") return `<div class="printed-slide">${slideMarkup(item, i, currentTrack, true)}</div>`;
+          const excerpt = Object.entries(snippets).find(([id]) => item.body.includes(`data-snippet="${id}"`))?.[1];
+          return `<article class="print-handout"><p>${escape(track.label)} / ${i + 1} / ${item.backup ? "optional backup" : item.minutes + " min"}</p>
+            <h1>${escape(item.title)}</h1>${excerpt ? `<pre>${formattedCode(excerpt.text)}</pre>` : ""}
+            ${notesMarkup(item)}</article>`;
+        }).join("");
+        document.querySelector("#print-deck").querySelectorAll("[id]").forEach(element => element.removeAttribute("id"));
+      }
+      document.addEventListener("click", event => {
+        const control = event.target.closest("[data-action], [data-close], [data-note-step], [data-demo-step]");
+        if (!control) return;
+        if (control.hasAttribute("data-action")) action(control.dataset.action);
+        if (control.hasAttribute("data-close")) control.closest("dialog").close();
+        if (control.hasAttribute("data-note-step")) goTo(currentIndex + Number(control.dataset.noteStep));
+        if (control.hasAttribute("data-demo-step")) {
+          const demo = control.closest("[data-demo]");
+          demo.querySelectorAll("[data-demo-step]").forEach(button => button.setAttribute("aria-pressed", String(button === control)));
+          demo.querySelectorAll("[data-demo-panel]").forEach(panel => { panel.hidden = panel.dataset.demoPanel !== control.dataset.demoStep; });
+        }
+      });
+      document.querySelector("#outline-links").addEventListener("click", event => {
+        if (event.target.closest("a")) document.querySelector("#outline-dialog").close();
+      });
+      document.querySelector("#previous").addEventListener("click", () => goTo(currentIndex - 1));
+      document.querySelector("#next").addEventListener("click", () => goTo(currentIndex + 1));
+      document.querySelector("#print-now").addEventListener("click", () => {
+        preparePrint();
+        document.querySelector("#print-dialog").close();
+        window.print();
+      });
+      window.addEventListener("beforeprint", preparePrint);
+      document.addEventListener("keydown", event => {
+        const dialog = document.querySelector("dialog[open]");
+        if (dialog && event.key === "Tab") {
+          const controls = [...dialog.querySelectorAll("button:not([disabled]), a[href], input, select")]
+            .filter(element => element.getClientRects().length > 0);
+          const first = controls[0];
+          const last = controls.at(-1);
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
+            event.preventDefault();
+            first.focus();
+          }
+        }
+        if (dialog || event.ctrlKey || event.metaKey || event.altKey || event.target.closest("input, select, textarea, [contenteditable]")) return;
+        const key = event.key.toLowerCase();
+        const commands = { f: "fullscreen", t: "theme", n: "notes", o: "outline", p: "print", "?": "help" };
+        if (commands[key]) { event.preventDefault(); action(commands[key]); return; }
+        if (!currentTrack) return;
+        if (key === "m" || (key === "escape" && !document.fullscreenElement)) { event.preventDefault(); location.hash = "/"; return; }
+        if (["arrowright", "pagedown", "arrowleft", "pageup", "home", "end"].includes(key) || (key === " " && !event.target.closest("button, a"))) {
+          event.preventDefault();
+          if (key === "home") goTo(0);
+          else if (key === "end") goTo(tracks[currentTrack].mainCount - 1);
+          else goTo(currentIndex + (["arrowleft", "pageup"].includes(key) || event.shiftKey ? -1 : 1));
+        }
+      });
+      new ResizeObserver(resizeStage).observe(document.querySelector("#viewport"));
+      window.addEventListener("hashchange", renderRoute);
+      document.addEventListener("fullscreenchange", () => {
+        document.querySelector('[data-action="fullscreen"]').textContent = document.fullscreenElement ? "Exit fullscreen" : "Fullscreen";
+        resizeStage();
+      });
+      for (const [id, track] of Object.entries(tracks)) {
+        track.mainCount = track.slides.filter(item => !item.backup).length;
+        track.minutes = track.slides.filter(item => !item.backup).reduce((sum, item) => sum + item.minutes, 0);
+        document.querySelector("#track-menu").insertAdjacentHTML("beforeend",
+          `<a class="track-card" href="#/${id}/opening"><span class="ordinal">${track.number}</span><div><h2>${escape(track.label)}</h2><p>${escape(track.description)}</p><p class="meta">${track.minutes} minutes / ${track.mainCount} main slides + ${track.slides.length - track.mainCount} backups</p></div></a>`);
+      }
+      window.presentationManifest = Object.freeze(Object.entries(tracks).map(([id, track]) => ({
+        id, label: track.label, revision, minutes: track.minutes, mainCount: track.mainCount,
+        slides: track.slides.map(({ id: slug, title, minutes, backup }) => ({ slug, title, minutes, backup: Boolean(backup) }))
+      })));
+      renderRoute();
+    })();
+  </script>
+</body>
+</html>

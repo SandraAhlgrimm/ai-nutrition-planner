@@ -231,9 +231,9 @@ class NutritionPlannerAgentIntegrationTests extends EmbabelMockitoIntegrationTes
     }
 
     private void verifyWorkflowCounts(int audits, int revisions, UserProfile profile) {
-        verifyCreateObject(prompt -> prompt.contains("Germany") && prompt.contains("current_month"),
+        verifyCreateObject(prompt -> prompt.contains("Germany") && prompt.contains("current-month"),
                 SeasonalIngredients.class, interaction -> interaction.getTools().stream()
-                        .anyMatch(tool -> tool.getDefinition().getName().equals("current_month")));
+                        .anyMatch(tool -> tool.getDefinition().getDescription().contains("Call once with no arguments")));
         var messages = ArgumentCaptor.<List<Message>>captor();
         var interactions = ArgumentCaptor.forClass(LlmInteraction.class);
         verify(llmOperations, times(audits)).createObject(messages.capture(), interactions.capture(),

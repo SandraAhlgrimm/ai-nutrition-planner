@@ -1,2 +1,0 @@
-nutrition-planner.patterns:
-  decision-model-name: ${PATTERNS_DECISION_MODEL_NAME:}

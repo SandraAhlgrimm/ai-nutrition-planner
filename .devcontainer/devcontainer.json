@@ -10,12 +10,17 @@
       "mavenVersion": "3.9.13"
     }
   },
-  "postCreateCommand": "curl -fsSL https://ollama.com/install.sh | sh && ollama serve & sleep 5 && ollama pull qwen2.5",
-  "forwardPorts": [8080, 3000, 4317, 4318, 11434],
+  "forwardPorts": [8080, 3000, 4317, 4318],
   "portsAttributes": {
     "8080": { "label": "App" },
     "3000": { "label": "Grafana" },
-    "11434": { "label": "Ollama" }
+    "4317": { "label": "OTLP gRPC" },
+    "4318": { "label": "OTLP HTTP" }
+  },
+  "secrets": {
+    "OPENAI_API_KEY": {
+      "description": "OpenAI API key used by the default 'openai' Spring profile"
+    }
   },
   "customizations": {
     "vscode": {

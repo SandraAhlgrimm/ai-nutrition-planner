@@ -3,85 +3,50 @@ package com.example.nutritionplanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
-import org.jspecify.annotations.Nullable;
+import org.springframework.lang.Nullable;
 
 import java.time.DayOfWeek;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public record WeeklyPlan(List<DailyPlan> days) {
-    private static final long DAILY_CALORIE_MIN_PERCENT = 90;
-    private static final long DAILY_CALORIE_MAX_PERCENT = 110;
+import static java.util.stream.Collectors.toMap;
 
-    public WeeklyPlan {
-        days = List.copyOf(days);
-        if (days.isEmpty()) throw new IllegalArgumentException("A weekly plan must contain days");
-    }
+public record WeeklyPlan(List<DailyPlan> days) {
 
     private static final Logger log = LoggerFactory.getLogger(WeeklyPlan.class);
 
     @Tool(description = "Returns the total calories, protein, carbs, fat, and sodium for each day of the weekly meal plan")
     public Map<DayOfWeek, NutritionInfo> dailyNutritionTotals() {
-        var dailyNutritionTotals = days.stream().map(DailyPlan::day).distinct().collect(Collectors.toMap(
-                day -> day, this::nutritionTotalsForDay
-        ));
-        log.info("WeeklyPlan:dailyNutritionTotals tool method finished with {}", dailyNutritionTotals);
-        return dailyNutritionTotals;
+        var totals = days.stream().collect(toMap(DailyPlan::day, DailyPlan::nutritionTotals));
+        log.info("Tool dailyNutritionTotals: {}", totals);
+        return totals;
     }
 
     @Tool(description = "Returns the total calories, protein, carbs, fat, and sodium for a specific day of the weekly meal plan")
     public NutritionInfo nutritionTotalsForDay(DayOfWeek day) {
-        var matchingDays = days.stream().filter(d -> d.day() == day).toList();
-        if (matchingDays.isEmpty()) {
-            throw new IllegalArgumentException("No meals planned for " + day);
-        }
-        var nutritionInfo = new NutritionInfo(matchingDays.stream()
-                .flatMap(d -> Stream.of(d.breakfast(), d.lunch(), d.dinner()))
-                .filter(Objects::nonNull).toList());
-        log.info("WeeklyPlan:nutritionTotalsForDay tool method finished with {} for {}", nutritionInfo, day);
-        return nutritionInfo;
-    }
-
-    List<NutritionAuditValidationResult.NutritionAuditRecipeViolation> dailyCalorieViolations(
-            WeeklyPlanRequest request, UserProfile profile) {
-        var violations = new ArrayList<NutritionAuditValidationResult.NutritionAuditRecipeViolation>();
-        long target = profile.dailyCalorieTarget();
-        long minimum = (target * DAILY_CALORIE_MIN_PERCENT + 99) / 100;
-        long maximum = target * DAILY_CALORIE_MAX_PERCENT / 100;
-        for (var requestedDay : request.meals().keySet()) {
-            long calories = days.stream().filter(day -> day.day() == requestedDay)
-                    .flatMap(day -> Stream.of(day.breakfast(), day.lunch(), day.dinner()))
-                    .filter(Objects::nonNull)
-                    .mapToLong(recipe -> recipe.nutrition().calories()).sum();
-            if (calories < minimum || calories > maximum) {
-                violations.add(new NutritionAuditValidationResult.NutritionAuditRecipeViolation(requestedDay,
-                        "Daily calories",
-                        requestedDay + " has " + calories + " kcal; target " + target + " kcal requires "
-                                + minimum + "-" + maximum + " kcal inclusive.",
-                        "Revise " + requestedDay + " to total between " + minimum + " and " + maximum
-                                + " kcal. Do not offset with another day's total."));
-            }
-        }
-        return List.copyOf(violations);
+        var totals = days.stream().filter(d -> d.day() == day).findFirst()
+                .map(DailyPlan::nutritionTotals).orElse(NutritionInfo.ZERO);
+        log.info("Tool nutritionTotalsForDay({}): {}", day, totals);
+        return totals;
     }
 
     @Tool(description = "Returns the total number of meals across all days of the weekly meal plan")
     public long totalMealCount() {
-        var count = days.stream()
-                .flatMap(d -> Stream.of(d.breakfast(), d.lunch(), d.dinner()))
-                .filter(Objects::nonNull)
-                .count();
-        log.info("WeeklyPlan:totalMealCount tool method finished with {}", count);
+        var count = days.stream().mapToLong(d -> d.meals().size()).sum();
+        log.info("Tool totalMealCount: {}", count);
         return count;
     }
 
     public record DailyPlan(DayOfWeek day, @Nullable Recipe breakfast, @Nullable Recipe lunch, @Nullable Recipe dinner) {
-        public DailyPlan {
-            Objects.requireNonNull(day, "Plan day is required");
+
+        List<Recipe> meals() {
+            return Stream.of(breakfast, lunch, dinner).filter(Objects::nonNull).toList();
+        }
+
+        NutritionInfo nutritionTotals() {
+            return meals().stream().map(Recipe::nutrition).filter(Objects::nonNull).reduce(NutritionInfo.ZERO, NutritionInfo::plus);
         }
     }
 }

@@ -1,17 +1,11 @@
 package com.example.nutritionplanner;
 
-import com.embabel.common.ai.converters.JacksonOutputConverter;
-import com.embabel.common.ai.converters.RequiredFieldNormalization;
 import org.junit.jupiter.api.Test;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.time.DayOfWeek;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class WeeklyPlanTests {
 
@@ -28,7 +22,7 @@ class WeeklyPlanTests {
 
         var plan = new WeeklyPlan(
                 List.of(new WeeklyPlan.DailyPlan(DayOfWeek.MONDAY,
-                        Optional.of(breakfast), Optional.of(lunch), Optional.of(dinner))));
+                        breakfast, lunch, dinner)));
 
         var totals = plan.dailyNutritionTotals();
 
@@ -48,7 +42,7 @@ class WeeklyPlanTests {
 
         var plan = new WeeklyPlan(
                 List.of(new WeeklyPlan.DailyPlan(DayOfWeek.TUESDAY,
-                        Optional.empty(), Optional.of(lunch), Optional.of(dinner))));
+                        null, lunch, dinner)));
 
         var totals = plan.dailyNutritionTotals();
 
@@ -67,50 +61,14 @@ class WeeklyPlanTests {
         var plan = new WeeklyPlan(
                 List.of(
                         new WeeklyPlan.DailyPlan(DayOfWeek.MONDAY,
-                                Optional.of(meal), Optional.empty(), Optional.empty()),
+                                meal, null, null),
                         new WeeklyPlan.DailyPlan(DayOfWeek.WEDNESDAY,
-                                Optional.empty(), Optional.of(meal), Optional.empty())));
+                                null, meal, null)));
 
         var totals = plan.dailyNutritionTotals();
 
         assertEquals(2, totals.size());
         assertEquals(500, totals.get(DayOfWeek.MONDAY).calories());
         assertEquals(500, totals.get(DayOfWeek.WEDNESDAY).calories());
-    }
-
-    @Test
-    void duplicateDayCandidatesRetainAllNutritionAndAreRejectedByTheAudit() {
-        var day = NutritionTestData.plan("Lentils").days().getFirst();
-        var plan = new WeeklyPlan(List.of(day, day));
-
-        assertEquals(5000, plan.dailyNutritionTotals().get(DayOfWeek.MONDAY).calories());
-        assertEquals(5000, plan.nutritionTotalsForDay(DayOfWeek.MONDAY).calories());
-        var audit = NutritionTestData.PASS.withDeterministicChecks(
-                plan, NutritionTestData.REQUEST, NutritionTestData.ALICE);
-        assertFalse(audit.allPassed());
-        assertTrue(audit.violations().stream().anyMatch(violation -> violation.explanation().contains("Duplicate day")));
-    }
-
-    @Test
-    void nativeOutputSchemaAndPublicJsonPreserveOptionalMealContract() {
-        var mapper = JsonMapper.builder().build();
-        var converter = new JacksonOutputConverter<>(WeeklyPlan.class, mapper, RequiredFieldNormalization.ENABLED);
-        var schema = converter.getJsonSchema();
-        assertTrue(schema.contains("\"breakfast\"") && schema.contains("\"lunch\"") && schema.contains("\"dinner\""));
-        assertFalse(schema.contains("breakfastRecipe"));
-
-        var lunch = recipe(500, 25, 60, 12, 400);
-        var plan = converter.convert("""
-                {"days":[{"day":"MONDAY","lunch":%s}]}
-                """.formatted(mapper.writeValueAsString(lunch)));
-        var day = plan.days().getFirst();
-        assertEquals(Optional.empty(), day.breakfast());
-        assertEquals(Optional.of(lunch), day.lunch());
-        assertEquals(Optional.empty(), day.dinner());
-        var json = mapper.readTree(mapper.writeValueAsString(plan)).path("days").get(0);
-        assertEquals(java.util.Set.of("day", "breakfast", "lunch", "dinner"), json.propertyNames());
-        assertTrue(json.path("breakfast").isNull());
-        assertTrue(json.path("dinner").isNull());
-        assertEquals(plan, mapper.readValue(mapper.writeValueAsString(plan), WeeklyPlan.class));
     }
 }

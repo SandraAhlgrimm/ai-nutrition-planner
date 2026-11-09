@@ -1,26 +1,39 @@
 package com.example.nutritionplanner;
 
-import com.embabel.common.ai.model.ModelSelectionCriteria;
+import com.embabel.agent.api.invocation.AgentInvocation;
+import com.embabel.agent.core.AgentPlatform;
+import com.embabel.agent.core.AgentProcessStatusCode;
+import com.embabel.agent.core.hitl.FormBindingRequest;
 import com.embabel.common.ai.model.ModelProvider;
+import com.embabel.common.ai.model.ModelSelectionCriteria;
+import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.thymeleaf.TemplateEngine;
 
 import java.security.Principal;
-import java.time.DayOfWeek;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import static org.springframework.util.StringUtils.capitalize;
 
 @Controller
-class NutritionPlannerUiController {
+class NutritionPlannerUiController extends SseInteractionController {
 
-    private final NutritionPlanner planner;
+    private final AgentPlatform agentPlatform;
     private final ModelProvider modelProvider;
+    private final ConcurrentHashMap<String, HitlHandler> hitlHandlers = new ConcurrentHashMap<>();
 
-    NutritionPlannerUiController(NutritionPlanner planner, ModelProvider modelProvider) {
-        this.planner = planner;
+    NutritionPlannerUiController(AgentPlatform agentPlatform, ModelProvider modelProvider,
+                                 TemplateEngine templateEngine, AsyncTaskExecutor taskExecutor) {
+        super(templateEngine, taskExecutor);
+        this.agentPlatform = agentPlatform;
         this.modelProvider = modelProvider;
     }
 
@@ -33,49 +46,45 @@ class NutritionPlannerUiController {
     @GetMapping("/")
     String form(Model model) {
         model.addAttribute("aiModel", getAiModelName());
+        model.addAttribute("weeklyPlanRequest", new WeeklyPlanRequest());
         return "index";
     }
 
     @PostMapping("/plan")
-    String createPlan(
-            @RequestParam(required = false) List<String> monday,
-            @RequestParam(required = false) List<String> tuesday,
-            @RequestParam(required = false) List<String> wednesday,
-            @RequestParam(required = false) List<String> thursday,
-            @RequestParam(required = false) List<String> friday,
-            @RequestParam(required = false) List<String> saturday,
-            @RequestParam(required = false) List<String> sunday,
-            @RequestParam(defaultValue = "DE") String countryCode,
-            @RequestParam(required = false, defaultValue = "") String additionalInstructions,
-            Model model,
-            Principal principal) {
+    String createPlan(@ModelAttribute WeeklyPlanRequest request, Principal principal, Model model) {
+        var username = principal.getName();
 
-        var days = new ArrayList<WeeklyPlanRequest.DayPlanRequest>();
-        addDay(days, DayOfWeek.MONDAY, monday);
-        addDay(days, DayOfWeek.TUESDAY, tuesday);
-        addDay(days, DayOfWeek.WEDNESDAY, wednesday);
-        addDay(days, DayOfWeek.THURSDAY, thursday);
-        addDay(days, DayOfWeek.FRIDAY, friday);
-        addDay(days, DayOfWeek.SATURDAY, saturday);
-        addDay(days, DayOfWeek.SUNDAY, sunday);
+        return eventStream(model, interactionId -> {
+            var hitlHandler = new HitlHandler(form -> sendEvent(interactionId, "fragments/hitl", Map.of("form", form)));
+            hitlHandlers.put(interactionId, hitlHandler);
+            try {
+                var process = AgentInvocation.create(agentPlatform, WeeklyPlan.class)
+                        .run(Map.of("username", username, "request", request));
 
-        var request = new WeeklyPlanRequest(days, countryCode, additionalInstructions);
-        var weeklyPlan = planner.plan(request, principal);
+                // The process pauses with status WAITING whenever an action calls WaitFor.formSubmission(...)
+                while (process.getStatus() == AgentProcessStatusCode.WAITING) {
+                    hitlHandler.handle((FormBindingRequest<?>) process.lastResult(), process);
+                    process.run();
+                }
 
-        model.addAttribute("plan", weeklyPlan);
-        model.addAttribute("aiModel", getAiModelName());
-        return "fragments/plan :: plan";
+                sendEvent(interactionId, "fragments/plan", Map.of("plan", process.resultOfType(WeeklyPlan.class)));
+                completeInteraction(interactionId);
+            } finally {
+                hitlHandlers.remove(interactionId);
+            }
+        });
     }
 
-    private void addDay(List<WeeklyPlanRequest.DayPlanRequest> days, DayOfWeek day, List<String> meals) {
-        if (meals != null && !meals.isEmpty()) {
-            days.add(new WeeklyPlanRequest.DayPlanRequest(day,
-                    meals.stream().map(WeeklyPlanRequest.MealType::valueOf).toList()));
-        }
+    @PostMapping("/interaction/{interactionId}/answers")
+    @ResponseBody
+    String provideAnswers(@PathVariable String interactionId, @RequestParam Map<String, String> answers) {
+        var handler = hitlHandlers.get(interactionId);
+        if (handler != null) handler.provideAnswers(answers);
+        return "";
     }
 
     private String getAiModelName() {
-        var model = modelProvider.getLlm(ModelSelectionCriteria.getPlatformDefault());
-        return "%s (%s)".formatted(model.getProvider(), model.getName());
+        var llm = modelProvider.getLlm(ModelSelectionCriteria.getPlatformDefault());
+        return "%s (%s)".formatted(llm.getProvider(), capitalize(llm.getName()));
     }
 }

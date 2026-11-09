@@ -1,12 +1,19 @@
 management:
-  metrics.distribution.percentiles-histogram:
-    http.server.requests: true
+  otlp.metrics.export:
+    enabled: true
+    step: 5s
   tracing:
+    export.otlp.enabled: true
     sampling.probability: 1.0
-    export.enabled: true
-  opentelemetry.tracing.export.otlp.endpoint: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
-  otlp:
-    metrics.export:
-      enabled: true
-      step: 5s
-      url: ${OTEL_EXPORTER_OTLP_METRICS_ENDPOINT:http://localhost:4318/v1/metrics}
+  opentelemetry.tracing.export.otlp.endpoint: http://localhost:4318/v1/traces
+  metrics:
+    tags.application: ${spring.application.name}
+    # Histogram buckets are required for percentile queries in Grafana
+    distribution.percentiles-histogram:
+      http.server.requests: true
+      gen_ai.client.operation: true
+
+spring:
+  ai:
+    chat.observations.include-error-logging: true
+    tools.observations.include-content: true

@@ -1,8 +1,7 @@
 langchain4j:
   # AI provider configuration
-  azure-open-ai:
+  open-ai-official:
     chat-model:
+      model-name: gpt-6-sol
       api-key: ${AZURE_OPENAI_API_KEY}
-      deployment-name: ${AZURE_OPENAI_DEPLOYMENT_NAME:gpt-4o}
-      endpoint: ${AZURE_OPENAI_ENDPOINT}
-      temperature: 0.3
+      base-url: ${AZURE_OPENAI_BASEURL}

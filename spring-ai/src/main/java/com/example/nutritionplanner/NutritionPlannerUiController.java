@@ -1,13 +1,14 @@
 package com.example.nutritionplanner;
 
 import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.WebDataBinder;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.thymeleaf.TemplateEngine;
 
 import java.security.Principal;
@@ -15,24 +16,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static org.springframework.util.StringUtils.capitalize;
+
 @Controller
 class NutritionPlannerUiController extends SseInteractionController {
 
-    private static final org.slf4j.Logger log =
-            org.slf4j.LoggerFactory.getLogger(NutritionPlannerUiController.class);
     private final ChatModel chatModel;
     private final NutritionPlannerAgent nutritionPlannerAgent;
     private final ConcurrentHashMap<String, AskUserQuestionHandler> questionHandlers = new ConcurrentHashMap<>();
 
-    NutritionPlannerUiController(ChatModel chatModel, NutritionPlannerAgent nutritionPlannerAgent, TemplateEngine templateEngine) {
-        super(templateEngine);
+    NutritionPlannerUiController(ChatModel chatModel, NutritionPlannerAgent nutritionPlannerAgent,
+                                 TemplateEngine templateEngine, AsyncTaskExecutor taskExecutor) {
+        super(templateEngine, taskExecutor);
         this.chatModel = chatModel;
         this.nutritionPlannerAgent = nutritionPlannerAgent;
-    }
-
-    @InitBinder
-    void bindRecordsByConstructor(WebDataBinder binder) {
-        binder.setDeclarativeBinding(true);
     }
 
     @GetMapping("/login")
@@ -51,62 +48,33 @@ class NutritionPlannerUiController extends SseInteractionController {
     @PostMapping("/plan")
     String createPlan(@ModelAttribute WeeklyPlanRequest request, Principal principal, Model model) {
         var username = principal.getName();
-        request.validate();
 
-        return eventStream(model, username, interactionId -> {
+        return eventStream(model, interactionId -> {
             var askUserQuestionHandler = new AskUserQuestionHandler(questions -> 
                     sendEvent(interactionId, "fragments/hitl", Map.of("questions", questions)));
             questionHandlers.put(interactionId, askUserQuestionHandler);
-
             try {
                 var plan = nutritionPlannerAgent.createNutritionPlan(username, request, askUserQuestionHandler);
                 sendEvent(interactionId, "fragments/plan", Map.of("plan", plan));
-            } catch (NutritionPlanValidationException rejected) {
-                if (!(rejected.candidate() instanceof WeeklyPlan candidate)) {
-                    throw rejected;
-                }
-                log.warn("Showing noncompliant browser candidate after {} audits", rejected.audits());
-                sendEvent(interactionId, "fragments/plan",
-                        Map.of("plan", candidate, "feedback", rejected.feedback()));
+                completeInteraction(interactionId);
+            } finally {
+                questionHandlers.remove(interactionId);
             }
-        }, interactionId -> {
-            var handler = questionHandlers.remove(interactionId);
-            if (handler != null) handler.close();
         });
     }
 
     @PostMapping("/interaction/{interactionId}/answers")
     @ResponseBody
-    ResponseEntity<Void> provideAnswers(@PathVariable String interactionId, @ModelAttribute AnswersForm answersForm,
-                                       Principal principal) {
-        requireOwner(interactionId, principal);
+    String provideAnswers(@PathVariable String interactionId, @ModelAttribute AnswersForm answersForm) {
         var handler = questionHandlers.get(interactionId);
-        if (handler == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "No pending questions");
-        try {
-            handler.provideAnswers(answersForm.toAnswers());
-        } catch (IllegalStateException e) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage(), e);
-        }
-        return ResponseEntity.noContent().build();
+        if (handler != null) handler.provideAnswers(answersForm.answers());
+        return "";
     }
 
     private String getAiModelName() {
         var provider = chatModel.getClass().getSimpleName().replace("ChatModel", "");
-        var name = chatModel.getOptions().getModel();
-        return name == null ? provider : "%s (%s)".formatted(provider, name);
+        return "%s (%s)".formatted(provider, capitalize(chatModel.getOptions().getModel()));
     }
 
-    record AnswersForm(List<AnswerForm> answers) {
-        List<AskUserQuestionHandler.Answer> toAnswers() {
-            if (answers == null || answers.stream().anyMatch(java.util.Objects::isNull)) {
-                throw new InvalidPlanRequestException("Answers are required for every question");
-            }
-            return answers.stream().map(answer -> new AskUserQuestionHandler.Answer(answer.question(),
-                    answer.customAnswer() != null && !answer.customAnswer().isBlank()
-                            ? answer.customAnswer() : answer.answer() == null ? "" : String.join(", ", answer.answer())))
-                    .toList();
-        }
-    }
-
-    record AnswerForm(String question, List<String> answer, String customAnswer) {}
+    record AnswersForm(List<AskUserQuestionHandler.Answer> answers) {}
 }

@@ -1,46 +1,27 @@
-server.servlet.session.cookie.name: NUTRITION_EMBABEL_SESSION
-
 spring:
-  application.name: nutrition-planner
-  profiles.default: openai
-  threads.virtual.enabled: true
-  mvc.problemdetails.enabled: true
+  application.name: embabel-nutrition-planner
+  profiles.active: openai
   security.user:
       password: 123456
       name: alice
   ai:
-    model:
-      chat: none
-      embedding: none
-      image: none
-      moderation: none
-      audio:
-        speech: none
-        transcription: none
-    mcp:
-      client.enabled: false
-      server:
-        name: nutrition-planner
-        protocol: STREAMABLE
-        type: SYNC
+    chat.client.observations.log-completion: true
+    tools.observations.include-content: true
+    mcp.server.protocol: STREAMABLE
+  threads.virtual.enabled: true
+  task.execution.propagate-context: true
+  # Use Spring Boot's OpenTelemetry starter OpenTelemetry SDK auto-configuration
+  autoconfigure.exclude: com.embabel.agent.autoconfigure.observability.OpenTelemetrySdkAutoConfiguration
 
-embabel:
-  agent:
-    application.name: nutrition-planner
-    platform:
-      process-type: CONCURRENT
-      threading.shared: true
-      llm-operations.prompts.default-timeout: 180s
-      observability:
-        service-name: ${spring.application.name}
-        trace-http-details: false
-        capture-message-content: false
-  models.default-llm: ${nutrition-planner.model}
+embabel.agent.platform:
+  process-type: CONCURRENT
+  llm-operations.prompts.default-timeout: 180s
 
 management:
-  endpoints.web.exposure.include: health,info,metrics
+  endpoints.web.exposure.include: "*"
   otlp.metrics.export.enabled: false
   tracing.export.otlp.enabled: false
+  logging.export.otlp.enabled: false
 
 nutrition-planner:
   user-profiles:
@@ -50,7 +31,7 @@ nutrition-planner:
       health-goals:
         - weight-loss
         - improve-energy
-      daily-calorie-target: 2500
+      daily-calorie-target: 1800
       allergies:
         - nuts
       disliked-ingredients:

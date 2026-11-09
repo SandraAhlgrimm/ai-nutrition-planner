@@ -1,297 +1,128 @@
 package com.example.nutritionplanner;
 
-import com.embabel.agent.core.support.LlmInteraction;
+import com.embabel.agent.api.invocation.AgentInvocation;
+import com.embabel.agent.core.AgentProcessStatusCode;
+import com.embabel.agent.core.hitl.FormBindingRequest;
+import com.embabel.agent.core.hitl.FormResponse;
 import com.embabel.agent.test.integration.EmbabelMockitoIntegrationTest;
-import com.embabel.chat.Message;
-import io.modelcontextprotocol.client.McpClient;
-import io.modelcontextprotocol.client.McpSyncClient;
-import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport;
-import io.modelcontextprotocol.spec.McpSchema;
+import com.embabel.ux.form.FormSubmission;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.ArgumentCaptor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
-import org.springframework.test.web.servlet.MockMvc;
-import tools.jackson.databind.ObjectMapper;
 
-import java.net.http.HttpRequest;
-import java.time.Duration;
-import java.util.Base64;
+import java.time.DayOfWeek;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.Set;
+import java.util.UUID;
 
-import static com.example.nutritionplanner.NutritionTestData.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureMockMvc
-@ActiveProfiles("offline")
-@Import(NutritionPlannerAgentIntegrationTests.TestUsers.class)
-@TestPropertySource(properties = {
-        "nutrition-planner.model=test-model",
-        "nutrition-planner.provider=Test",
-        "logging.level.com.embabel=WARN",
-        "logging.level.Embabel=WARN",
-        "embabel.agent.verbosity.debug=false"
-})
-@Timeout(30)
+@TestPropertySource(properties = {"embabel.agent.platform.models.openai.api-key = test"})
 class NutritionPlannerAgentIntegrationTests extends EmbabelMockitoIntegrationTest {
 
-    @TestConfiguration(proxyBeanMethods = false)
-    static class TestUsers {
-        @Bean
-        UserDetailsService testUsers() {
-            return new InMemoryUserDetailsManager(
-                    User.withUsername("alice").password("{noop}123456").roles("USER").build(),
-                    User.withUsername("bob").password("{noop}123456").roles("USER").build());
-        }
-    }
+    private static final NutritionInfo NUTRITION = new NutritionInfo(500, 30.0, 60.0, 15.0, 800);
 
-    @Autowired NutritionPlanner planner;
-    @Autowired MockMvc mvc;
-    @Autowired ObjectMapper mapper;
-    @MockitoSpyBean UserProfileProperties profiles;
-    @LocalServerPort int port;
+    private static final Recipe PASTA = new Recipe(
+            "Pasta Primavera", List.of(new Recipe.Ingredient("asparagus", "200", "g")),
+            NUTRITION, "Boil pasta, add vegetables.", 20);
 
-    @ParameterizedTest
-    @ValueSource(ints = {0, 1, 3})
-    void actualGoalWorkflowStopsImmediatelyOnFirstPassingAudit(int failedAudits) {
-        stubWorkflow(failedAudits);
+    private static final Recipe REVISED_PASTA = new Recipe(
+            "Pasta Primavera (revised)", List.of(new Recipe.Ingredient("spinach", "200", "g")),
+            NUTRITION, "Boil pasta, add spinach.", 20);
 
-        var result = planner.plan(REQUEST, () -> "alice");
+    private static final WeeklyPlan INITIAL_PLAN = new WeeklyPlan(
+            List.of(new WeeklyPlan.DailyPlan(DayOfWeek.MONDAY, PASTA, PASTA, PASTA)));
 
-        assertEquals(plan("Candidate " + failedAudits), result);
-        verifyWorkflowCounts(failedAudits + 1, failedAudits);
-    }
+    private static final WeeklyPlan REVISED_PLAN = new WeeklyPlan(
+            List.of(new WeeklyPlan.DailyPlan(DayOfWeek.MONDAY, REVISED_PASTA, REVISED_PASTA, REVISED_PASTA)));
+
+    private static final NutritionAuditValidationResult.NutritionAuditRecipeViolation ALLERGEN_VIOLATION =
+            new NutritionAuditValidationResult.NutritionAuditRecipeViolation(
+                    DayOfWeek.MONDAY, "Pasta Primavera", "Recipe contains nuts which are in user's allergen list", "Replace nuts with seeds");
 
     @Test
-    void actualGoalWorkflowFailsAfterExactlyFourAuditsAndThreeRevisions() {
-        stubWorkflow(4);
+    void shouldExecuteFullFlowWithOneRevisionLoop() {
+        var request = new WeeklyPlanRequest(
+                Map.of(DayOfWeek.MONDAY, Set.of(WeeklyPlanRequest.MealType.BREAKFAST,
+                        WeeklyPlanRequest.MealType.LUNCH, WeeklyPlanRequest.MealType.DINNER)),
+                "DE", "Low-carb meals preferred");
 
-        var failure = assertThrows(NutritionPlanRejectedException.class, () -> planner.plan(REQUEST, () -> "alice"));
-
-        assertEquals(4, failure.audits());
-        assertEquals(3, failure.revisions());
-        assertEquals(FAIL, failure.validationResult());
-        assertEquals(plan("Candidate 3"), failure.candidate());
-        verifyWorkflowCounts(4, 3);
-    }
-
-    @Test
-    void actualExhaustionIsAnHttp422ProblemNotAPlan() throws Exception {
-        stubWorkflow(4);
-
-        mvc.perform(post("/api/nutrition-plan").with(httpBasic("alice", "123456"))
-                        .contentType("application/json").content(mapper.writeValueAsString(REQUEST)))
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
-                .andExpect(jsonPath("$.audits").value(4))
-                .andExpect(jsonPath("$.revisions").value(3))
-                .andExpect(jsonPath("$.days").doesNotExist());
-
-        verifyWorkflowCounts(4, 3);
-    }
-
-    @ParameterizedTest
-    @ValueSource(ints = {1, 3})
-    void calorieFailuresAreRevisedUntilEveryRequestedDayPasses(int successfulRevision) {
-        stubWorkflow(0);
-        var revisions = new AtomicInteger();
-        whenCreateObject(prompt -> prompt.contains("Create a weekly meal plan"), WeeklyPlan.class)
-                .thenReturn(plan("Under target", 190, 2500));
-        whenCreateObject(prompt -> prompt.contains("Revise the recipes"), WeeklyPlan.class)
-                .thenAnswer(invocation -> revisions.incrementAndGet() < successfulRevision
-                        ? plan("Offsetting days", 2249, 2751) : plan("Accepted", 2250, 2750));
-
-        assertEquals(plan("Accepted", 2250, 2750), planner.plan(REQUEST, () -> "alice"));
-        verifyWorkflowCounts(successfulRevision + 1, successfulRevision);
-    }
-
-    @Test
-    void passingModelAuditsStillExhaustCalorieFailuresWithHttp422() throws Exception {
-        stubWorkflow(0);
-        whenCreateObject(prompt -> prompt.contains("Create a weekly meal plan"), WeeklyPlan.class)
-                .thenReturn(plan("Under target", 190, 2500));
-        whenCreateObject(prompt -> prompt.contains("Revise the recipes"), WeeklyPlan.class)
-                .thenReturn(plan("Offsetting days", 2249, 2751));
-
-        mvc.perform(post("/api/nutrition-plan").with(httpBasic("alice", "123456"))
-                        .contentType("application/json").content(mapper.writeValueAsString(REQUEST)))
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.audits").value(4))
-                .andExpect(jsonPath("$.revisions").value(3))
-                .andExpect(jsonPath("$.days").doesNotExist());
-        verifyWorkflowCounts(4, 3);
-    }
-
-    @Test
-    void modelFailureIsExplicitAndNeverTriggersRevisions() {
+        // Step 2 – fetchSeasonalIngredients (parallel with fetchUserProfile, no LLM for profile)
         whenCreateObject(prompt -> prompt.contains("seasonal produce"), SeasonalIngredients.class)
-                .thenThrow(new IllegalStateException("Model returned malformed JSON"));
+                .thenReturn(new SeasonalIngredients(List.of("asparagus")));
 
-        var failure = assertThrows(NutritionPlanningException.class, () -> planner.plan(REQUEST, () -> "alice"));
+        // Step 2 – createMealPlan
+        whenCreateObject(prompt -> prompt.contains("EVERY requested meal"), WeeklyPlan.class)
+                .thenReturn(INITIAL_PLAN);
 
-        assertTrue(failure.getCause().toString().contains("Model returned malformed JSON"));
-        verify(llmOperations, never()).createObject(anyList(), any(), eq(WeeklyPlan.class), any(), any());
-        verify(llmOperations, never()).createObject(anyList(), any(), eq(NutritionAuditValidationResult.class), any(), any());
-    }
-
-    @Test
-    void frameworkJacksonMapperBindsOptionalMealsAndRejectsMalformedAuditResponses() {
-        var frameworkMapper = agentPlatform.getPlatformServices().getObjectMapper();
-        var plan = plan("Lentils");
-        assertEquals(plan, frameworkMapper.readValue(frameworkMapper.writeValueAsString(plan), WeeklyPlan.class));
-        assertThrows(tools.jackson.core.JacksonException.class, () -> frameworkMapper.readValue("""
-                {"allPassed":true,"violations":[{"dayOfWeek":"MONDAY","recipeName":"Lentils",
-                 "explanation":"Contains nuts","suggestedFix":"Remove nuts"}],"consolidatedFeedback":"Contradiction"}
-                """, NutritionAuditValidationResult.class));
-    }
-
-    @Test
-    void frameworkRunsIndependentProfileAndSeasonalActionsConcurrentlyOnVirtualThreads() {
-        stubWorkflow(0);
-        var entered = new CountDownLatch(2);
-        var profileThread = new AtomicReference<Thread>();
-        var seasonalThread = new AtomicReference<Thread>();
-        doAnswer(invocation -> {
-            profileThread.set(Thread.currentThread());
-            entered.countDown();
-            assertTrue(entered.await(5, TimeUnit.SECONDS), "Seasonal action must overlap the profile action");
-            return invocation.callRealMethod();
-        }).when(profiles).getUserProfile("alice");
-        whenCreateObject(prompt -> prompt.contains("seasonal produce"), SeasonalIngredients.class).thenAnswer(invocation -> {
-            seasonalThread.set(Thread.currentThread());
-            entered.countDown();
-            assertTrue(entered.await(5, TimeUnit.SECONDS), "Profile action must overlap the seasonal action");
-            return SEASONAL;
-        });
-
-        assertEquals(plan("Candidate 0"), planner.plan(REQUEST, () -> "alice"));
-
-        assertNotSame(profileThread.get(), seasonalThread.get());
-        assertTrue(profileThread.get().isVirtual());
-        assertTrue(seasonalThread.get().isVirtual());
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"alice", "bob"})
-    void exportedMcpGoalUsesTheAuthenticatedHttpPrincipalAcrossBothThreadBoundaries(String username) {
-        stubWorkflow(0);
-        var profile = username.equals("alice") ? ALICE : new UserProfile("bob", List.of("vegan"), List.of("maintenance"),
-                2200, List.of("sesame"), List.of("mushrooms"));
-        if (username.equals("bob")) {
-            doReturn(profile).when(profiles).getUserProfile("bob");
-            whenCreateObject(prompt -> prompt.contains("Create a weekly meal plan"), WeeklyPlan.class)
-                    .thenReturn(plan("Candidate 0", 2200, 2200));
-        }
-        try (var client = mcpClient(username)) {
-            client.initialize();
-            var tool = client.listTools().tools().stream()
-                    .filter(candidate -> candidate.name().contains("createNutritionPlan")).findFirst().orElseThrow();
-            assertEquals("createNutritionPlan", tool.name());
-            assertEquals(java.util.Set.of("days", "countryCode", "additionalInstructions"),
-                    assertInstanceOf(Map.class, tool.inputSchema().get("properties")).keySet());
-            var response = client.callTool(new McpSchema.CallToolRequest(tool.name(), mcpRequest()));
-            assertFalse(Boolean.TRUE.equals(response.isError()), response.toString());
-            assertTrue(response.content().toString().contains("Candidate 0"), response.toString());
-        }
-        verify(profiles).getUserProfile(username);
-        verifyWorkflowCounts(1, 0, profile);
-    }
-
-    @Test
-    void mcpExhaustionReturnsAToolErrorWithoutAHiddenFifthAudit() {
-        stubWorkflow(4);
-        try (var client = mcpClient("alice")) {
-            client.initialize();
-            var response = client.callTool(new McpSchema.CallToolRequest("createNutritionPlan", mcpRequest()));
-            assertTrue(Boolean.TRUE.equals(response.isError()), response.toString());
-            assertTrue(response.content().toString().contains("4 audits and 3 revisions"), response.toString());
-        }
-        verifyWorkflowCounts(4, 3);
-    }
-
-    private McpSyncClient mcpClient(String username) {
-        var transport = HttpClientStreamableHttpTransport.builder("http://localhost:" + port)
-                .requestBuilder(HttpRequest.newBuilder().header("Authorization", "Basic " +
-                        Base64.getEncoder().encodeToString((username + ":123456")
-                                .getBytes(java.nio.charset.StandardCharsets.UTF_8))))
-                .build();
-        return McpClient.sync(transport).requestTimeout(Duration.ofSeconds(15)).build();
-    }
-
-    private Map<String, Object> mcpRequest() {
-        return Map.of("days", List.of(
-                        Map.of("day", "MONDAY", "meals", List.of("LUNCH", "DINNER")),
-                        Map.of("day", "WEDNESDAY", "meals", List.of("BREAKFAST"))),
-                "countryCode", "DE", "additionalInstructions", REQUEST.additionalInstructions());
-    }
-
-    private void stubWorkflow(int failedAudits) {
-        var audits = new AtomicInteger();
-        var revisions = new AtomicInteger();
-        whenCreateObject(prompt -> prompt.contains("seasonal produce"), SeasonalIngredients.class).thenReturn(SEASONAL);
-        whenCreateObject(prompt -> prompt.contains("Create a weekly meal plan"), WeeklyPlan.class).thenReturn(plan("Candidate 0"));
-        whenCreateObject(prompt -> prompt.contains("Revise the recipes"), WeeklyPlan.class)
-                .thenAnswer(invocation -> plan("Candidate " + revisions.incrementAndGet()));
+        // Step 3 – NutritionAudit:validate (first pass — fails, triggering the revision loop)
+        // Step 5 – NutritionAudit:validate (second pass — passes, exiting the loop)
         whenCreateObject(prompt -> prompt.contains("Validate these recipes"), NutritionAuditValidationResult.class)
-                .thenAnswer(invocation -> audits.getAndIncrement() < failedAudits ? FAIL : PASS);
-    }
+                .thenReturn(new NutritionAuditValidationResult(
+                        false,
+                        List.of(ALLERGEN_VIOLATION),
+                        "Pasta contains nuts — allergen violation"))
+                .thenReturn(new NutritionAuditValidationResult(true, List.of(), "All checks passed"));
 
-    private void verifyWorkflowCounts(int audits, int revisions) {
-        verifyWorkflowCounts(audits, revisions, ALICE);
-    }
+        // Step 4 – ReviseMealPlan:revise
+        whenCreateObject(prompt -> prompt.contains("Revise the recipes"), WeeklyPlan.class)
+                .thenReturn(REVISED_PLAN);
 
-    private void verifyWorkflowCounts(int audits, int revisions, UserProfile profile) {
-        verifyCreateObject(prompt -> prompt.contains("Germany") && prompt.contains("current-month"),
-                SeasonalIngredients.class, interaction -> interaction.getTools().stream()
-                        .anyMatch(tool -> tool.getDefinition().getDescription().contains("Call once with no arguments")));
-        var messages = ArgumentCaptor.<List<Message>>captor();
-        var interactions = ArgumentCaptor.forClass(LlmInteraction.class);
-        verify(llmOperations, times(audits)).createObject(messages.capture(), interactions.capture(),
-                eq(NutritionAuditValidationResult.class), any(), any());
-        for (var prompt : messages.getAllValues()) {
-            var text = prompt.getFirst().getContent();
-            assertTrue(text.contains(REQUEST.days().toString()));
-            assertTrue(text.contains(REQUEST.additionalInstructions()));
-            assertTrue(text.contains(profile.toString()));
-        }
-        assertTrue(interactions.getAllValues().stream().allMatch(interaction -> interaction.getTools().stream()
-                .anyMatch(tool -> tool.getDefinition().getName().equals("weekly_meal_plan_tools"))));
-        assertTrue(interactions.getAllValues().stream().allMatch(interaction -> interaction.getPromptContributors()
-                .contains(NutritionPlannerAgent.Personas.NUTRITION_GUARD)));
-        var planPrompts = ArgumentCaptor.<List<Message>>captor();
-        verify(llmOperations, times(revisions + 1)).createObject(planPrompts.capture(), any(), eq(WeeklyPlan.class), any(), any());
-        for (var prompt : planPrompts.getAllValues()) {
-            var text = prompt.getFirst().getContent();
-            assertTrue(text.contains(REQUEST.days().toString()));
-            assertTrue(text.contains(REQUEST.additionalInstructions()));
-            assertTrue(text.contains(profile.toString()));
-            assertTrue(text.contains(SEASONAL.toString()));
-        }
+        var inputs = Map.of("username", "alice", "request", request);
+
+        // Step 1 – gatherMealPreferences pauses the flow via WaitFor.formSubmission(...)
+        var process = AgentInvocation.create(agentPlatform, WeeklyPlan.class).run(inputs);
+        assertEquals(AgentProcessStatusCode.WAITING, process.getStatus(),
+                "Process should pause while waiting for the meal-preferences form");
+
+        // Simulate the user submitting the Human-in-the-Loop form and resume the process
+        var formRequest = (FormBindingRequest<?>) process.lastResult();
+        var form = formRequest.getPayload();
+        var submission = new FormSubmission(
+                form.getId(),
+                Map.of("cuisineStyle", "Mediterranean", "maxCookingTime", "30 minutes", "flavorsToEmphasize", "fresh herbs"),
+                UUID.randomUUID().toString(),
+                Instant.now());
+        formRequest.onResponse(
+                new FormResponse(UUID.randomUUID().toString(), formRequest.getId(), submission, false, Instant.now()),
+                process);
+        process.run();
+
+        var result = process.resultOfType(WeeklyPlan.class);
+
+        assertNotNull(result);
+        assertEquals(REVISED_PLAN, result, "Final plan should be the revised version");
+
+        // 2. fetchSeasonalIngredients — prompt includes resolved country name; skill tools are registered
+        verifyCreateObjectMatching(
+                prompt -> prompt.contains("seasonal produce") && prompt.contains("Germany"),
+                SeasonalIngredients.class, llm -> !llm.getTools().isEmpty());
+
+        // 2. createMealPlan — initial plan, not a revision, includes the user's meal preferences
+        verifyCreateObjectMatching(
+                prompt -> prompt.contains("EVERY requested meal") && prompt.contains("Mediterranean"),
+                WeeklyPlan.class, llm -> llm.getTools().isEmpty());
+
+        // 3. NutritionAudit:validate (first) — dailyNutritionTotals tool must be registered via withToolObject()
+        verifyCreateObjectMatching(
+                prompt -> prompt.contains("Validate these recipes") && !prompt.contains("(revised)"),
+                NutritionAuditValidationResult.class,
+                llm -> llm.getTools().size() == 1);
+
+        // 4. ReviseMealPlan:revise — prompt contains violation feedback, temperature 0.7
+        verifyCreateObjectMatching(
+                prompt -> prompt.contains("Revise the recipes"),
+                WeeklyPlan.class,
+                llm -> llm.getTools().isEmpty());
+
+        // 5. NutritionAudit:validate (second) — tool still registered, revised plan in prompt, now passes
+        verifyCreateObjectMatching(
+                prompt -> prompt.contains("Validate these recipes") && prompt.contains("(revised)"),
+                NutritionAuditValidationResult.class,
+                llm -> llm.getTools().size() == 1);
+
         verifyNoMoreInteractions();
     }
 }

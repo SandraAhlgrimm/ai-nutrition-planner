@@ -1,8 +1,9 @@
 langchain4j:
   # AI provider configuration
-  open-ai:
+  open-ai-official:
     chat-model:
+      model-name: gpt-6-sol
       api-key: ${OPENAI_API_KEY}
-      model-name: ${OPENAI_MODEL_NAME:gpt-4o}
+      reasoning-effort: none
       # log-requests: true
       # log-responses: true

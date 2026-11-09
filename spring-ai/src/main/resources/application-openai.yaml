@@ -1,9 +1,8 @@
 spring:
   ai:
-    # Define AI provider(s) for type of models for autoconfiguration
-    model:
-      chat: openai
     # AI provider configuration
     openai:
       api-key: ${OPENAI_API_KEY}
-      chat.model: ${OPENAI_MODEL_NAME:gpt-4o}
+      chat:
+        model: gpt-6-sol
+        reasoning-effort: none

@@ -1,12 +1,7 @@
 spring:
   ai:
-    # Define AI provider(s) for type of models for autoconfiguration
-    model:
-      chat: openai
     # AI provider configuration
     openai:
-      base-url: ${AZURE_OPENAI_ENDPOINT}
+      chat.model: gpt-6-sol
+      base-url: ${AZURE_OPENAI_BASEURL}
       api-key: ${AZURE_OPENAI_API_KEY}
-      microsoft-foundry: true
-      microsoft-deployment-name: ${AZURE_OPENAI_DEPLOYMENT_NAME:gpt-4o}
-      chat.model: ${AZURE_OPENAI_DEPLOYMENT_NAME:gpt-4o}

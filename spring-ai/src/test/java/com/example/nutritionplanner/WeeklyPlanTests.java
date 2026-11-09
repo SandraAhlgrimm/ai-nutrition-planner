@@ -11,7 +11,7 @@ class WeeklyPlanTests {
 
     private static Recipe recipe(int calories, double protein, double carbs, double fat, int sodium) {
         return new Recipe("Test Recipe", List.of(),
-                new NutritionInfo(calories, protein, carbs, fat, sodium), "Cook and serve.", 10);
+                new NutritionInfo(calories, protein, carbs, fat, sodium), "", 0);
     }
 
     @Test
@@ -60,26 +60,13 @@ class WeeklyPlanTests {
 
         var plan = new WeeklyPlan(
                 List.of(
-                        new WeeklyPlan.DailyPlan(DayOfWeek.MONDAY,
-                                meal, null, null),
-                        new WeeklyPlan.DailyPlan(DayOfWeek.WEDNESDAY,
-                                null, meal, null)));
+                        new WeeklyPlan.DailyPlan(DayOfWeek.MONDAY, meal, null, null),
+                        new WeeklyPlan.DailyPlan(DayOfWeek.WEDNESDAY, null, meal, null)));
 
         var totals = plan.dailyNutritionTotals();
 
         assertEquals(2, totals.size());
         assertEquals(500, totals.get(DayOfWeek.MONDAY).calories());
         assertEquals(500, totals.get(DayOfWeek.WEDNESDAY).calories());
-    }
-
-    @Test
-    void duplicateDayCandidatesRetainAllNutritionForTheShapeAudit() {
-        var day = TestPlans.plan().days().getFirst();
-        var plan = new WeeklyPlan(List.of(day, day));
-
-        assertEquals(5000, plan.dailyNutritionTotals().get(DayOfWeek.MONDAY).calories());
-        assertEquals(5000, plan.nutritionTotalsForDay(DayOfWeek.MONDAY).calories());
-        assertEquals(2, plan.totalMealCount());
-        org.junit.jupiter.api.Assertions.assertFalse(TestPlans.request().shapeFeedback(plan).isEmpty());
     }
 }

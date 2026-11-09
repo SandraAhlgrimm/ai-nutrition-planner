@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<body>
+
+<div th:fragment="error" class="bg-red-50 border border-red-200 rounded-lg p-5 mb-4">
+
+    <h3 class="text-sm font-semibold text-red-800 mb-2">Creating the plan failed</h3>
+    <p class="text-sm text-red-700" th:text="${message}">Something went wrong.</p>
+
+</div>
+
+</body>
+</html>

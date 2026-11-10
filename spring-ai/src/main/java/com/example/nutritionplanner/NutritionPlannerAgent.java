@@ -1,5 +1,6 @@
 package com.example.nutritionplanner;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springaicommunity.agent.tools.AskUserQuestionTool;
@@ -14,6 +15,9 @@ import org.springframework.core.io.Resource;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Path;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -31,10 +35,23 @@ class NutritionPlannerAgent {
     @Value("classpath:skills")
     private Resource skillsResource;
 
+    private @Nullable Path skillsDirectory;
+
     NutritionPlannerAgent(UserProfileProperties userProfileProperties, ChatClient.Builder chatClientBuilder, AsyncTaskExecutor taskExecutor) {
         this.userProfileProperties = userProfileProperties;
         this.chatClient = chatClientBuilder.build();
         this.taskExecutor = taskExecutor;
+    }
+
+    private synchronized Path skillsDirectory() {
+        if (skillsDirectory == null) {
+            try {
+                skillsDirectory = SkillsDirectory.of(skillsResource);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+        return skillsDirectory;
     }
 
     @McpTool(description = "Provides a nutrition plan for the week")
@@ -53,7 +70,7 @@ class NutritionPlannerAgent {
 
     private SeasonalIngredients fetchSeasonalIngredients(WeeklyPlanRequest request) {
         var country = Locale.of("", request.countryCode()).getDisplayCountry(Locale.ENGLISH);
-        var skillsTool = SkillsTool.builder().addSkillsResource(skillsResource).build();
+        var skillsTool = SkillsTool.builder().addSkillsDirectory(skillsDirectory().toString()).build();
 
         var seasonalIngredients = chatClient.prompt()
                 .user(u -> u.text("""

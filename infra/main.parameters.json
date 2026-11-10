@@ -3,6 +3,12 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "environmentName": { "value": "${AZURE_ENV_NAME}" },
-    "location": { "value": "${AZURE_LOCATION}" }
+    "location": { "value": "${AZURE_LOCATION}" },
+    "modelCapacity": { "value": "${MODEL_CAPACITY=100}" },
+    "minReplicas": { "value": "${MIN_REPLICAS=0}" },
+    "demoPassword": { "value": "${DEMO_PASSWORD}" },
+    "langchain4jExists": { "value": "${SERVICE_LANGCHAIN4J_RESOURCE_EXISTS=false}" },
+    "springAiExists": { "value": "${SERVICE_SPRING_AI_RESOURCE_EXISTS=false}" },
+    "embabelExists": { "value": "${SERVICE_EMBABEL_RESOURCE_EXISTS=false}" }
   }
 }

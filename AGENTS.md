@@ -9,7 +9,7 @@ Agentic Spring implementations comparing three AI frameworks: **LangChain4j**, *
 - **Java 25**
 - **Spring Boot 4.1** / Spring Framework 7 / Jakarta EE 11
 - **Build**: Maven — each module has its own wrapper (`./mvnw`); the root `pom.xml` is only an aggregator
-- **AI Frameworks**: LangChain4j 1.23, Spring AI 2.0, Embabel 1.5 — all using OpenAI (or Azure OpenAI)
+- **AI Frameworks**: LangChain4j 1.23, Spring AI 2.0, Embabel 1.5 — all using the official OpenAI Java SDK with OpenAI or Microsoft Foundry
 - **UI**: Thymeleaf + htmx with SSE; Spring Security (demo user `alice` / `123456`)
 - **Observability**: OpenTelemetry via OTLP to the Grafana LGTM stack
 
@@ -35,9 +35,9 @@ azd up                                         # deploy to Azure Container Apps
 
 ```
 ai-nutrition-planner/
-├── langchain4j/             # LangChain4j implementation
-├── spring-ai/               # Spring AI implementation
-├── embabel/                 # Embabel implementation
+├── langchain4j/             # LangChain4j implementation + Dockerfile
+├── spring-ai/               # Spring AI implementation + Dockerfile
+├── embabel/                 # Embabel implementation + Dockerfile
 ├── infra/                   # Bicep IaC for Azure
 ├── grafana/                 # Grafana dashboard + provisioning
 ├── docker-compose.yaml      # LGTM observability stack
@@ -72,3 +72,7 @@ Each module is a self-contained Spring Boot app with its **own copy** of the dom
 
 - Profiles: `openai` (default), `azure`, and `observability` (combine with a provider, e.g. `openai,observability`).
 - Never hardcode API keys — use `${ENV_VAR}` placeholders (see `.env.example`).
+- Azure profiles use the official OpenAI Java SDK with the Foundry OpenAI-compatible `/openai/v1` endpoint and API-key authentication; do not add Azure-specific model or identity SDKs.
+- The LangChain4j and Spring AI Azure profiles set `reasoning-effort: none` because their function tools use Chat Completions. Embabel's bundled model configuration routes its model through the Responses API.
+- GPT-6 model deployments do not support custom temperature values. Spring AI applies a per-call, non-strict JSON Schema response format when creating a `WeeklyPlan`; strict output is incompatible with nullable meals.
+- Jar-safe skill loading extracts classpath resources to a filesystem directory at runtime in the Spring AI and Embabel implementations.

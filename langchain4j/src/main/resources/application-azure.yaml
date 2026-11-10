@@ -5,3 +5,5 @@ langchain4j:
       model-name: gpt-6-sol
       api-key: ${AZURE_OPENAI_API_KEY}
       base-url: ${AZURE_OPENAI_BASEURL}
+      # Function tools on /chat/completions are rejected unless reasoning is disabled
+      reasoning-effort: none

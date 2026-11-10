@@ -8,7 +8,10 @@ import org.springaicommunity.agent.tools.ShellTools;
 import org.springaicommunity.agent.tools.SkillsTool;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.mcp.annotation.McpTool;
+import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.core.io.Resource;
@@ -27,6 +30,9 @@ import java.util.concurrent.CompletableFuture;
 class NutritionPlannerAgent {
 
     private static final Logger log = LoggerFactory.getLogger(NutritionPlannerAgent.class);
+
+    // The model can omit a closing brace in WeeklyPlan JSON when a tool is attached; strict schema mode rejects nullable meals.
+    private static final String WEEKLY_PLAN_SCHEMA = new BeanOutputConverter<>(WeeklyPlan.class).getJsonSchema();
 
     private final UserProfileProperties userProfileProperties;
     private final ChatClient chatClient;
@@ -113,10 +119,18 @@ class NutritionPlannerAgent {
                 .advisors(validationRetryAdvisor)
                 .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, UUID.randomUUID().toString())) // Required for Tool Search Advisor
                 .tools(askUserQuestionTool)
+                .options(weeklyPlanOptions())
                 .call()
                 .entity(WeeklyPlan.class);
         log.info("Weekly plan: {}", weeklyPlan);
         return weeklyPlan;
+    }
+
+    static OpenAiChatOptions.Builder weeklyPlanOptions() {
+        return OpenAiChatOptions.builder().responseFormat(OpenAiChatModel.ResponseFormat.builder()
+                .jsonSchema(WEEKLY_PLAN_SCHEMA)
+                .strict(false)
+                .build());
     }
 
     private NutritionAuditValidationResult validateWeeklyPlan(WeeklyPlan weeklyPlan, UserProfile userProfile) {

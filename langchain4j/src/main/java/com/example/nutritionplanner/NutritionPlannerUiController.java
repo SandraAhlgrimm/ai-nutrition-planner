@@ -5,6 +5,7 @@ import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.output.structured.Description;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -26,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import static org.springframework.util.StringUtils.capitalize;
 
 @Controller
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 class NutritionPlannerUiController extends SseInteractionController {
 
     private static final Logger log = LoggerFactory.getLogger(NutritionPlannerUiController.class);

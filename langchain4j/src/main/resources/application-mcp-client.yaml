@@ -1,0 +1,21 @@
+spring:
+  main:
+    web-application-type: none
+    banner-mode: "off"
+
+logging.config: classpath:logback-mcp.xml
+
+langchain4j:
+  community.mcp.server.enabled: false
+  mcp:
+    tool-provider.enabled: true
+    clients:
+      nutrition:
+        transport: STDIO
+        command:
+          - ${java.home}/bin/java
+          - -jar
+          - ${NUTRITION_MCP_SERVER_JAR}
+          - --spring.profiles.active=${NUTRITION_MCP_PROVIDER:openai},mcp-server
+        initialization-timeout: 60s
+        tool-execution-timeout: 5m

@@ -1,0 +1,13 @@
+spring:
+  main:
+    web-application-type: none
+    banner-mode: "off"
+
+logging.config: classpath:logback-mcp.xml
+
+langchain4j:
+  mcp.enabled: false
+  community.mcp.server:
+    enabled: true
+    tool-bean-names:
+      - nutritionPlannerMcpTools

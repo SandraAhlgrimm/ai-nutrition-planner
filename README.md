@@ -1,6 +1,6 @@
 # AI Nutrition Planner
 
-A sample project demonstrating how to build AI agents with different Java/Spring frameworks. The same nutrition planning use case is implemented across three frameworks to compare their programming models, abstractions, and features.
+The same AI nutrition planner built with **Embabel**, **LangChain4j**, and **Spring AI**, comparing their programming models and agentic patterns.
 
 [Slides: Comparing Agentic AI Frameworks for Java](slides.pdf)
 
@@ -8,11 +8,10 @@ A sample project demonstrating how to build AI agents with different Java/Spring
 
 The agent creates a personalized weekly meal plan:
 
-1. Fetches the user profile and seasonal ingredients in parallel
-2. Asks the user for meal preferences to tailor the plan (human-in-the-loop)
-3. Generates recipes for the requested days and meals using seasonal produce
-4. Validates the plan against the user profile (allergens, calorie limits, dietary restrictions)
-5. Revises recipes based on feedback and re-validates — looping until the plan passes or a maximum number of iterations is reached
+1. Fetches the user profile and seasonal ingredients in parallel.
+2. Asks for meal preferences (human-in-the-loop).
+3. Generates recipes for the requested days and meals.
+4. Checks allergens, calories, and dietary restrictions; revises until valid or the iteration limit is reached.
 
 ## Implementations
 
@@ -29,28 +28,21 @@ The agent creates a personalized weekly meal plan:
 | **Parallel Execution** — independent steps run concurrently | ✅ framework-managed (GOAP planner) | ✅ `@ParallelAgent` | ✅ plain `CompletableFuture` — no direct framework support |
 | **Validation / Reflection Loop** — iterate until output passes quality checks | ✅ `@State` machine (NutritionAudit → ReviseWeeklyPlan) | ✅ `@LoopAgent` + `@ExitCondition` | ✅ `ValidationRetryAdvisor` |
 | **Tool Use** — agent calls external functions | ✅ `withToolObject()` | ✅ `@ToolsSupplier` | ✅ `.tools()` on `ChatClient` |
-| **Tool Search** — dynamic tool discovery at runtime | ✅ `@UnfoldingTools` — a facade tool progressively discloses its inner tools on invocation | ✅ `@ToolSearchStrategySupplier` (`SimpleToolSearchStrategy`) — only the tool-search tool is sent to the LLM, which discovers matching tools by keywords | ✅ `tool-search-advisor` — a separate search step discovers tools via metadata before each call |
+| **Tool Search** — dynamic tool discovery at runtime | ✅ `@UnfoldingTools` — progressive disclosure | ✅ `@ToolSearchStrategySupplier` — keyword-based discovery via `SimpleToolSearchStrategy` | ✅ `tool-search-advisor` — metadata search before each call |
 | **Human-in-the-Loop** — pause workflow for user input | ✅ `WaitFor.formSubmission()` | ✅ `@HumanInTheLoop` + `SuspendedResponse` | ✅ `AskUserQuestionTool` |
 | **Agent Skills** — invoke pre-packaged executable skills | ✅ `Skills` with script execution engine | ✅ `Skills.from()` via `CustomSkillLoader` | ✅ `SkillsTool` |
 | **Multi-Agent Orchestration** — specialized sub-agents collaborate | ✅ goal-driven action graph | ✅ `@SequenceAgent` with sub-agents | ✅ custom orchestration in code — no direct framework support |
 | **Persona** — role-based system prompts per agent | ✅ first-class `Persona` object | ✅ custom implementation via `@SystemMessage` | ✅ custom implementation via `.system()` on `ChatClient` |
-| **MCP Server** — expose agent as a Model Context Protocol tool | ✅ `@Export(remote = true)` | ❌ | ✅ `@McpTool` |
-
-## Prerequisites
-
-- **Java 25**
-- **Maven** (wrapper included in each module)
-- An **OpenAI API key**
-- **Docker Desktop** (optional, for the Grafana observability stack)
+| **MCP Server** — expose agent as a Model Context Protocol tool | ✅ `@Export(remote = true)` (HTTP) | ✅ community starter + `@Tool` (STDIO) | ✅ `@McpTool` (HTTP) |
+| **MCP Client demo** — discover and call the remote planner | — | ✅ auto-configured STDIO client | — |
 
 ## Setup
 
-### Codespaces (recommended)
+Requires **Java 25** and an **OpenAI or Azure OpenAI key**. Each module includes a Maven wrapper; Docker is optional for observability.
 
-Open this repo in a GitHub Codespace. The dev container installs Java 25, Maven, and Docker automatically.
-Add your OpenAI API key as a Codespaces secret named `OPENAI_API_KEY` (or export it in the terminal).
+Alternatively, open a **GitHub Codespace** for preinstalled tools and add your API key as a Codespaces secret.
 
-### LLM Providers
+LangChain4j uses Maven snapshots configured in its [POM](langchain4j/pom.xml).
 
 **OpenAI** (default `openai` profile):
 
@@ -66,37 +58,68 @@ export AZURE_OPENAI_BASEURL=https://your-resource.openai.azure.com
 export AZURE_OPENAI_API_KEY=your-api-key
 ```
 
-The model name configured in each module's `application-azure.yaml` must match the name of a deployment in your Azure OpenAI resource.
+Set `model-name` in the module's `application-azure.yaml` to your Azure deployment name. LangChain4j sets `reasoning-effort: none` for function-tool compatibility with its configured model.
 
 Alternatively copy [`.env.example`](.env.example) to `.env`, fill in the values and `source` it.
 
 ## Run
-
-Change into the implementation directory and start the app:
 
 ```bash
 cd langchain4j   # or embabel, spring-ai
 ./mvnw spring-boot:run
 ```
 
-The app starts on port `8080` with the `openai` profile active unless `SPRING_PROFILES_ACTIVE` says otherwise. Log in as `alice` / `123456`, pick the days and meals for your plan, and answer the follow-up questions the agent asks (human-in-the-loop) at [http://localhost:8080](http://localhost:8080).
+Open [localhost:8080](http://localhost:8080), log in as `alice` / `123456`, select meals, and answer the agent's follow-up questions. The default provider is `openai`; `SPRING_PROFILES_ACTIVE` overrides it.
 
-### MCP Server
+## MCP
 
-The Spring AI and Embabel implementations additionally expose the agent as an MCP tool (`createNutritionPlan`) via Streamable HTTP at `http://localhost:8080/mcp`, protected by HTTP Basic auth (`alice` / `123456`). When called through MCP, the agent skips the human-in-the-loop step.
+**Spring AI and Embabel** expose `createNutritionPlan` over Streamable HTTP at `http://localhost:8080/mcp`, with HTTP Basic auth (`alice` / `123456`) and no interactive follow-up.
+
+### LangChain4j: STDIO server and client
+
+The community server starter exposes the planner through `@Tool`. The
+[client profile](langchain4j/src/main/resources/application-mcp-client.yaml)
+auto-configures `mcpClient.nutrition` and `McpToolProvider`. The CLI starts the
+server subprocess, discovers and calls the tool, then shuts down both processes.
+
+With provider credentials set:
+
+```bash
+cd langchain4j
+./mvnw clean package
+export NUTRITION_MCP_SERVER_JAR="$PWD/target/nutrition-planner-langchain4j-0.0.1-SNAPSHOT.jar"
+
+# For Azure: export NUTRITION_MCP_PROVIDER=azure
+java -jar "$NUTRITION_MCP_SERVER_JAR" --spring.profiles.active=mcp-client \
+  --mcp-request='{"request":{"meals":{"MONDAY":["LUNCH"]},"countryCode":"DE","additionalInstructions":"Quick Mediterranean meals"}}'
+```
+
+Omit `--mcp-request` to only list tools. Credentials are inherited by the server
+and required even for discovery. Pass preferences in `additionalInstructions`;
+the adapter completes the interactive step with empty preferences.
+
+To use another STDIO-capable MCP client, configure it to launch:
+
+```bash
+java -jar "$NUTRITION_MCP_SERVER_JAR" --spring.profiles.active=openai,mcp-server
+```
+
+Use `azure,mcp-server` for Azure. STDIO runs separately from the web UI, with no
+HTTP endpoint or login, as `spring.security.user.name` (default `alice`). Use only
+trusted local clients. Logs go to stderr; stdout is reserved for MCP messages.
 
 ## Tests
 
-Each module can be tested on its own; AI model responses are mocked, no API key is required:
+Run inside any module. AI responses are mocked, including the LangChain4j STDIO
+round-trip test; no API key is required.
 
 ```bash
-cd spring-ai     # or embabel
 ./mvnw test
 ```
 
 ## Observability
 
-A Grafana + OTLP stack (Loki, Tempo, Mimir) is included via Docker Compose:
+Start the Grafana LGTM stack from the repository root:
 
 ```bash
 docker compose up -d
@@ -105,10 +128,10 @@ docker compose up -d
 - **Grafana**: [http://localhost:3000](http://localhost:3000) (admin/admin)
 - **OTLP collector**: `localhost:4318` (HTTP) / `localhost:4317` (gRPC)
 
-To export traces and metrics from any module, activate the `observability` profile in addition to the LLM provider profile:
+Inside a module, add `observability` to the provider profile (`openai` or `azure`):
 
 ```bash
 SPRING_PROFILES_ACTIVE=openai,observability ./mvnw spring-boot:run
 ```
 
-The dashboard shows agent invocation rates, execution durations (p95), active agents, HTTP endpoint latency, JVM metrics, and distributed traces.
+The dashboard includes agent timings, HTTP latency, JVM metrics, and distributed traces.

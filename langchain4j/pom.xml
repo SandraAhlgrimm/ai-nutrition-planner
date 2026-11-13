@@ -14,8 +14,9 @@
 
     <properties>
         <java.version>25</java.version>
-        <langchain4j.version>1.23.0</langchain4j.version>
-        <langchain4j-sb4-starter.version>1.23.0-beta33</langchain4j-sb4-starter.version>
+        <langchain4j.version>1.24.0-SNAPSHOT</langchain4j.version>
+        <langchain4j-sb4-starter.version>1.24.0-beta34-SNAPSHOT</langchain4j-sb4-starter.version>
+        <langchain4j-community.version>1.23.0-beta33</langchain4j-community.version>
     </properties>
 
     <dependencies>
@@ -27,6 +28,16 @@
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-open-ai-official-spring-boot4-starter</artifactId>
             <version>${langchain4j-sb4-starter.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-mcp-spring-boot4-starter</artifactId>
+            <version>${langchain4j-sb4-starter.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-community-mcp-server-spring-boot4-starter</artifactId>
+            <version>${langchain4j-community.version}</version>
         </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>
@@ -95,6 +106,19 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <repositories>
+        <repository>
+            <id>central-snapshots</id>
+            <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
     <build>
         <plugins>

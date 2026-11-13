@@ -5,6 +5,8 @@ import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.output.structured.Description;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -33,14 +35,16 @@ class NutritionPlannerUiController extends SseInteractionController {
     private final ChatModel chatModel;
     private final NutritionPlannerAgent nutritionPlannerAgent;
     private final AgentMonitor agentMonitor;
+    private final Environment environment;
     private final ConcurrentHashMap<String, HitlHandler> hitlHandlers = new ConcurrentHashMap<>();
 
     NutritionPlannerUiController(ChatModel chatModel, NutritionPlannerAgent nutritionPlannerAgent, AgentMonitor agentMonitor,
-                                 TemplateEngine templateEngine, AsyncTaskExecutor taskExecutor) {
+                                 Environment environment, TemplateEngine templateEngine, AsyncTaskExecutor taskExecutor) {
         super(templateEngine, taskExecutor);
         this.chatModel = chatModel;
         this.nutritionPlannerAgent = nutritionPlannerAgent;
         this.agentMonitor = agentMonitor;
+        this.environment = environment;
     }
 
     @GetMapping("/login")
@@ -90,7 +94,9 @@ class NutritionPlannerUiController extends SseInteractionController {
     }
 
     private String getAiModelName() {
-        var provider = chatModel.getClass().getSimpleName().replace("ChatModel", "");
+        var provider = environment.acceptsProfiles(Profiles.of("azure"))
+                ? "Azure OpenAI"
+                : chatModel.getClass().getSimpleName().replace("ChatModel", "");
         return "%s (%s)".formatted(provider, capitalize(chatModel.defaultRequestParameters().modelName()));
     }
 

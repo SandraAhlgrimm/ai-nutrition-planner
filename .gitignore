@@ -51,3 +51,6 @@ replay_pid*
 # Environment secrets
 .env.local
 .env.*.local
+
+# Azure Developer CLI environments (hold generated secrets)
+.azure/

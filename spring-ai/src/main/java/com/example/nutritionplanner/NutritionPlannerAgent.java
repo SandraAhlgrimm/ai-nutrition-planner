@@ -1,5 +1,6 @@
 package com.example.nutritionplanner;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springaicommunity.agent.tools.AskUserQuestionTool;
@@ -7,13 +8,19 @@ import org.springaicommunity.agent.tools.ShellTools;
 import org.springaicommunity.agent.tools.SkillsTool;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.mcp.annotation.McpTool;
+import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.core.io.Resource;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Path;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -24,6 +31,9 @@ class NutritionPlannerAgent {
 
     private static final Logger log = LoggerFactory.getLogger(NutritionPlannerAgent.class);
 
+    // The model can omit a closing brace in WeeklyPlan JSON when a tool is attached; strict schema mode rejects nullable meals.
+    private static final String WEEKLY_PLAN_SCHEMA = new BeanOutputConverter<>(WeeklyPlan.class).getJsonSchema();
+
     private final UserProfileProperties userProfileProperties;
     private final ChatClient chatClient;
     private final AsyncTaskExecutor taskExecutor;
@@ -31,10 +41,23 @@ class NutritionPlannerAgent {
     @Value("classpath:skills")
     private Resource skillsResource;
 
+    private @Nullable Path skillsDirectory;
+
     NutritionPlannerAgent(UserProfileProperties userProfileProperties, ChatClient.Builder chatClientBuilder, AsyncTaskExecutor taskExecutor) {
         this.userProfileProperties = userProfileProperties;
         this.chatClient = chatClientBuilder.build();
         this.taskExecutor = taskExecutor;
+    }
+
+    private synchronized Path skillsDirectory() {
+        if (skillsDirectory == null) {
+            try {
+                skillsDirectory = SkillsDirectory.of(skillsResource);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+        return skillsDirectory;
     }
 
     @McpTool(description = "Provides a nutrition plan for the week")
@@ -53,7 +76,7 @@ class NutritionPlannerAgent {
 
     private SeasonalIngredients fetchSeasonalIngredients(WeeklyPlanRequest request) {
         var country = Locale.of("", request.countryCode()).getDisplayCountry(Locale.ENGLISH);
-        var skillsTool = SkillsTool.builder().addSkillsResource(skillsResource).build();
+        var skillsTool = SkillsTool.builder().addSkillsDirectory(skillsDirectory().toString()).build();
 
         var seasonalIngredients = chatClient.prompt()
                 .user(u -> u.text("""
@@ -96,10 +119,18 @@ class NutritionPlannerAgent {
                 .advisors(validationRetryAdvisor)
                 .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, UUID.randomUUID().toString())) // Required for Tool Search Advisor
                 .tools(askUserQuestionTool)
+                .options(weeklyPlanOptions())
                 .call()
                 .entity(WeeklyPlan.class);
         log.info("Weekly plan: {}", weeklyPlan);
         return weeklyPlan;
+    }
+
+    static OpenAiChatOptions.Builder weeklyPlanOptions() {
+        return OpenAiChatOptions.builder().responseFormat(OpenAiChatModel.ResponseFormat.builder()
+                .jsonSchema(WEEKLY_PLAN_SCHEMA)
+                .strict(false)
+                .build());
     }
 
     private NutritionAuditValidationResult validateWeeklyPlan(WeeklyPlan weeklyPlan, UserProfile userProfile) {

@@ -10,6 +10,7 @@ import com.embabel.agent.core.hitl.WaitFor;
 import com.embabel.agent.prompt.persona.Persona;
 import com.embabel.agent.skills.Skills;
 import com.embabel.agent.skills.script.ProcessSkillScriptExecutionEngine;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,6 +18,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Locale;
 
 @Agent(description = "Supports conscious meal planning and sustainable eating habits.")
@@ -29,8 +31,17 @@ class NutritionPlannerAgent {
     @Value("classpath:skills")
     private Resource skillsResource;
 
+    private @Nullable Path skillsDirectory;
+
     NutritionPlannerAgent(UserProfileProperties userProfileProperties) {
         this.userProfileProperties = userProfileProperties;
+    }
+
+    private synchronized Path skillsDirectory() throws IOException {
+        if (skillsDirectory == null) {
+            skillsDirectory = SkillsDirectory.of(skillsResource);
+        }
+        return skillsDirectory;
     }
 
     @Action
@@ -49,7 +60,7 @@ class NutritionPlannerAgent {
     SeasonalIngredients fetchSeasonalIngredients(WeeklyPlanRequest request, Ai ai) throws IOException {
         var country = Locale.of("", request.countryCode()).getDisplayCountry(Locale.ENGLISH);
         var skills = new Skills("classpath-skills", "Skills available on the classpath")
-                .withLocalSkills(skillsResource.getFile().getPath())
+                .withLocalSkills(skillsDirectory().toString())
                 .withScriptExecutionEngine(new ProcessSkillScriptExecutionEngine());
 
         var seasonalIngredients = ai.withAutoLlm()

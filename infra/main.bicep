@@ -2,24 +2,38 @@ targetScope = 'subscription'
 
 @minLength(1)
 @maxLength(64)
-@description('Name of the azd environment')
+@description('Name of the azd environment, used to name the resource group and tag resources')
 param environmentName string
 
-@description('Azure region for resources')
+@description('Azure region for all resources. It must offer the gpt-6-sol and gpt-5.6-sol models with the GlobalStandard SKU.')
 param location string
 
-@description('GPT-4o model version')
-param modelVersion string = '2024-11-20'
+@description('Capacity of each model deployment, in thousands of tokens per minute')
+@minValue(1)
+param modelCapacity int = 100
 
-@description('Tokens-per-minute capacity (in thousands)')
-param tpmCapacity int = 10
+@description('Minimum replicas per app. 0 scales to zero when idle (cold start takes about a minute); 1 keeps an instance warm.')
+@minValue(0)
+@maxValue(1)
+param minReplicas int = 0
+
+@secure()
+@minLength(6)
+@description('Password of the demo user "alice" on all three apps')
+param demoPassword string
+
+// Set by azd (see main.parameters.json) once a service has been deployed
+param langchain4jExists bool = false
+param springAiExists bool = false
+param embabelExists bool = false
 
 var abbrs = {
   containerAppsEnvironment: 'cae-'
   containerApp: 'ca-'
   containerRegistry: 'cr'
+  foundry: 'aif-'
+  identity: 'id-'
   logAnalyticsWorkspace: 'log-'
-  openAi: 'aoai-'
 }
 
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
@@ -43,6 +57,17 @@ module logAnalytics 'modules/log-analytics.bicep' = {
   }
 }
 
+// ── Identity used by the apps to pull images ────────────────
+module identity 'modules/identity.bicep' = {
+  name: 'identity'
+  scope: rg
+  params: {
+    name: '${abbrs.identity}${resourceToken}'
+    location: location
+    tags: tags
+  }
+}
+
 // ── Container Registry ──────────────────────────────────────
 module containerRegistry 'modules/container-registry.bicep' = {
   name: 'container-registry'
@@ -51,6 +76,7 @@ module containerRegistry 'modules/container-registry.bicep' = {
     name: '${abbrs.containerRegistry}${resourceToken}'
     location: location
     tags: tags
+    pullPrincipalId: identity.outputs.principalId
   }
 }
 
@@ -62,20 +88,20 @@ module containerAppsEnvironment 'modules/container-apps-environment.bicep' = {
     name: '${abbrs.containerAppsEnvironment}${resourceToken}'
     location: location
     tags: tags
-    logAnalyticsWorkspaceId: logAnalytics.outputs.id
+    logAnalyticsWorkspaceName: logAnalytics.outputs.name
   }
 }
 
-// ── Azure OpenAI ────────────────────────────────────────────
-module openAi 'modules/openai.bicep' = {
-  name: 'openai'
+// ── Microsoft Foundry: account, project and model deployments ─
+module foundry 'modules/foundry.bicep' = {
+  name: 'foundry'
   scope: rg
   params: {
-    name: '${abbrs.openAi}${resourceToken}'
+    name: '${abbrs.foundry}${resourceToken}'
     location: location
     tags: tags
-    modelVersion: modelVersion
-    tpmCapacity: tpmCapacity
+    projectName: 'nutrition-planner'
+    modelCapacity: modelCapacity
   }
 }
 
@@ -88,12 +114,13 @@ module langchain4jApp 'modules/container-app.bicep' = {
     location: location
     tags: union(tags, { 'azd-service-name': 'langchain4j' })
     containerAppsEnvironmentId: containerAppsEnvironment.outputs.id
-    containerRegistryName: containerRegistry.outputs.name
-    containerName: 'langchain4j-nutrition-planner'
-    springProfiles: 'cloud,azure'
-    openAiEndpoint: openAi.outputs.endpoint
-    openAiApiKey: openAi.outputs.apiKey
-    openAiDeploymentName: openAi.outputs.deploymentName
+    registryLoginServer: containerRegistry.outputs.loginServer
+    identityId: identity.outputs.id
+    foundryAccountName: foundry.outputs.name
+    openAiBaseUrl: foundry.outputs.openAiBaseUrl
+    demoPassword: demoPassword
+    minReplicas: minReplicas
+    exists: langchain4jExists
   }
 }
 
@@ -106,12 +133,13 @@ module springAiApp 'modules/container-app.bicep' = {
     location: location
     tags: union(tags, { 'azd-service-name': 'spring-ai' })
     containerAppsEnvironmentId: containerAppsEnvironment.outputs.id
-    containerRegistryName: containerRegistry.outputs.name
-    containerName: 'spring-ai-nutrition-planner'
-    springProfiles: 'cloud,azure'
-    openAiEndpoint: openAi.outputs.endpoint
-    openAiApiKey: openAi.outputs.apiKey
-    openAiDeploymentName: openAi.outputs.deploymentName
+    registryLoginServer: containerRegistry.outputs.loginServer
+    identityId: identity.outputs.id
+    foundryAccountName: foundry.outputs.name
+    openAiBaseUrl: foundry.outputs.openAiBaseUrl
+    demoPassword: demoPassword
+    minReplicas: minReplicas
+    exists: springAiExists
   }
 }
 
@@ -124,12 +152,13 @@ module embabelApp 'modules/container-app.bicep' = {
     location: location
     tags: union(tags, { 'azd-service-name': 'embabel' })
     containerAppsEnvironmentId: containerAppsEnvironment.outputs.id
-    containerRegistryName: containerRegistry.outputs.name
-    containerName: 'embabel-nutrition-planner'
-    springProfiles: 'cloud,azure'
-    openAiEndpoint: openAi.outputs.endpoint
-    openAiApiKey: openAi.outputs.apiKey
-    openAiDeploymentName: openAi.outputs.deploymentName
+    registryLoginServer: containerRegistry.outputs.loginServer
+    identityId: identity.outputs.id
+    foundryAccountName: foundry.outputs.name
+    openAiBaseUrl: foundry.outputs.openAiBaseUrl
+    demoPassword: demoPassword
+    minReplicas: minReplicas
+    exists: embabelExists
   }
 }
 
@@ -137,8 +166,9 @@ module embabelApp 'modules/container-app.bicep' = {
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
 output AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = containerAppsEnvironment.outputs.id
 output AZURE_RESOURCE_GROUP string = rg.name
-output AZURE_OPENAI_ENDPOINT string = openAi.outputs.endpoint
-output AZURE_OPENAI_DEPLOYMENT_NAME string = openAi.outputs.deploymentName
-output SERVICE_LANGCHAIN4J_ENDPOINT string = langchain4jApp.outputs.fqdn
-output SERVICE_SPRING_AI_ENDPOINT string = springAiApp.outputs.fqdn
-output SERVICE_EMBABEL_ENDPOINT string = embabelApp.outputs.fqdn
+output AZURE_FOUNDRY_NAME string = foundry.outputs.name
+output AZURE_FOUNDRY_PROJECT_NAME string = foundry.outputs.projectName
+output AZURE_OPENAI_BASEURL string = foundry.outputs.openAiBaseUrl
+output SERVICE_LANGCHAIN4J_ENDPOINT_URL string = langchain4jApp.outputs.uri
+output SERVICE_SPRING_AI_ENDPOINT_URL string = springAiApp.outputs.uri
+output SERVICE_EMBABEL_ENDPOINT_URL string = embabelApp.outputs.uri

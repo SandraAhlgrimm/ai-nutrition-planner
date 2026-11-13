@@ -2,34 +2,40 @@
 name: ai-nutrition-planner
 metadata:
   template: ai-nutrition-planner
+hooks:
+  # Keep a supplied DEMO_PASSWORD; otherwise generate one because the apps are public.
+  # It is stored in the azd environment; read it with `azd env get-value DEMO_PASSWORD`.
+  preprovision:
+    posix:
+      shell: sh
+      run: |
+        if [ -z "$DEMO_PASSWORD" ]; then
+          azd env set DEMO_PASSWORD "$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 24)"
+        fi
+    windows:
+      shell: pwsh
+      run: |
+        if (-not $env:DEMO_PASSWORD) {
+          $chars = [char[]]'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+          $password = -join (1..24 | ForEach-Object { $chars[[System.Security.Cryptography.RandomNumberGenerator]::GetInt32($chars.Length)] })
+          azd env set DEMO_PASSWORD $password
+        }
 services:
   langchain4j:
     project: ./langchain4j
     host: containerapp
-    language: java
-    hooks:
-      prepackage:
-        shell: sh
-        run: cd langchain4j && ./mvnw spring-boot:build-image -Dspring-boot.build-image.imageName=ai-nutrition-planer-langchain4j
+    language: docker
     docker:
-      image: ai-nutrition-planer-langchain4j
+      remoteBuild: true
   spring-ai:
     project: ./spring-ai
     host: containerapp
-    language: java
-    hooks:
-      prepackage:
-        shell: sh
-        run: cd spring-ai && ./mvnw spring-boot:build-image -Dspring-boot.build-image.imageName=ai-nutrition-planer-spring-ai
+    language: docker
     docker:
-      image: ai-nutrition-planer-spring-ai
+      remoteBuild: true
   embabel:
     project: ./embabel
     host: containerapp
-    language: java
-    hooks:
-      prepackage:
-        shell: sh
-        run: cd embabel && ./mvnw spring-boot:build-image -Dspring-boot.build-image.imageName=ai-nutrition-planer-embabel
+    language: docker
     docker:
-      image: ai-nutrition-planer-embabel
+      remoteBuild: true

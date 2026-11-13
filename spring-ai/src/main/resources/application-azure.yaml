@@ -3,5 +3,7 @@ spring:
     # AI provider configuration
     openai:
       chat.model: gpt-6-sol
+      # Function tools on /chat/completions are rejected unless reasoning is disabled
+      chat.reasoning-effort: none
       base-url: ${AZURE_OPENAI_BASEURL}
       api-key: ${AZURE_OPENAI_API_KEY}

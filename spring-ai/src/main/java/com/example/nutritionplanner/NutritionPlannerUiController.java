@@ -1,6 +1,7 @@
 package com.example.nutritionplanner;
 
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.core.env.Environment;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -23,13 +24,15 @@ class NutritionPlannerUiController extends SseInteractionController {
 
     private final ChatModel chatModel;
     private final NutritionPlannerAgent nutritionPlannerAgent;
+    private final Environment environment;
     private final ConcurrentHashMap<String, AskUserQuestionHandler> questionHandlers = new ConcurrentHashMap<>();
 
-    NutritionPlannerUiController(ChatModel chatModel, NutritionPlannerAgent nutritionPlannerAgent,
+    NutritionPlannerUiController(ChatModel chatModel, NutritionPlannerAgent nutritionPlannerAgent, Environment environment,
                                  TemplateEngine templateEngine, AsyncTaskExecutor taskExecutor) {
         super(templateEngine, taskExecutor);
         this.chatModel = chatModel;
         this.nutritionPlannerAgent = nutritionPlannerAgent;
+        this.environment = environment;
     }
 
     @GetMapping("/login")
@@ -72,7 +75,7 @@ class NutritionPlannerUiController extends SseInteractionController {
     }
 
     private String getAiModelName() {
-        var provider = chatModel.getClass().getSimpleName().replace("ChatModel", "");
+        var provider = environment.matchesProfiles("azure") ? "Azure" : "OpenAI";
         return "%s (%s)".formatted(provider, capitalize(chatModel.getOptions().getModel()));
     }
 

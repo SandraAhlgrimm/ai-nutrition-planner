@@ -6,6 +6,7 @@ import com.embabel.agent.core.AgentProcessStatusCode;
 import com.embabel.agent.core.hitl.FormBindingRequest;
 import com.embabel.common.ai.model.ModelProvider;
 import com.embabel.common.ai.model.ModelSelectionCriteria;
+import org.springframework.core.env.Environment;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -28,13 +29,15 @@ class NutritionPlannerUiController extends SseInteractionController {
 
     private final AgentPlatform agentPlatform;
     private final ModelProvider modelProvider;
+    private final Environment environment;
     private final ConcurrentHashMap<String, HitlHandler> hitlHandlers = new ConcurrentHashMap<>();
 
-    NutritionPlannerUiController(AgentPlatform agentPlatform, ModelProvider modelProvider,
+    NutritionPlannerUiController(AgentPlatform agentPlatform, ModelProvider modelProvider, Environment environment,
                                  TemplateEngine templateEngine, AsyncTaskExecutor taskExecutor) {
         super(templateEngine, taskExecutor);
         this.agentPlatform = agentPlatform;
         this.modelProvider = modelProvider;
+        this.environment = environment;
     }
 
     @GetMapping("/login")
@@ -84,7 +87,8 @@ class NutritionPlannerUiController extends SseInteractionController {
     }
 
     private String getAiModelName() {
+        var provider = environment.matchesProfiles("azure") ? "Azure" : "OpenAI";
         var llm = modelProvider.getLlm(ModelSelectionCriteria.getPlatformDefault());
-        return "%s (%s)".formatted(llm.getProvider(), capitalize(llm.getName()));
+        return "%s (%s)".formatted(provider, capitalize(llm.getName()));
     }
 }

@@ -38,6 +38,11 @@
         </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-experimental-skills-shell</artifactId>
+            <version>${langchain4j-sb4-starter.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-observation</artifactId>
         </dependency>
 

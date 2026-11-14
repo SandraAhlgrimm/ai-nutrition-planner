@@ -31,7 +31,7 @@ The agent creates a personalized weekly meal plan:
 | **Tool Use** — agent calls external functions | ✅ `withToolObject()` | ✅ `@ToolsSupplier` | ✅ `.tools()` on `ChatClient` |
 | **Tool Search** — dynamic tool discovery at runtime | ✅ `@UnfoldingTools` — a facade tool progressively discloses its inner tools on invocation | ✅ `@ToolSearchStrategySupplier` (`SimpleToolSearchStrategy`) — only the tool-search tool is sent to the LLM, which discovers matching tools by keywords | ✅ `tool-search-advisor` — a separate search step discovers tools via metadata before each call |
 | **Human-in-the-Loop** — pause workflow for user input | ✅ `WaitFor.formSubmission()` | ✅ `@HumanInTheLoop` + `SuspendedResponse` | ✅ `AskUserQuestionTool` |
-| **Agent Skills** — invoke pre-packaged executable skills | ✅ `Skills` with script execution engine | ✅ `Skills.from()` via `CustomSkillLoader` | ✅ `SkillsTool` |
+| **Agent Skills** — invoke pre-packaged executable skills | ✅ `Skills` with script execution engine | ✅ `ShellSkills` | ✅ `SkillsTool` |
 | **Multi-Agent Orchestration** — specialized sub-agents collaborate | ✅ goal-driven action graph | ✅ `@SequenceAgent` with sub-agents | ✅ custom orchestration in code — no direct framework support |
 | **Persona** — role-based system prompts per agent | ✅ first-class `Persona` object | ✅ custom implementation via `@SystemMessage` | ✅ custom implementation via `.system()` on `ChatClient` |
 | **MCP Server** — expose agent as a Model Context Protocol tool | ✅ `@Export(remote = true)` | ❌ | ✅ `@McpTool` |

@@ -27,9 +27,15 @@ import dev.langchain4j.service.V;
 import dev.langchain4j.service.tool.ToolProvider;
 import dev.langchain4j.service.tool.search.ToolSearchStrategy;
 import dev.langchain4j.service.tool.search.simple.SimpleToolSearchStrategy;
+import dev.langchain4j.skills.FileSystemSkillLoader;
 import dev.langchain4j.skills.Skills;
+import dev.langchain4j.skills.shell.ShellSkills;
 import org.springframework.core.task.AsyncTaskExecutor;
+import org.springframework.util.ResourceUtils;
 
+import java.io.FileNotFoundException;
+import java.io.UncheckedIOException;
+import java.nio.file.Path;
 import java.util.concurrent.Executor;
 
 interface Agents {
@@ -88,8 +94,6 @@ interface Agents {
 
     interface SeasonalIngredientAgent {
 
-        Skills SKILLS = Skills.from(CustomSkillLoader.loadSkills("skills"));
-
         // Non-Declarative API: AgenticServices.agentBuilder(Agents.SeasonalIngredientAgent.class)
         @UserMessage("""
             You are a nutrition expert with deep knowledge of seasonal produce.
@@ -107,13 +111,27 @@ interface Agents {
             return """
                 You have access to the following skills:
                 %s
-                When the user's request relates to one of these skills, activate it first.
+                When the user's request relates to one of these skills, read its SKILL.md before proceeding.
                 """.formatted(SKILLS.formatAvailableSkills());
         }
 
         @ToolProviderSupplier
         static ToolProvider toolProvider() {
             return SKILLS.toolProvider();
+        }
+
+        ShellSkills SKILLS = skills();
+
+        private static ShellSkills skills() {
+            Path skillsDirectory = null;
+            try {
+                skillsDirectory = ResourceUtils.getFile("classpath:skills").toPath();
+            } catch (FileNotFoundException e) {
+                throw new UncheckedIOException(e);
+            }
+            // Shell commands require the skills on the file system, which is the case for an exploded classpath like
+            // with spring-boot:run or in the container image, but not when running the fat jar with java -jar
+            return ShellSkills.from(FileSystemSkillLoader.loadSkills(skillsDirectory));
         }
     }
 
